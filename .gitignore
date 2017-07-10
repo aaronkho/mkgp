@@ -1,0 +1,7 @@
+# Compiled python modules
+*.py[cod]
+__pycache__/
+
+# Python egg metadata
+*.egg-info/
+*.egg

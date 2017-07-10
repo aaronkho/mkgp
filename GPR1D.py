@@ -1228,7 +1228,7 @@ class GSE_GL_Kernel(Kernel):
 
     def __gauss_ls(self,x,base=1.0,amp=1.0,mu=0.0,sig=1.0,der=0,ghder=None):
         maxfrac = 0.6
-        hh = amp if amp > (maxfrac * base) else maxfrac * base
+        hh = amp if amp < (maxfrac * base) else maxfrac * base
         ls = np.ones(x.shape) * base
         if der == 0:
             if ghder is None:
