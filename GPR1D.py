@@ -26,7 +26,7 @@
 import re
 import copy
 import numpy as np
-import scipy as sp
+import scipy.linalg as spla
 from operator import itemgetter
 import matplotlib.pyplot as plt
 
@@ -1767,12 +1767,12 @@ class GPR1D():
         KKh2 = kk(x1h2,x2h2,der=-1)
         KKd = kk(x1d,x2d,der=2)
         KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
-        LL = sp.linalg.cholesky(KK + np.diag(yef**2.0),lower=True)
-        alpha = sp.linalg.cho_solve((LL,True),yf)
+        LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
+        alpha = spla.cho_solve((LL,True),yf)
         ksb = kk(xs1,xs2,der=-dd) if dd == 1 else kk(xs1,xs2,der=dd)
         ksh = kk(xs1h,xs2h,der=dd+1)
         ks = np.vstack((ksb,ksh))
-        vv = np.dot(LL.T,sp.linalg.cho_solve((LL,True),ks))
+        vv = np.dot(LL.T,spla.cho_solve((LL,True),ks))
         kt = kk(xt1,xt2,der=2*dd)
         barF = np.dot(ks.T,alpha)          # Mean function
         varF = kt - np.dot(vv.T,vv)        # Variance of mean function
@@ -1806,13 +1806,13 @@ class GPR1D():
         (xuu1,xuu2) = np.meshgrid(xnu,xnu)
 
         KK = kk(x1,x2)
-        LL = sp.linalg.cholesky(KK + np.diag(ye**2.0),lower=True)
-        alpha = sp.linalg.cho_solve((LL,True),yy)
+        LL = spla.cholesky(KK + np.diag(ye**2.0),lower=True)
+        alpha = spla.cho_solve((LL,True),yy)
         # Approximation of first derivative of covf (df/dxn1)
         ksl = kk(xl1,xl2)
         ksu = kk(xu1,xu2)
         dks = (ksu.T - ksl.T) / (step * 1.0e-3)
-        dvv = np.dot(LL.T,sp.linalg.cho_solve((LL,True),dks))
+        dvv = np.dot(LL.T,spla.cho_solve((LL,True),dks))
         # Approximation of second derivative of covf (d^2f/dxn1 dxn2)
         ktll = kk(xll1,xll2)
         ktlu = kk(xlu1,xlu2)
@@ -1870,8 +1870,8 @@ class GPR1D():
                 KKh2 = newkk(x1h2,x2h2,der=-1)
                 KKd = newkk(x1d,x2d,der=2)
                 KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
-                LL = sp.linalg.cholesky(KK + np.diag(yef**2.0),lower=True)
-                alpha = sp.linalg.cho_solve((LL,True),yf)
+                LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
+                alpha = spla.cho_solve((LL,True),yf)
                 for ii in np.arange(0,theta_base.size):
                     HHb = newkk(x1,x2,der=0,hder=ii)
                     HHh1 = newkk(x1h1,x2h1,der=1,hder=ii)
@@ -1879,7 +1879,7 @@ class GPR1D():
                     HHd = newkk(x1d,x2d,der=2,hder=ii)
                     HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
                     PP = np.dot(alpha.T,HH)
-                    QQ = sp.linalg.cho_solve((LL,True),HH)
+                    QQ = spla.cho_solve((LL,True),HH)
                     dlml = 0.5 * np.dot(PP,alpha) - 0.5 * np.sum(np.diag(QQ)) 
                     gradtheta[ii] = dlml
             else:
