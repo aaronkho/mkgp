@@ -353,7 +353,7 @@ class Sum_Kernel(OperatorKernel):
             for kk in klist:
                 if isinstance(kk,Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name()
+                    name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
         OperatorKernel.__init__(self,"Sum_"+name,self.__calc_covm,True,uklist)
@@ -414,7 +414,7 @@ class Product_Kernel(OperatorKernel):
             for kk in klist:
                 if isinstance(kk,Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name()
+                    name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
         OperatorKernel.__init__(self,"Prod_"+name,self.__calc_covm,True,uklist)
@@ -2289,7 +2289,7 @@ class GPR1D():
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
                 elif not self._eflag and self.esflag:
                     ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eps))
+                    (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=1.0e-3))
                     self.ekk = copy.copy(ekk)
                     self._eflag = True
                 barE = itemgetter(0)(self.basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))

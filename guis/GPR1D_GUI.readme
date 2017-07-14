@@ -1,0 +1,192 @@
+*** README - GPR1D_GUI ***
+
+Developer: Aaron Ho - a.ho@differ.nl
+Last update: 14/07/2017
+
+
+This GUI encapsulates most of the GPR1D Python class within a
+user-friendly format. It can be used as follows:
+
+1) make sure the path to the cloned repository is on the
+   environmental variable PYTHONPATH. If not, use this command:
+
+   export PYTHONPATH=$PYTHONPATH:/path/to/cloned/repository/
+
+2) copy GPR1D_GUI.py to your working directory or a directory
+   on your PATH variable
+
+
+--- Using the GUI ---
+
+Step 1: Specify data
+
+ Navigate to "Data Entry" tab
+
+   Add Y Data:        button    - adds a row to the data table
+                                  which must then be filled
+                                  cell by cell manually
+
+   Add dY Data:       button    - adds a row to the derivative
+                                  data table which must then
+                                  be filled cell by cell
+                                  manually
+
+   Load Data:         button    - opens file dialog to select
+                                  a text file containing data
+
+     Format of text:   [x data]  [y data]  [y error]  [x error]
+
+                       y error and x error fields can be omitted
+                       and the GUI will automatically fill with
+                       zeros
+
+   Sort Data:         button    - sorts the table rows based on
+                                  the x values, in ascending
+                                  order
+
+   Clean Data:        button    - removes all rows from both
+                                  tables containing invalid or
+                                  missing data and converts all 
+                                  error data to only positive
+                                  numbers
+
+   Clear Data:        button    - erases all data from both
+                                  tables, prompts user for
+                                  confirmation
+
+   Use derivative errors: check - toggles usage of data in the
+                                  derivative table (derivative
+                                  constraints)
+
+   Use x errors:          check - toggles display and usage of
+                                  input x errors
+     NOTE: Running "Clean Data" with this box checked will
+           remove rows where "X Err." field is empty!
+
+
+Step 2: Specify kernels for Gaussian process regression
+
+ Navigate to "Fit Kernel" tab
+
+   Kernel:            drop-down - select which kernel to use in
+                                  fit routine, combinations
+                                  theoretically allowed but not
+                                  yet implemented
+     NOTE: For more information on the kernels, please read
+           "Gaussian Processes for Machine Learning" by
+           C.E. Rasmussen and C.K.I. Williams
+
+   --Hyperparameter Specification--
+
+   Initial Guess:     float     - initial guess for associated
+                                  hyperparameter (>0)
+
+   Lower Bound:       float     - lower bound for associated
+                                  hyperparameter when using
+                                  kernel restarts (>0)
+
+   Upper Bound:       float     - initial guess for associated
+                                  hyperparameter when using
+                                  kernel restarts (>0)
+
+   --Fitting Routine Specification--
+
+   Reg. Parameter:    float     - regularization parameter,
+                                  with higher values enforcing
+                                  greater smoothness (>0)
+
+   Optimize:          check     - toggle gradient ascent search
+                                  for optimum hyperparameters
+                                  (highest log-marginal-
+                                  likelihood)
+
+   Convergence Criteria:  float - set criteria for stopping the
+                                  optimization algorithm (>0)
+
+   Add Noise Kernel:  check     - toggle addition of noise
+                                  kernel to chosen kernel in
+                                  order to model noise
+                                  (effectively increases the
+                                  error bars of fit)
+
+   Noise Hyperparameter:  float - initial guess for noise level
+                                  used by noise kernel
+
+   Use Kernel Restarts:   check - toggle kernel restarts using
+                                  randomized initial guesses
+                                  for hyperparameters within
+                                  specified lower and upper
+                                  bounds, selecting result with
+                                  highest log-marginal-
+                                  likelihood as final fit
+
+   Number of Restarts:      int - number of kernel restarts
+                                  performed by fitting routine
+
+ Navigate to "Error Kernel" tab
+
+   Enable Error Kernel:   check - applies separate GP fit to
+                                  the error data, allowing for
+                                  more rigourous statistical
+                                  treatment of errors via the
+                                  heteroscedastic GP theory
+
+   The other options are identical to the "Fit Kernel" tab
+
+**IMPORTANT!!**
+   A high regularization parameter (>5) for the error kernel is
+   recommended or else fit variance is greatly exaggerated!
+   The error kernel implementation does not actually use the
+   user-specified convergence criteria but will not do the
+   optimization if the "Optimize" box is unchecked.
+
+
+Step 3: Perform Gaussian process regression fits and save data
+
+ Fields on right of GUI, not within a tab
+
+   Start:             float     - starting x value for vector
+                                  which fit is evaluated at
+
+   End:               float     - ending x value for vector
+                                  which fit is evaluated at
+
+   Points:            int       - number of uniformly spaced
+                                  points for vector which fit is
+                                  evaluated at
+
+   Fit Data:          button    - executes GPR fitting routine
+                                  on provided data using the
+                                  specified kernels and routines
+
+   Plot:              button    - plots raw data in black, fit
+                                  in red (if executed), with 1
+                                  sigma uncertainties
+                                  provided x errors only plotted
+                                  "Use x errors" box is checked
+
+   Save Raw Data:     button    - opens dialog box to pick save
+                                  file name, saves as ASCII
+                                  derivative data stored as well
+                                  with an "!" leading the line
+
+   Save Fit Data:     button    - opens dialog box to pick save
+                                  file name, saves as ASCII
+
+**IMPORTANT!!**
+   Clicking "Fit Data" again will overwrite all previous fits!
+
+
+Final Notes:
+   This GUI is provided primarily for users to understand
+   and experiment with the fitting routine on various data,
+   it is NOT meant to handle a large quantity of data!
+
+   For running production runs, please see the gp_demo.py
+   script provided in GPR1D/scripts for learning how to
+   run the fitting routine in an automated fashion.
+
+   If there are questions / bugs / improvements that you
+   wish to communicate to me, feel free to send me an email!
+
+   Email: a.ho@differ.nl
