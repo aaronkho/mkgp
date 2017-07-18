@@ -576,6 +576,20 @@ class GGLKernelWidget(QtGui.QWidget):
         return bounds
 
 
+class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
+
+    def __init__(self, value):
+        super(QCustomTableWidgetItem, self).__init__('%s' % value)
+
+    def __lt__(self, other):
+        if (isinstance(other, QCustomTableWidgetItem)):
+            selfDataValue = float(self.data(QtCore.Qt.EditRole))
+            otherDataValue = float(other.data(QtCore.Qt.EditRole))
+            return selfDataValue < otherDataValue
+        else:
+            return QtGui.QTableWidgetItem.__lt__(self, other)
+
+
 class GPR1D_GUI(QtGui.QWidget):
 
     def __init__(self):
@@ -884,10 +898,10 @@ class GPR1D_GUI(QtGui.QWidget):
                         if len(data) > 0:
                             idx = self.DataTable.rowCount()
                             self.DataTable.insertRow(idx)
-                            self.DataTable.setItem(idx,0,QtGui.QTableWidgetItem(data[0]))
-                            self.DataTable.setItem(idx,1,QtGui.QTableWidgetItem(data[1]))
-                            self.DataTable.setItem(idx,2,QtGui.QTableWidgetItem(data[2]))
-                            self.DataTable.setItem(idx,3,QtGui.QTableWidgetItem(data[3]))
+                            self.DataTable.setItem(idx,0,QCustomTableWidgetItem(data[0]))
+                            self.DataTable.setItem(idx,1,QCustomTableWidgetItem(data[1]))
+                            self.DataTable.setItem(idx,2,QCustomTableWidgetItem(data[2]))
+                            self.DataTable.setItem(idx,3,QCustomTableWidgetItem(data[3]))
                             self.flag_new_data()
                     elif re.search(r'^!+\s+',tline):
                         dline = tline.split()
@@ -906,10 +920,10 @@ class GPR1D_GUI(QtGui.QWidget):
                         if len(data) > 0:
                             idx = self.DerivativeTable.rowCount()
                             self.DerivativeTable.insertRow(idx)
-                            self.DerivativeTable.setItem(idx,0,QtGui.QTableWidgetItem(data[0]))
-                            self.DerivativeTable.setItem(idx,1,QtGui.QTableWidgetItem(data[1]))
-                            self.DerivativeTable.setItem(idx,2,QtGui.QTableWidgetItem(data[2]))
-                            self.DerivativeTable.setItem(idx,3,QtGui.QTableWidgetItem(data[3]))
+                            self.DerivativeTable.setItem(idx,0,QCustomTableWidgetItem(data[0]))
+                            self.DerivativeTable.setItem(idx,1,QCustomTableWidgetItem(data[1]))
+                            self.DerivativeTable.setItem(idx,2,QCustomTableWidgetItem(data[2]))
+                            self.DerivativeTable.setItem(idx,3,QCustomTableWidgetItem(data[3]))
                             self.flag_new_data()
             self.DataTable.resizeRowsToContents()
             self.DerivativeTable.resizeRowsToContents()
@@ -1243,7 +1257,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 for ii in np.arange(0,xfit.size):
                     ff.write("%15.6e%15.6e%15.6e%15.6e%15.6e\n" % (xfit[ii],yfit[ii],yefit[ii],dyfit[ii],dyefit[ii]))
                 ff.close()
-                print("Fit data written into %s" % (filename))
+                print("Fit data written into %s." % (filename))
         else:
             msg = QtGui.QMessageBox()
             msg.setIcon(QtGui.QMessageBox.Warning)

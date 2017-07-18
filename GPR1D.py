@@ -1586,6 +1586,27 @@ class GPR1D():
             self.dlh = float(sdiff)
 
 
+    def get_raw_data(self,conditioned=False):
+        """
+        Returns the input raw data passed in latest set_raw_data() call,
+        with or without omissions / filters / conditioning
+        If set_conditioner() not called, uses default settings for conditioner
+        """
+        cxx = self.xx
+        cyy = self.yy
+        cxe = self.xe
+        cye = self.ye
+        dxx = self.dxx
+        dyy = self.dyy
+        dye = self.dye
+        if conditioned:
+            lb = -1.0e50 if self.lb is None else self.lb
+            ub = 1.0e50 if self.ub is None else self.ub
+            cn = 5.0e-3 if self.cn is None else self.cn
+            (cxx,cyy,cxe,cye,nn) = self._condition_data(cxx,cyy,cxe,cye,lb,ub,cn)
+        return (cxx,cyy,cxe,cye,dxx,dyy,dye)
+
+
     def get_gp_x(self):
         """
         Returns the x-values used in the latest GPRFit() call
@@ -2370,6 +2391,9 @@ class GPR1D():
     def MCMC_posterior_sampling(self,nsamples):
         """
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters, using LML as the likelihood
+        User note: This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
+                   acceptance criterion. However, MCMC analysis is only necessary when using non-Gaussian
+                   likelihoods, otherwise the result is equivalent to gradient ascent optimization of LML
         """
         # Check instantiation of output class variables
         if self._xF is None or self._barF is None or self._varF is None:
