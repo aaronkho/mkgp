@@ -1599,7 +1599,7 @@ class GSE_GL_Kernel(Kernel):
         return kcopy
 
 
-def Kernel_Constructor(name):
+def KernelConstructor(name):
     """
     Function to construct a kernel solely based on the kernel codename.
 
@@ -1613,7 +1613,7 @@ def Kernel_Constructor(name):
             names = m.group(2).split('-')
             kklist = []
             for ii in np.arange(0,len(names)):
-                kklist.append(Kernel_Constructor(names[ii]))
+                kklist.append(KernelConstructor(names[ii]))
             if re.search('^Sum$',m.group(1)):
                 kernel = Sum_Kernel(klist=kklist)
             elif re.search('^Prod$',m.group(1)):
@@ -1642,7 +1642,7 @@ def Kernel_Constructor(name):
     return kernel
 
 
-def Kernel_Reconstructor(name,pars=None,log=False):
+def KernelReconstructor(name,pars=None,log=False):
     """
     Function to reconstruct any kernel from its kernel codename and parameter list,
     useful for saving only necessary data to represent a GPR1D object.
@@ -1654,7 +1654,7 @@ def Kernel_Reconstructor(name,pars=None,log=False):
     :param log: bool. Indicates that pars was passed in as log10(pars).
     """
 
-    kernel = Recursive_Kernel_Constructor(name)
+    kernel = KernelConstructor(name)
     pvec = None
     if isinstance(pars,(list,tuple)):
         pvec = np.array(pars).flatten()

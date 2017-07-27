@@ -13,7 +13,6 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
 from pyqtgraph import setConfigOption
 
-#from EX2GK.GPR1D import GPR1D
 from GPR1D import GPR1D
 
 class SEKernelWidget(QtGui.QWidget):
@@ -301,10 +300,10 @@ class MHKernelWidget(QtGui.QWidget):
         self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaHypEntry.setEnabled(self.aflag)
         self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.SigmaLBEntry = QtGui.QLineEdit()
+        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
         self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.SigmaUBEntry = QtGui.QLineEdit()
+        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
         self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator())
         self.LengthHypLabel = QtGui.QLabel("Length:")
@@ -313,10 +312,10 @@ class MHKernelWidget(QtGui.QWidget):
         self.LengthHypEntry = QtGui.QLineEdit("1.0e0")
         self.LengthHypEntry.setEnabled(self.aflag)
         self.LengthHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.LengthLBEntry = QtGui.QLineEdit()
+        self.LengthLBEntry = QtGui.QLineEdit("1.0e0")
         self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
         self.LengthLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.LengthUBEntry = QtGui.QLineEdit()
+        self.LengthUBEntry = QtGui.QLineEdit("1.0e0")
         self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
         self.LengthUBEntry.setValidator(QtGui.QDoubleValidator())
 
@@ -432,10 +431,10 @@ class GGLKernelWidget(QtGui.QWidget):
         self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaHypEntry.setEnabled(self.aflag)
         self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.SigmaLBEntry = QtGui.QLineEdit()
+        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
         self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.SigmaUBEntry = QtGui.QLineEdit()
+        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
         self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator())
         self.BaseLengthHypLabel = QtGui.QLabel("Base Length:")
@@ -444,10 +443,10 @@ class GGLKernelWidget(QtGui.QWidget):
         self.BaseLengthHypEntry = QtGui.QLineEdit("1.0e0")
         self.BaseLengthHypEntry.setEnabled(self.aflag)
         self.BaseLengthHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.BaseLengthLBEntry = QtGui.QLineEdit()
+        self.BaseLengthLBEntry = QtGui.QLineEdit("1.0e0")
         self.BaseLengthLBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.BaseLengthUBEntry = QtGui.QLineEdit()
+        self.BaseLengthUBEntry = QtGui.QLineEdit("1.0e0")
         self.BaseLengthUBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthUBEntry.setValidator(QtGui.QDoubleValidator())
         self.PeakLengthHypLabel = QtGui.QLabel("Peak Length:")
@@ -456,10 +455,10 @@ class GGLKernelWidget(QtGui.QWidget):
         self.PeakLengthHypEntry = QtGui.QLineEdit("1.0e0")
         self.PeakLengthHypEntry.setEnabled(self.aflag)
         self.PeakLengthHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.PeakLengthLBEntry = QtGui.QLineEdit()
+        self.PeakLengthLBEntry = QtGui.QLineEdit("1.0e0")
         self.PeakLengthLBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakLengthLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.PeakLengthUBEntry = QtGui.QLineEdit()
+        self.PeakLengthUBEntry = QtGui.QLineEdit("1.0e0")
         self.PeakLengthUBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakLengthUBEntry.setValidator(QtGui.QDoubleValidator())
         self.PeakWidthHypLabel = QtGui.QLabel("Gaussian Width:")
@@ -468,10 +467,10 @@ class GGLKernelWidget(QtGui.QWidget):
         self.PeakWidthHypEntry = QtGui.QLineEdit("1.0e0")
         self.PeakWidthHypEntry.setEnabled(self.aflag)
         self.PeakWidthHypEntry.setValidator(QtGui.QDoubleValidator())
-        self.PeakWidthLBEntry = QtGui.QLineEdit()
+        self.PeakWidthLBEntry = QtGui.QLineEdit("1.0e0")
         self.PeakWidthLBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakWidthLBEntry.setValidator(QtGui.QDoubleValidator())
-        self.PeakWidthUBEntry = QtGui.QLineEdit()
+        self.PeakWidthUBEntry = QtGui.QLineEdit("1.0e0")
         self.PeakWidthUBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakWidthUBEntry.setValidator(QtGui.QDoubleValidator())
 
@@ -1138,7 +1137,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
                 ykbounds = np.vstack((ykbounds,np.atleast_2d([1.0e-3,1.0e-1]))) if ykbounds is not None else None
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
-            ykernel = GPR1D.Kernel_Reconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
+            ykernel = GPR1D.KernelReconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
 
             ekernel = None
             ekname = self.EKernelSettings.currentWidget().get_name()
@@ -1155,7 +1154,7 @@ class GPR1D_GUI(QtGui.QWidget):
                     ekhyps = np.hstack((ekhyps,float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([1.0e-3,1.0e-1]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
-                ekernel = GPR1D.Kernel_Reconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
+                ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
 
             try:
                 xnew = np.linspace(float(self.PredictStartEntry.text()),float(self.PredictEndEntry.text()),int(float(self.PredictNPointsEntry.text())))
@@ -1268,7 +1267,7 @@ class GPR1D_GUI(QtGui.QWidget):
 def main():
 
     app = QtGui.QApplication(sys.argv)
-    app.setApplicationName('EX2GK')
+    app.setApplicationName('GPR1D')
     ex = GPR1D_GUI()
 
     sys.exit(app.exec_())
