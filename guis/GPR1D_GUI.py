@@ -276,16 +276,16 @@ class MHKernelWidget(QtGui.QWidget):
 
     def MHKernelUI(self):
 
-        self.MuParLabel = QtGui.QLabel("Integer:")
-        self.MuParLabel.setEnabled(self.aflag)
-        self.MuParLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.MuParEntry = QtGui.QLineEdit("1.0e0")
-        self.MuParEntry.setEnabled(self.aflag)
-        self.MuParEntry.setValidator(QtGui.QDoubleValidator())
+        self.NuParLabel = QtGui.QLabel("Integer:")
+        self.NuParLabel.setEnabled(self.aflag)
+        self.NuParLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.NuParEntry = QtGui.QLineEdit("2")
+        self.NuParEntry.setEnabled(self.aflag)
+        self.NuParEntry.setValidator(QtGui.QIntValidator())
 
         pbox = QtGui.QHBoxLayout()
-        pbox.addWidget(self.MuParLabel)
-        pbox.addWidget(self.MuParEntry)
+        pbox.addWidget(self.NuParLabel)
+        pbox.addWidget(self.NuParEntry)
 
         self.InitGuessLabel = QtGui.QLabel("Initial Guess")
         self.InitGuessLabel.setEnabled(self.aflag)
@@ -355,8 +355,8 @@ class MHKernelWidget(QtGui.QWidget):
             self.aflag = (not self.aflag)
         else:
             self.aflag = True if tOn else False
-        self.MuParLabel.setEnabled(self.aflag)
-        self.MuParEntry.setEnabled(self.aflag)
+        self.NuParLabel.setEnabled(self.aflag)
+        self.NuParEntry.setEnabled(self.aflag)
         self.InitGuessLabel.setEnabled(self.aflag)
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
@@ -382,7 +382,7 @@ class MHKernelWidget(QtGui.QWidget):
             hyps.append(float(self.LengthHypEntry.text()))
             hyps = np.array(hyps).flatten()
             csts = []
-            csts.append(float(self.MuParEntry.text()))
+            csts.append(float(self.NuParEntry.text()))
             csts = np.array(csts).flatten()
         return (hyps,csts)
 
@@ -746,11 +746,23 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YEpsilonEntry.setValidator(QtGui.QDoubleValidator())
         self.YAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
         self.YAddNoiseBox.toggled.connect(self.toggle_noise_kernel_y)
+        self.YNoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
+        self.YNoiseInitGuessLabel.setEnabled(False)
+        self.YNoiseLowerBoundLabel = QtGui.QLabel("Lower Bound")
+        self.YNoiseLowerBoundLabel.setEnabled(False)
+        self.YNoiseUpperBoundLabel = QtGui.QLabel("Upper Bound")
+        self.YNoiseUpperBoundLabel.setEnabled(False)
         self.YNoiseHypLabel = QtGui.QLabel("Noise Hyperparameter:")
         self.YNoiseHypLabel.setEnabled(False)
         self.YNoiseHypEntry = QtGui.QLineEdit("1.0e-2")
         self.YNoiseHypEntry.setEnabled(False)
         self.YNoiseHypEntry.setValidator(QtGui.QDoubleValidator())
+        self.YNoiseLBEntry = QtGui.QLineEdit("1.0e-3")
+        self.YNoiseLBEntry.setEnabled(False)
+        self.YNoiseLBEntry.setValidator(QtGui.QDoubleValidator())
+        self.YNoiseUBEntry = QtGui.QLineEdit("1.0e-2")
+        self.YNoiseUBEntry.setEnabled(False)
+        self.YNoiseUBEntry.setValidator(QtGui.QDoubleValidator())
         self.YKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
         self.YKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_y)
         self.YNRestartsLabel = QtGui.QLabel("Number of Restarts:")
@@ -771,6 +783,16 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSettings.addWidget(self.YGGLKernelSettings)
         self.YKernelSettings.setCurrentIndex(0)
 
+        ynlbox = QtGui.QHBoxLayout()
+        ynlbox.addWidget(self.YNoiseInitGuessLabel)
+        ynlbox.addWidget(self.YNoiseLowerBoundLabel)
+        ynlbox.addWidget(self.YNoiseUpperBoundLabel)
+
+        ynebox = QtGui.QHBoxLayout()
+        ynebox.addWidget(self.YNoiseHypEntry)
+        ynebox.addWidget(self.YNoiseLBEntry)
+        ynebox.addWidget(self.YNoiseUBEntry)
+
         ykbox = QtGui.QFormLayout()
         ykbox.addRow(self.YKernelSelectionLabel,self.YKernelSelectionList)
         ykbox.addRow(self.YKernelSettings)
@@ -778,7 +800,8 @@ class GPR1D_GUI(QtGui.QWidget):
         ykbox.addRow(self.YOptimizeBox)
         ykbox.addRow(self.YEpsilonLabel,self.YEpsilonEntry)
         ykbox.addRow(self.YAddNoiseBox)
-        ykbox.addRow(self.YNoiseHypLabel,self.YNoiseHypEntry)
+        ykbox.addRow("",ynlbox)
+        ykbox.addRow(self.YNoiseHypLabel,ynebox)
         ykbox.addRow(self.YKernelRestartBox)
         ykbox.addRow(self.YNRestartsLabel,self.YNRestartsEntry)
 
@@ -816,11 +839,23 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
         self.EAddNoiseBox.setEnabled(False)
         self.EAddNoiseBox.toggled.connect(self.toggle_noise_kernel_e)
+        self.ENoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
+        self.ENoiseInitGuessLabel.setEnabled(False)
+        self.ENoiseLowerBoundLabel = QtGui.QLabel("Lower Bound")
+        self.ENoiseLowerBoundLabel.setEnabled(False)
+        self.ENoiseUpperBoundLabel = QtGui.QLabel("Upper Bound")
+        self.ENoiseUpperBoundLabel.setEnabled(False)
         self.ENoiseHypLabel = QtGui.QLabel("Noise Hyperparameter:")
         self.ENoiseHypLabel.setEnabled(False)
         self.ENoiseHypEntry = QtGui.QLineEdit("1.0e-3")
         self.ENoiseHypEntry.setEnabled(False)
         self.ENoiseHypEntry.setValidator(QtGui.QDoubleValidator())
+        self.ENoiseLBEntry = QtGui.QLineEdit("1.0e-3")
+        self.ENoiseLBEntry.setEnabled(False)
+        self.ENoiseLBEntry.setValidator(QtGui.QDoubleValidator())
+        self.ENoiseUBEntry = QtGui.QLineEdit("1.0e-2")
+        self.ENoiseUBEntry.setEnabled(False)
+        self.ENoiseUBEntry.setValidator(QtGui.QDoubleValidator())
         self.EKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
         self.EKernelRestartBox.setEnabled(False)
         self.EKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_e)
@@ -843,6 +878,16 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSettings.setEnabled(False)
         self.EKernelSettings.setCurrentIndex(1)
 
+        enlbox = QtGui.QHBoxLayout()
+        enlbox.addWidget(self.ENoiseInitGuessLabel)
+        enlbox.addWidget(self.ENoiseLowerBoundLabel)
+        enlbox.addWidget(self.ENoiseUpperBoundLabel)
+
+        enebox = QtGui.QHBoxLayout()
+        enebox.addWidget(self.ENoiseHypEntry)
+        enebox.addWidget(self.ENoiseLBEntry)
+        enebox.addWidget(self.ENoiseUBEntry)
+
         ekbox = QtGui.QFormLayout()
         ekbox.addRow(self.EKernelSelectionLabel,self.EKernelSelectionList)
         ekbox.addRow(self.EKernelSettings)
@@ -850,7 +895,8 @@ class GPR1D_GUI(QtGui.QWidget):
         ekbox.addRow(self.EOptimizeBox)
         ekbox.addRow(self.EEpsilonLabel,self.EEpsilonEntry)
         ekbox.addRow(self.EAddNoiseBox)
-        ekbox.addRow(self.ENoiseHypLabel,self.ENoiseHypEntry)
+        ekbox.addRow("",enlbox)
+        ekbox.addRow(self.ENoiseHypLabel,enebox)
         ekbox.addRow(self.EKernelRestartBox)
         ekbox.addRow(self.ENRestartsLabel,self.ENRestartsEntry)
 
@@ -1053,14 +1099,23 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YEpsilonEntry.setEnabled(self.YOptimizeBox.isChecked())
 
     def toggle_noise_kernel_y(self):
+        self.YNoiseInitGuessLabel.setEnabled(self.YAddNoiseBox.isChecked())
+        self.YNoiseLowerBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
+        self.YNoiseUpperBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseHypLabel.setEnabled(self.YAddNoiseBox.isChecked())
         self.YNoiseHypEntry.setEnabled(self.YAddNoiseBox.isChecked())
+        self.YNoiseLBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
+        self.YNoiseUBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
 
     def toggle_kernel_restarts_y(self):
         self.YNRestartsLabel.setEnabled(self.YKernelRestartBox.isChecked())
         self.YNRestartsEntry.setEnabled(self.YKernelRestartBox.isChecked())
         for ii in np.arange(0,self.YKernelSettings.count()):
             self.YKernelSettings.widget(ii).toggle_bounds(self.YKernelRestartBox.isChecked())
+        self.YNoiseLowerBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
+        self.YNoiseUpperBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
+        self.YNoiseLBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
+        self.YNoiseUBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
 
     def toggle_error_kernel(self):
         self.EKernelSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked())
@@ -1074,8 +1129,13 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EEpsilonLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
         self.EEpsilonEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
         self.EAddNoiseBox.setEnabled(self.HeteroscedasticBox.isChecked())
+        self.ENoiseInitGuessLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
+        self.ENoiseLowerBoundLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUpperBoundLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseHypLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
         self.ENoiseHypEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
+        self.ENoiseLBEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUBEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.EKernelRestartBox.setEnabled(self.HeteroscedasticBox.isChecked())
         self.ENRestartsLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
@@ -1088,14 +1148,23 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EEpsilonEntry.setEnabled(self.EOptimizeBox.isChecked())
 
     def toggle_noise_kernel_e(self):
+        self.ENoiseInitGuessLabel.setEnabled(self.EAddNoiseBox.isChecked())
+        self.ENoiseLowerBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUpperBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseHypLabel.setEnabled(self.EAddNoiseBox.isChecked())
         self.ENoiseHypEntry.setEnabled(self.EAddNoiseBox.isChecked())
+        self.ENoiseLBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
 
     def toggle_kernel_restarts_e(self):
         self.ENRestartsLabel.setEnabled(self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setEnabled(self.EKernelRestartBox.isChecked())
         for ii in np.arange(0,self.EKernelSettings.count()):
             self.EKernelSettings.widget(ii).toggle_bounds(self.EKernelRestartBox.isChecked())
+        self.ENoiseLowerBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUpperBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseLBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
+        self.ENoiseUBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
 
     def fit_data(self):
         self.clean_data()
@@ -1135,7 +1204,7 @@ class GPR1D_GUI(QtGui.QWidget):
             if self.YAddNoiseBox.isChecked():
                 ykname = 'Sum_' + ykname + '-n'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
-                ykbounds = np.vstack((ykbounds,np.atleast_2d([1.0e-3,1.0e-1]))) if ykbounds is not None else None
+                ykbounds = np.vstack((ykbounds,np.atleast_2d([float(self.YNoiseLBEntry.text()),float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
             ykernel = GPR1D.KernelReconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
 
@@ -1152,7 +1221,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 if self.EAddNoiseBox.isChecked():
                     ekname = 'Sum_' + ekname + '-n'
                     ekhyps = np.hstack((ekhyps,float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
-                    ekbounds = np.vstack((ekbounds,np.atleast_2d([1.0e-3,1.0e-1]))) if ekbounds is not None else None
+                    ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
 
