@@ -1440,7 +1440,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 self.gpr.GPRFit(xnew,nigp_flag=use_xerrs,nrestarts=ynres)
                 self.fNewData = False
                 toc = time.perf_counter()
-                print("Fitting routine completed. Elapsed time: %.5f" % (toc - tic))
+                print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))
                 if (yeps is not None and yeps > 0.0) or (ynres is not None and ynres > 0):
                     fhyps = self.gpr.get_gp_kernel().get_hyperparameters()
                     print("   Optimized hyp.s: ",fhyps)

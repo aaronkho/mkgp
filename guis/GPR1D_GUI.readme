@@ -1,7 +1,13 @@
 *** README - GPR1D_GUI ***
 
 Developer: Aaron Ho - a.ho@differ.nl
-Last update: 14/07/2017
+Last update: 04/08/2017
+Repository: https://gitlab.com/aaronkho/GPR1D.git
+
+The GitLab repository is currently private, so explicit
+permission is required in order to pull it. For those wishing
+to have access, please email me at the address above!
+
 
 
 This GUI encapsulates most of the GPR1D Python class within a
@@ -12,8 +18,8 @@ user-friendly format. It can be used as follows:
 
    export PYTHONPATH=$PYTHONPATH:/path/to/cloned/repository/
 
-2) copy GPR1D_GUI.py to your working directory or a directory
-   on your PATH variable
+2) copy or link GPR1D_GUI.py to your working directory or a
+   directory on your PATH variable
 
 
 --- Using the GUI ---
@@ -88,6 +94,16 @@ Step 2: Specify kernels for Gaussian process regression
    Upper Bound:       float     - upper bound for associated
                                   hyperparameter when using
                                   kernel restarts (>0)
+
+   --Constant Specification--
+
+   Constant Value:    float     - constant value for associated
+                                  parameter
+
+     NOTE: These are not explicitly labelled as such, but it is
+           safe to assume that any fields in the kernel
+           specification area that does not have the "Initial
+           Guess" label represents a constant
 
    --Fitting Routine Specification--
 
