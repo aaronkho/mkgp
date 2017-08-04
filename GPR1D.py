@@ -7,6 +7,7 @@
 import re
 import copy
 import numpy as np
+import scipy.special as spsp
 import scipy.linalg as spla
 from operator import itemgetter
 import matplotlib.pyplot as plt
@@ -45,8 +46,8 @@ class Kernel():
 #        self._parameters = copy.deepcopy(pars) if pars is not None else None
         self._constants = copy.deepcopy(csts) if csts is not None else None
         self._bounds = None
-#        self._hderflag = hderf
-        self._hderflag = False     # d/dhyp capability turned off, further testing required!
+        self._hderflag = hderf
+#        self._hderflag = False     # d/dhyp capability turned off, further testing required!
 
     def __call__(self,x1,x2,der=0,hder=None):
         """
@@ -152,6 +153,15 @@ class Kernel():
             uhyps = np.power(10.0,uhyps)
         if self._hyperparameters is not None:
             if uhyps.size >= self._hyperparameters.size:
+                if self._bounds is not None and self._bounds.shape[1] == self._hyperparameters.size:
+                    htemp = uhyps[:self._hyperparameters.size]
+                    lbounds = self._bounds[0,:].flatten()
+                    lcheck = (htemp < lbounds)
+                    htemp[lcheck] = lbounds[lcheck]
+                    ubounds = self._bounds[1,:].flatten()
+                    ucheck = (htemp > ubounds)
+                    htemp[ucheck] = ubounds[ucheck]
+                    uhyps[:self._hyperparameters.size] = htemp
                 self._hyperparameters = uhyps[:self._hyperparameters.size]
             else:
                 raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
@@ -237,6 +247,14 @@ class Kernel():
         if self._hyperparameters is not None:
             if ubnds.shape[1] >= self._hyperparameters.size:
                 self._bounds = ubnds[:,:self._hyperparmaeters.size]
+                htemp = self._hyperparameters.copy()
+                lbounds = self._bounds[0,:].flatten()
+                lcheck = (htemp < lbounds)
+                htemp[lcheck] = lbounds[lcheck]
+                ubounds = self._bounds[1,:].flatten()
+                ucheck = (htemp > ubounds)
+                htemp[ucheck] = ubounds[ucheck]
+                self._hyperparameters = copy.deepcopy(htemp)
             else:
                 raise ValueError('Arguments lbounds and ubounds must contain at least %d elements.' % (self._constants.size))
         else:
@@ -249,8 +267,8 @@ class OperatorKernel(Kernel):
     Ideology: get/set functions adjusted to call get/set functions of each constituent kernel
     """
     def __init__(self,name="None",func=None,hderf=False,klist=None):
+        super(OperatorKernel,self).__init__(name,func,hderf)
         self._kernel_list = klist if klist is not None else []
-        Kernel.__init__(self,name,func,hderf)
 
     def get_hyperparameters(self,log=False):
         """
@@ -453,6 +471,245 @@ class OperatorKernel(Kernel):
             raise AttributeError('Kernel object has no hyperparameters to set bounds for.')
 
 
+class WarpingFunction():
+    """
+    Base class   *** to be inherited by ALL warping function implementations in order for type checks to succeed ***
+        Type checking done with:     isinstance(<obj>,<this_module>.WarpingFunction)
+    """
+
+#    def __init__(self,name="None",func=None,hderf=False,hyps=None,pars=None,csts=None):
+    def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None):
+        """
+        :param name: str. Codename of WarpingFunction object.
+
+        :param func: callable. Evaluation function of WarpingFunction object.
+
+        :param hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
+
+        :param hyps: array. Hyperparameters to be stored in the WarpingFunction object.
+
+        :param csts: array. Constants to be stored in the WarpingFunction object.
+        """
+
+        self._fname = name
+        self._function = func if func is not None else None
+        self._hyperparameters = copy.deepcopy(hyps) if hyps is not None else None
+#        self._parameters = copy.deepcopy(pars) if pars is not None else None
+        self._constants = copy.deepcopy(csts) if csts is not None else None
+        self._bounds = None
+        self._hderflag = hderf
+#        self._hderflag = False     # d/dhyp capability turned off, further testing required!
+
+    def __call__(self,zz,der=0,hder=None):
+        """
+        :param zz: array. x-values to evaulate the warping function at, can be 1-D or 2-D depending on application.
+
+        :param der: int. Order of x derivative to evaluate the warping function at, requires explicit implementation.
+
+        :param hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
+
+        :returns: array. Warping function evaluations at input x-values, same dimensions as zz.
+        """
+
+        k_out = None
+        if self._function is not None:
+            k_out = self._function(zz,der,hder)
+        else:
+            raise NotImplementedError('Warping function not yet defined.')
+        return k_out
+
+    def get_name(self):
+        """
+        Returns the codename of the WarpingFunction object.
+
+        :returns: str. WarpingFunction codename.
+        """
+
+        return self._fname
+
+    def get_hyperparameters(self,log=False):
+        """
+        Return the hyperparameters stored in the WarpingFunction object.
+
+        :param log: bool. Returns values as log10(values).
+
+        :returns: array. Hyperparameter list.
+        """
+
+        val = np.array([])
+        if self._hyperparameters is not None:
+            val = np.log10(self._hyperparameters) if log else self._hyperparameters
+        return val
+
+#    def get_parameters(self):
+#        """
+#        Return the parameters stored in the WarpingFunction object.
+#
+#        :returns: array. Parameter list.
+#        """
+#
+#        val = np.array([])
+#        if self._parameters is not None:
+#            val = self._parameters
+#        return val
+
+    def get_constants(self):
+        """
+        Return the constants stored in the WarpingFunction object.
+
+        :returns: array. Constant list.
+        """
+
+        val = np.array([])
+        if self._constants is not None:
+            val = self._constants
+        return val
+
+    def get_bounds(self,log=False):
+        """
+        Return the hyperparameter search bounds stored in the WarpingFunction object.
+
+        :returns: array. Bounds list.
+        """
+
+        val = None
+        if self._bounds is not None:
+            val = np.log10(self._bounds) if log else self._bounds
+        return val
+
+    def is_hderiv_implemented(self):
+        return self._hderflag
+
+    def set_hyperparameters(self,theta,log=False):
+        """
+        Set the hyperparameters stored in the WarpingFunction object.
+
+        :param theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
+
+        :param log: bool. Indicates that theta is passed in as log10(theta).
+
+        :returns: none.
+        """
+
+        uhyps = None
+        if isinstance(theta,(list,tuple)):
+            uhyps = np.array(theta).flatten()
+        elif isinstance(theta,np.ndarray):
+            uhyps = theta.flatten()
+        else:
+            raise TypeError('Argument theta must be an array-like object.')
+        if log:
+            uhyps = np.power(10.0,uhyps)
+        if self._hyperparameters is not None:
+            if uhyps.size >= self._hyperparameters.size:
+                if self._bounds is not None and self._bounds.shape[1] == self._hyperparameters.size:
+                    htemp = uhyps[:self._hyperparameters.size]
+                    lbounds = self._bounds[0,:].flatten()
+                    lcheck = (htemp < lbounds)
+                    htemp[lcheck] = lbounds[lcheck]
+                    ubounds = self._bounds[1,:].flatten()
+                    ucheck = (htemp > ubounds)
+                    htemp[ucheck] = ubounds[ucheck]
+                    uhyps[:self._hyperparameters.size] = htemp
+                self._hyperparameters = uhyps[:self._hyperparameters.size]
+            else:
+                raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
+        else:
+            raise AttributeError('WarpingFunction object has no hyperparameters.')
+
+#    def set_parameters(self,params):
+#        """
+#        Set the parameters stored in the WarpingFunction object.
+#
+#        :param params: array. Parameter list to be stored, ordered according to the specific WarpingFunction object.
+#
+#        :returns: none.
+#        """
+#
+#        upars = None
+#        if isinstance(params,(list,tuple)):
+#            upars = np.array(params).flatten()
+#        elif isinstance(params,np.ndarray):
+#            upars = params.flatten()
+#        else:
+#            raise TypeError('Argument params must be an array-like object.')
+#        if self._parameters is not None:
+#            if upars.size >= self._parameters.size:
+#                self._parameters = upars[:self._parameters.size]
+#            else:
+#                raise ValueError('Argument params must contain at least %d elements.' % (self._parameters.size))
+#        else:
+#            raise AttributeError('WarpingFunction object has no parameters.')
+
+    def set_constants(self,consts):
+        """
+        Set the constants stored in the WarpingFunction object.
+
+        :param const: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
+
+        :returns: none.
+        """
+
+        ucsts = None
+        if isinstance(consts,(list,tuple)):
+            ucsts = np.array(consts).flatten()
+        elif isinstance(consts,np.ndarray):
+            ucsts = consts.flatten()
+        else:
+            raise TypeError('Argument consts must be an array-like object.')
+        if self._constants is not None:
+            if ucsts.size >= self._constants.size:
+                self._constants = ucsts[:self._constants.size]
+            else:
+                raise ValueError('Argument consts must contain at least %d elements.' % (self._constants.size))
+        else:
+            raise AttributeError('WarpingFunction object has no constants.')
+
+    def set_bounds(self,lbounds,ubounds,log=False):
+        """
+        Set the hyperparameter bounds stored in the WarpingFunction object.
+
+        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific WarpingFunction object.
+
+        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific WarpingFunction object.
+
+        :param log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
+
+        :returns: none.
+        """
+
+        ubnds = None
+        if isinstance(lbounds,(list,tuple)):
+            ubnds = np.array(lbounds).flatten()
+        elif isinstance(lbounds,np.ndarray):
+            ubnds = lbounds.flatten()
+        else:
+            raise TypeError('Argument lbounds must be an array-like object.')
+        if isinstance(ubounds,(list,tuple)) and len(ubounds) == ubnds.size:
+            ubnds = np.vstack((ubnds,np.array(ubounds).flatten()))
+        elif isinstance(ubounds,np.ndarray) and ubounds.size == ubnds.size:
+            ubnds = np.vstack((ubnds,ubounds.flatten()))
+        else:
+            raise TypeError('Argument ubounds must be an array-like object and have dimensions equal to lbounds.')
+        if log:
+            ubnds = np.power(10.0,ubnds)
+        if self._hyperparameters is not None:
+            if ubnds.shape[1] >= self._hyperparameters.size:
+                self._bounds = ubnds[:,:self._hyperparmaeters.size]
+                htemp = self._hyperparameters.copy()
+                lbounds = self._bounds[0,:].flatten()
+                lcheck = (htemp < lbounds)
+                htemp[lcheck] = lbounds[lcheck]
+                ubounds = self._bounds[1,:].flatten()
+                ucheck = (htemp > ubounds)
+                htemp[ucheck] = ubounds[ucheck]
+                self._hyperparameters = copy.deepcopy(htemp)
+            else:
+                raise ValueError('Arguments lbounds and ubounds must contain at least %d elements.' % (self._constants.size))
+        else:
+            raise AttributeError('WarpingFunction object has no hyperparameters to set bounds for.')
+
+
 # ****************************************************************************************************************************************
 # ------- Place ALL custom kernel implementations BELOW ----------------------------------------------------------------------------------
 # ****************************************************************************************************************************************
@@ -498,7 +755,7 @@ class Sum_Kernel(OperatorKernel):
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
-        OperatorKernel.__init__(self,"Sum_"+name,self.__calc_covm,True,uklist)
+        super(Sum_Kernel,self).__init__("Sum_"+name,self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -566,7 +823,7 @@ class Product_Kernel(OperatorKernel):
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
-        OperatorKernel.__init__(self,"Prod_"+name,self.__calc_covm,True,uklist)
+        super(Product_Kernel,self).__init__("Prod_"+name,self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -621,7 +878,7 @@ class Symmetric_Kernel(OperatorKernel):
             name = name + kk.get_name()
         else:
             raise TypeError('Arguments to Symmetric_Kernel must be Kernel objects.')
-        OperatorKernel.__init__(self,"Sym_"+name,self.__calc_covm,True,uklist)
+        super(Symmetric_Kernel,self).__init__("Sym_"+name,self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -659,7 +916,7 @@ class Constant_Kernel(Kernel):
             csts[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
-        Kernel.__init__(self,"C",self.__calc_covm,True,None,csts)
+        super(Constant_Kernel,self).__init__("C",self.__calc_covm,True,None,csts)
 
     def __copy__(self):
         chp = float(self._constants[0])
@@ -709,7 +966,7 @@ class Noise_Kernel(Kernel):
             hyps[0] = float(nv)
         else:
             raise ValueError('Noise hyperparameter must be a real number.')
-        Kernel.__init__(self,"n",self.__calc_covm,True,hyps)
+        super(Noise_Kernel,self).__init__("n",self.__calc_covm,True,hyps)
 
     def __copy__(self):
         nhp = float(self._hyperparameters[0])
@@ -763,7 +1020,7 @@ class Linear_Kernel(Kernel):
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be greater than 0.')
-        Kernel.__init__(self,"L",self.__calc_covm,True,hyps)
+        super(Linear_Kernel,self).__init__("L",self.__calc_covm,True,hyps)
 
     def __copy__(self):
         chp = float(self._hyperparameters[0])
@@ -828,7 +1085,7 @@ class Poly_Order_Kernel(Kernel):
             hyps[1] = float(cst)
         else:
             raise ValueError('Additive hyperparameter must be greater than 0.')
-        Kernel.__init__(self,"P",self.__calc_covm,True,hyps)
+        super(Poly_Order_Kernel,self).__init__("P",self.__calc_covm,True,hyps)
 
     def __copy__(self):
         chp = float(self._hyperparameters[0])
@@ -850,52 +1107,43 @@ class SE_Kernel(Kernel):
         v_hyp = self._hyperparameters[0]
         l_hyp = self._hyperparameters[1]
         rr = np.abs(x1 - x2)
+        drdx1 = np.sign(x1 - x2)
+        drdx1[drdx1 == 0] = 1.0
+        drdx2 = np.sign(x2 - x1)
+        drdx2[drdx2 == 0] = -1.0
+        nn = int(np.abs(der))
+        dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
+        dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
+
         covm = np.zeros(rr.shape)
-        if der == 0:
-            if hder is None:
-                covm = v_hyp**2.0 * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 0:
-                covm = 2.0 * v_hyp * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 1:
-                covm = np.power(rr,2.0) * v_hyp**2.0 / (l_hyp**3.0) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-        elif der == 1:
-            drdx2 = np.sign(x2 - x1)
-            if hder is None:
-                covm = -drdx2 * v_hyp**2.0 * rr / (l_hyp**2.0) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 0:
-                covm = -drdx2 * 2.0 * v_hyp * rr / (l_hyp**2.0) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 1:
-                hdt1 = -2.0 * v_hyp**2.0 * rr / (l_hyp**3.0)
-                hdt2 = v_hyp**4.0 * np.power(rr,3.0) / (l_hyp**5.0)
-                covm = -drdx2 * (hdt1 + hdt2) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-        elif der == -1:
-            drdx1 = np.sign(x1 - x2)
-            if hder is None:
-                covm = -drdx1 * v_hyp**2.0 * rr / (l_hyp**2.0) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 0:
-                covm = -drdx1 * 2.0 * v_hyp * rr / (l_hyp**2.0) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 1:
-                hdt1 = -2.0 * v_hyp**2.0 * rr / (l_hyp**3.0)
-                hdt2 = v_hyp**4.0 * np.power(rr,3.0) / (l_hyp**5.0)
-                covm = -drdx1 * (hdt1 + hdt2) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-        elif der == 2 or der == -2:
-            drdx1 = np.sign(x1 - x2)
-            drdx1[drdx1==0] = 1.0
-            drdx2 = np.sign(x2 - x1)
-            drdx2[drdx2==0] = -1.0
-            if hder is None:
-                cc = 1.0 / (l_hyp**2.0) - np.power(rr,2.0) / (l_hyp**4.0)
-                covm = -drdx1 * drdx2 * v_hyp**2.0 * cc * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 0:
-                cc = 1.0 / (l_hyp**2.0) - np.power(rr,2.0) / (l_hyp**4.0)
-                covm = -drdx1 * drdx2 * 2.0 * v_hyp * cc * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-            elif hder == 1:
-                cc = 1.0 / (l_hyp**2.0) - np.power(rr,2.0) / (l_hyp**4.0)
-                hdt1 = v_hyp**2.0 * (4.0 * np.power(rr,2.0) / (l_hyp**5.0) - 2.0 / (l_hyp**3.0))
-                hdt2 = v_hyp**2.0 * cc * np.power(rr,2.0) / (l_hyp**3.0)
-                covm = -drdx1 * drdx2 * (hdt1 + hdt2) * np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
-        else:
-            raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
+        if hder is None:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * v_hyp**2.0 / np.power(l_hyp,nn)
+            efac = np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(zz / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                sfac = sfac + cfac * np.power(rr / l_hyp,nn - jj)
+            covm = afac * efac * sfac
+        elif hder == 0:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * 2.0 * v_hyp / np.power(l_hyp,nn)
+            efac = np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - jj) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                sfac = sfac + cfac * np.power(rr / l_hyp,nn - jj)
+            covm = afac * efac * sfac
+        elif hder == 1:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * v_hyp**2.0 / np.power(l_hyp,nn + 1)
+            efac = np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 3,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
+                sfac = sfac + lfac * np.power(rr / l_hyp,nn - jj + 2)
+            covm = afac * efac * sfac
         return covm
 
     def __init__(self,var=1.0,ls=1.0):
@@ -914,7 +1162,7 @@ class SE_Kernel(Kernel):
             hyps[1] = float(ls)
         else:
             raise ValueError('Length scale hyperparameter must be greater than 0.')
-        Kernel.__init__(self,"SE",self.__calc_covm,True,hyps)
+        super(SE_Kernel,self).__init__("SE",self.__calc_covm,True,hyps)
 
     def __copy__(self):
         chp = float(self._hyperparameters[0])
@@ -940,103 +1188,58 @@ class RQ_Kernel(Kernel):
         l_hyp = self._hyperparameters[1]
         a_hyp = self._hyperparameters[2]
         rr = np.abs(x1 - x2)
+        rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
+        drdx1 = np.sign(x1 - x2)
+        drdx1[drdx1 == 0] = 1.0
+        drdx2 = np.sign(x2 - x1)
+        drdx2[drdx2 == 0] = -1.0
+        nn = int(np.abs(der))
+        dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
+        dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
+
         covm = np.zeros(rr.shape)
-        if der == 0:
-            rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
-            if hder is None:
-                rqfac = np.power(rqt,-a_hyp)
-                covm = rq_amp**2.0 * rqfac
-            elif hder == 0:
-                rqfac = np.power(rqt,-a_hyp)
-                covm = 2.0 * rq_amp * rqfac
-            elif hder == 1:
-                rqfac = -np.power(rr,2.0) / (a_hyp * l_hyp**3.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = rq_amp**2.0 * rqfac
-            elif hder == 2:
-                rqfac = (np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt)) * np.power(rqt,-a_hyp)
-                covm = rq_amp**2.0 * rqfac
-        elif der == 1:
-            drdx2 = np.sign(x2 - x1)
-            rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
-            if hder is None:
-                rqfac = (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx2 * rq_amp**2.0 * rqfac
-            elif hder == 0:
-                rqfac = (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx2 * 2.0 * rq_amp * rqfac
-            elif hder == 1:
-                at1 = (a_hyp + 1.0) / a_hyp
-                hdt1 = -2.0 * rr / (l_hyp**3.0)
-                hdt2 = np.power(rr,3.0) / (l_hyp**5.0 * rqt)
-                rqfac = (hdt1 + at1 * hdt2) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx2 * rq_amp**2.0 * rqfac
-            elif hder == 2:
-                at1 = (a_hyp + 1.0) / a_hyp
-                hdt = np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt) / at1
-                rqfac = at1 * hdt * (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx2 * rq_amp**2.0 * rqfac
-        elif der == -1:
-            drdx1 = np.sign(x1 - x2)
-            rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
-            if hder is None:
-                rqfac = (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx1 * rq_amp**2.0 * rqfac
-            elif hder == 0:
-                rqfac = (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx1 * 2.0 * rq_amp * rqfac
-            elif hder == 1:
-                at1 = (a_hyp + 1.0) / a_hyp
-                hdt1 = -2.0 * rr / (l_hyp**3.0)
-                hdt2 = np.power(rr,3.0) / (l_hyp**5.0 * rqt)
-                rqfac = (hdt1 + at1 * hdt2) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx1 * rq_amp**2.0 * rqfac
-            elif hder == 2:
-                at1 = (a_hyp + 1.0) / a_hyp
-                hdt = np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt) / at1
-                rqfac = at1 * hdt * (rr / l_hyp**2.0) * np.power(rqt,-a_hyp - 1.0)
-                covm = -drdx1 * rq_amp**2.0 * rqfac
-        elif der == 2 or der == -2:
-            drdx1 = np.sign(x1 - x2)
-            drdx1[drdx1==0] = 1.0
-            drdx2 = np.sign(x2 - x1)
-            drdx2[drdx2==0] = -1.0
-            rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
-            if hder is None:
-                at1 = (a_hyp + 1.0) / a_hyp
-                rqt1 = rqt / (l_hyp**2.0)
-                rqt2 = -np.power(rr,2.0) / (l_hyp**4.0)
-                rqfac = (rqt1 + at1 * rqt2) * np.power(rqt,-a_hyp - 2.0)
-                covm = -drdx1 * drdx2 * rq_amp**2.0 * rqfac
-            elif hder == 0:
-                at1 = (a_hyp + 1.0) / a_hyp
-                rqt1 = rqt / (l_hyp**2.0)
-                rqt2 = -np.power(rr,2.0) / (l_hyp**4.0)
-                rqfac = (rqt1 + at1 * rqt2) * np.power(rqt,-a_hyp - 2.0)
-                covm = -drdx1 * drdx2 * 2.0 * rq_amp * rqfac
-            elif hder == 1:
-                at1 = (a_hyp + 1.0) / a_hyp
-                at2 = (a_hyp + 2.0) / a_hyp
-                hdt1 = -2.0 * rqt / (l_hyp**3.0)
-                hdt2 = 5.0 * np.power(rr,2.0) / (l_hyp**5.0)
-                hdt3 = -np.power(rr,4.0) / (l_hyp**7.0 * rqt)
-                rqfac = (hdt1 + at1 * hdt2 + at1 * at2 * hdt3) * np.power(rqt,-a_hyp - 2.0)
-                covm = -drdx1 * drdx2 * rq_amp**2.0 * rqfac
-            elif hder == 2:
-                at1 = (a_hyp + 1.0) / a_hyp
-                at2 = (a_hyp + 2.0) / a_hyp
-                at3 = (a_hyp + 3.0) / a_hyp
-                hdt1a = np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt) / at1
-                hdt1 = -at1 * hdt1a * 2.0 / (l_hyp**3.0) * rqt
-                hdt2a = -1.0 / (a_hyp**2.0)
-                hdt2b = np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt) / at2
-                hdt2 = (hdt2a + at1 * at2 * hdt2b) * 5.0 * np.power(rr,2.0) / (l_hyp**5.0)
-                hdt3a = -(4.0 / (a_hyp**3.0) + 3.0 / (a_hyp**2.0))
-                hdt3b = np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0 * rqt) - np.log(rqt) / at3
-                hdt3 = -(hdt3a + at1 * at2 * at3 * hdt2b) * np.power(rr,4.0) / (l_hyp**7.0 * rqt)
-                rqfac = (hdt1 + hdt2 + hdt3) * np.power(rqt,-a_hyp - 2.0)
-                covm = -drdx1 * drdx2 * rq_amp**2.0 * rqfac
-        else:
-            raise NotImplementedError('Derivatives of order 3 or higher not yet implemented in '+self.get_name()+' kernel.')
+        if hder is None:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * rq_amp**2.0 / np.power(l_hyp,nn)
+            efac = np.power(rqt,-a_hyp - float(nn))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
+                sfac = sfac + cfac * gfac * np.power(rr / l_hyp,nn - jj)
+            covm = afac * efac * sfac
+        elif hder == 0:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * 2.0 * rq_amp / np.power(l_hyp,nn)
+            efac = np.power(rqt,-a_hyp - float(nn))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
+                sfac = sfac + cfac * gfac * np.power(rr / l_hyp,nn - jj)
+            covm = afac * efac * sfac
+        elif hder == 1:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * rq_amp**2.0 / np.power(l_hyp,nn)
+            efac = np.power(rqt,-a_hyp - float(nn))
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 3,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
+                gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii) + 1.0) / (np.power(a_hyp,nn - ii + 1) * spsp.gamma(a_hyp))
+                sfac = sfac + lfac * gfac * np.power(rr / l_hyp,nn - jj + 2)
+            covm = afac * efac * sfac
+        elif hder == 2:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * rq_amp**2.0 / np.power(l_hyp,nn)
+            efac = np.power(rqt,-a_hyp - float(nn) - 1.0)
+            sfac = np.zeros(rr.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
+                pfac = (a_hyp - 2.0 * ii) / (a_hyp) * (rqt - 1.0) - float(nn - ii) / a_hyp - rqt * (np.log(rqt) + spsp.digamma(a_hyp + float(nn) - float(ii)) - spsp.digamma(a_hyp))
+                sfac = sfac + cfac * gfac * pfac * np.power(rr / l_hyp,nn - jj)
+            covm = afac * efac * sfac
         return covm
 
     def __init__(self,amp=1.0,ls=1.0,alpha=1.0):
@@ -1061,7 +1264,7 @@ class RQ_Kernel(Kernel):
             hyps[2] = float(alpha)
         else:
             raise ValueError('Rational quadratic alpha parameter must be greater than 0.')
-        Kernel.__init__(self,"RQ",self.__calc_covm,True,hyps)
+        super(RQ_Kernel,self).__init__("RQ",self.__calc_covm,True,hyps)
 
     def __copy__(self):
         ramp = float(self._hyperparameters[0])
@@ -1091,67 +1294,61 @@ class Matern_HI_Kernel(Kernel):
         nu = self._constants[0]
         if nu < np.abs(der):
             raise ValueError('Matern nu parameter must be greater than requested derivative order.')
-        nn = int(nu)
+        pp = int(nu)
         rr = np.abs(x1 - x2)
-        mpre = np.power(2.0,float(nn)) * np.math.factorial(nn) / np.math.factorial(2 * nn)
-        zz = np.sqrt(2.0 * nu) * rr / mat_hyp
+        mht = np.sqrt(2.0 * nu) * rr / mat_hyp
+        drdx1 = np.sign(x1 - x2)
+        drdx1[drdx1 == 0] = 1.0
+        drdx2 = np.sign(x2 - x1)
+        drdx2[drdx2 == 0] = -1.0
+        nn = int(np.abs(der))
+        dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
+        dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
+
         covm = np.zeros(rr.shape)
-        if der == 0:
-            msum = 0.0
-            for jj in np.arange(0,nn+1):
-                sfac = np.math.factorial(nn + jj) / (np.power(2.0,float(jj)) * np.math.factorial(jj) * np.math.factorial(nn - jj))
-                ssum = 0.0
-                for mm in np.arange(0,der+1):
-                    if (nn - jj - mm) >= 0:
-                       dcmb = np.power(-1.0,der + mm) * np.math.factorial(der) / (np.math.factorial(mm) * np.math.factorial(der - mm))
-                       dfac = np.math.factorial(nn - jj) / np.math.factorial(nn - jj - mm)
-                       ssum = ssum + dcmb * dfac * np.power(zz,float(nn - jj - mm))
-                msum = msum + sfac * ssum
-            covm = mat_amp**2.0 * mpre * np.exp(-zz) * msum
-        elif der == 1:
-            drdx2 = np.sign(x2 - x1)
-            msum = 0.0
-            for jj in np.arange(0,nn+1):
-                sfac = np.math.factorial(nn + jj) / (np.power(2.0,float(jj)) * np.math.factorial(jj) * np.math.factorial(nn - jj))
-                ssum = 0.0
-                for mm in np.arange(0,der+1):
-                    if (nn - jj - mm) >= 0:
-                       dcmb = np.power(-1.0,der + mm) * np.math.factorial(der) / (np.math.factorial(mm) * np.math.factorial(der - mm))
-                       dfac = np.math.factorial(nn - jj) / np.math.factorial(nn - jj - mm)
-                       ssum = ssum + dcmb * dfac * np.power(zz,float(nn - jj - mm))
-                msum = msum + sfac * ssum
-            covm = mat_amp**2.0 * drdx2 * mpre * np.exp(-zz) * msum
-        elif der == -1:
-            drdx1 = np.sign(x1 - x2)
-            msum = 0.0
-            for jj in np.arange(0,nn+1):
-                sfac = np.math.factorial(nn + jj) / (np.power(2.0,float(jj)) * np.math.factorial(jj) * np.math.factorial(nn - jj))
-                ssum = 0.0
-                for mm in np.arange(0,der+1):
-                    if (nn - jj - mm) >= 0:
-                       dcmb = np.power(-1.0,der + mm) * np.math.factorial(der) / (np.math.factorial(mm) * np.math.factorial(der - mm))
-                       dfac = np.math.factorial(nn - jj) / np.math.factorial(nn - jj - mm)
-                       ssum = ssum + dcmb * dfac * np.power(zz,float(nn - jj - mm))
-                msum = msum + sfac * ssum
-            covm = mat_amp**2.0 * drdx1 * mpre * np.exp(-zz) * msum
-        elif der == 2 or der == -2:
-            drdx1 = np.sign(x1 - x2)
-            drdx1[drdx1==0] = 1.0
-            drdx2 = np.sign(x2 - x1)
-            drdx2[drdx2==0] = -1.0
-            msum = 0.0
-            for jj in np.arange(0,nn+1):
-                sfac = np.math.factorial(nn + jj) / (np.power(2.0,float(jj)) * np.math.factorial(jj) * np.math.factorial(nn - jj))
-                ssum = 0.0
-                for mm in np.arange(0,der+1):
-                    if (nn - jj - mm) >= 0:
-                       dcmb = np.power(-1.0,der + mm) * np.math.factorial(der) / (np.math.factorial(mm) * np.math.factorial(der - mm))
-                       dfac = np.math.factorial(nn - jj) / np.math.factorial(nn - jj - mm)
-                       ssum = ssum + dcmb * dfac * np.power(zz,float(nn - jj - mm))
-                msum = msum + sfac * ssum
-            covm = mat_amp**2.0 * drdx1 * drdx2 * mpre * np.exp(-zz) * msum
-        else:
-            raise NotImplementedError('Derivatives of order 3 or higher not yet implemented in '+self.get_name()+' kernel.')
+        if hder is None:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * mat_amp**2.0 * np.power(np.sqrt(2.0 * nu) / mat_hyp,nn)
+            efac = np.exp(-mht)
+            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            tfac = np.zeros(rr.shape)
+            for ii in np.arange(0,nn + 1):
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                sfac = np.zeros(rr.shape)
+                for zz in np.arange(0,pp - ii + 1):
+                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
+                tfac = tfac + mfac * sfac
+            covm = afac * efac * tfac
+        elif hder == 0:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * 2.0 * mat_amp * np.power(np.sqrt(2.0 * nu) / mat_hyp,nn)
+            efac = np.exp(-mht)
+            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            tfac = np.zeros(rr.shape)
+            for ii in np.arange(0,nn + 1):
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                sfac = np.zeros(rr.shape)
+                for zz in np.arange(0,pp - ii + 1):
+                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
+                tfac = tfac + mfac * sfac
+            covm = afac * efac * tfac
+        elif hder == 1:
+            afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * mat_amp**2.0 * np.power(np.sqrt(2.0 * nu),nn) / np.power(mat_hyp,nn + 1)
+            efac = np.exp(-mht)
+            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            ofac = np.zeros(rr.shape)
+            for zz in np.arange(0,pp - nn):
+                ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - nn - zz - 1))
+                ofac = ofac + ffac * np.power(2.0 * mht,pp - nn - zz - 1)
+            tfac = -np.power(2.0,nn + 1) * ofac
+            for ii in np.arange(0,nn + 1):
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                sfac = np.zeros(rr.shape)
+                for zz in np.arange(0,pp - ii + 1):
+                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
+                tfac = tfac + mfac * sfac
+            covm = afac * efac * tfac
         return covm
 
     def __init__(self,amp=0.1,ls=0.1,nu=2.5):
@@ -1169,15 +1366,15 @@ class Matern_HI_Kernel(Kernel):
             hyps[0] = float(amp)
         else:
             raise ValueError('Matern amplitude hyperparameter must be greater than 0.')
-        if isinstance(ls,(float,int)) and float(ls) != 0.0:
+        if isinstance(ls,(float,int)) and float(ls) > 0.0:
             hyps[1] = float(ls)
         else:
-            raise ValueError('Matern hyperparameter cannot equal 0.')
+            raise ValueError('Matern length scale hyperparameter must be greater than 0.')
         if isinstance(nu,(float,int)) and float(nu) >= 0.0:
             csts[0] = float(int(nu)) + 0.5
         else:
             raise ValueError('Matern half-integer nu constant must be greater or equal to 0.')
-        Kernel.__init__(self,"MH",self.__calc_covm,False,hyps,csts)
+        super(Matern_HI_Kernel,self).__init__("MH",self.__calc_covm,True,hyps,csts)
 
     def __copy__(self):
         mamp = float(self._hyperparameters[0])
@@ -1262,7 +1459,7 @@ class NN_Kernel(Kernel):
             hyps[2] = float(nnv)
         else:
             raise ValueError('Neural network hyperparameter must be a real number.')
-        Kernel.__init__(self,"NN",self.__calc_covm,False,hyps)
+        super(NN_Kernel,self).__init__("NN",self.__calc_covm,False,hyps)
 
     def __copy__(self):
         nnamp = float(self._hyperparameters[0])
@@ -1272,56 +1469,45 @@ class NN_Kernel(Kernel):
         return kcopy
 
 
-class GSE_GL_Kernel(Kernel):
+class Gibbs_Kernel(Kernel):
     """
-    Gibbs Kernel with Gaussian Length Scale Function: implements a Gibbs covariance function with variable length scale
-    User note: This implementation uses a Gaussian function to define the length scale, but in practice,
-               the function handle self._lfunc can be replaced to any function which produces only positive values
-               and has an implementation of its first derivative via the "der" argument in the call command
+    Gibbs Kernel: implements a Gibbs covariance function with variable length scale defined by a warping
+                  function self._lfunc, which can be any function which produces only positive values
+                  and has an implementation of its first derivative via the "der" argument in its call command
 
     :param var: float. Hyperparameter representing variability of model in y.
 
-    :param lb: float. Hyperparameter representing base variability of model in x, ie. base length scale.
-
-    :param gh: float. Hyperparameter representing maximal variability of model in x, ie. feature length scale.
-
-    :param lm: float. Constant indicating location of maximal variability.
-
-    :param lsig: float. Hyperparameter indicating width of Gaussian envelope adjusting the variability in x.
+    :param wfunc: WarpingFunction object. The parameterized function representing the variability of model in x as a function of x.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
         v_hyp = self._hyperparameters[0]
-        lb_hyp = self._hyperparameters[1]
-        lp_hyp = self._hyperparameters[2]
-        lm_hyp = self._constants[0]
-        ls_hyp = self._hyperparameters[3]
-        l_hyp1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp)
-        l_hyp2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp)
+        l_hyp1 = self._wfunc(x1,0)
+        l_hyp2 = self._wfunc(x2,0)
         rr = x1 - x2
         ll = np.power(l_hyp1,2.0) + np.power(l_hyp2,2.0)
         mm = l_hyp1 * l_hyp2
+        lder = int((int(np.abs(der)) + 1) / 2)
+        hdermax = self._wfunc.get_hyperparameters().size
         covm = np.zeros(rr.shape)
         if der == 0:
-            lder = 0
             if hder is None:
                 covm = v_hyp**2.0 * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
             elif hder == 0:
                 covm = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
-            elif hder >= 1 and hder <= 3:
+            elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                dlh1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
-                dlh2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
+                dlh1 = self._wfunc(x1,lder,ghder)
+                dlh2 = self._wfunc(x2,lder,ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll,2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll,2.0) * dll
                 covm = v_hyp**2.0 * (c1 + c2) * np.exp(-np.power(rr,2.0) / ll)
         elif der == 1:
-            lder = 1
             if hder is None:
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 kfac = v_hyp**2.0 * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
                 t1 = dldx2 / (2.0 * l_hyp2)
                 t2 = -l_hyp2 * dldx2 / ll
@@ -1330,26 +1516,27 @@ class GSE_GL_Kernel(Kernel):
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
                 t1 = dldx2 / (2.0 * l_hyp2)
                 t2 = -l_hyp2 * dldx2 / ll
                 t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll,2.0)
                 t4 = -drdx2 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
-            elif hder >= 1 and hder <= 3:
+            elif hder > 0 and hder <= hdermax:
+                ghder = hder - 1
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
                 t1 = dldx2 / (2.0 * l_hyp2)
                 t2 = -l_hyp2 * dldx2 / ll
                 t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll,2.0)
                 t4 = -drdx2 * 2.0 * rr / ll
-                dlh1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
-                dlh2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
+                dlh1 = self._wfunc(x1,0,ghder)
+                dlh2 = self._wfunc(x2,0,ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
+                ddldx2 = self._wfunc(x2,lder,ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll,2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll,2.0) * dll
                 dkfac = v_hyp**2.0 * (c1 + c2) * np.exp(-np.power(rr,2.0) / ll)
@@ -1359,10 +1546,9 @@ class GSE_GL_Kernel(Kernel):
                 dt4 = drdx2 * 2.0 * rr * dll / np.power(ll,2.0)
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == -1:
-            lder = 1
             if hder is None:
                 drdx1 = np.ones(rr.shape)
-                dldx1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx1 = self._wfunc(x1,lder)
                 kfac = v_hyp**2.0 * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
                 t1 = dldx1 / (2.0 * l_hyp1)
                 t2 = -l_hyp1 * dldx1 / ll
@@ -1370,42 +1556,42 @@ class GSE_GL_Kernel(Kernel):
                 t4 = -drdx1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                drdx1 = np.ones(rr.shape)
+                dldx1 = self._wfunc(x1,lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
-                t1 = dldx2 / (2.0 * l_hyp2)
-                t2 = -l_hyp2 * dldx2 / ll
-                t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll,2.0)
-                t4 = -drdx2 * 2.0 * rr / ll
+                t1 = dldx1 / (2.0 * l_hyp1)
+                t2 = -l_hyp1 * dldx1 / ll
+                t3 = 2.0 * l_hyp1 * dldx1 * np.power(rr / ll,2.0)
+                t4 = -drdx1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder >= 1 and hder <= 3:
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der)
+                ghder = hder - 1
+                drdx1 = np.ones(rr.shape)
+                dldx1 = self._wfunc(x1,lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
-                t1 = dldx2 / (2.0 * l_hyp2)
-                t2 = -l_hyp2 * dldx2 / ll
-                t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll,2.0)
-                t4 = -drdx2 * 2.0 * rr / ll
-                dlh1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der,ghder)
-                dlh2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der,ghder)
+                t1 = dldx1 / (2.0 * l_hyp1)
+                t2 = -l_hyp1 * dldx1 / ll
+                t3 = 2.0 * l_hyp1 * dldx1 * np.power(rr / ll,2.0)
+                t4 = -drdx1 * 2.0 * rr / ll
+                dlh1 = self._wfunc(x1,0,ghder)
+                dlh2 = self._wfunc(x2,0,ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der,ghder)
+                ddldx1 = self._wfunc(x1,lder,ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll,2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll,2.0) * dll
                 dkfac = v_hyp**2.0 * (c1 + c2) * np.exp(-np.power(rr,2.0) / ll)
-                dt1 = ddldx2 / (2.0 * l_hyp2) - dldx2 * dlh2 / (2.0 * np.power(l_hyp2,2.0))
-                dt2 = -dlh2 * dldx2 / ll - l_hyp2 * ddldx2 / ll + l_hyp2 * dldx2 * dll / np.power(ll,2.0)
-                dt3 = (2.0 * dlh2 * dldx2 + 2.0 * l_hyp2 * ddldx2 - 4.0 * l_hyp2 * dldx2 * dll / ll) * np.power(rr / ll,2.0)
-                dt4 = drdx2 * 2.0 * rr * dll / np.power(ll,2.0)
+                dt1 = ddldx1 / (2.0 * l_hyp1) - dldx1 * dlh1 / (2.0 * np.power(l_hyp1,2.0))
+                dt2 = -dlh1 * dldx1 / ll - l_hyp1 * ddldx1 / ll + l_hyp1 * dldx1 * dll / np.power(ll,2.0)
+                dt3 = (2.0 * dlh1 * dldx1 + 2.0 * l_hyp1 * ddldx1 - 4.0 * l_hyp1 * dldx1 * dll / ll) * np.power(rr / ll,2.0)
+                dt4 = drdx1 * 2.0 * rr * dll / np.power(ll,2.0)
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == 2 or der == -2:
-            lder = 1
             if hder is None:
                 drdx1 = np.ones(rr.shape)
-                dldx1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx1 = self._wfunc(x1,lder)
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 dd = dldx1 * dldx2
                 ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
                 jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
@@ -1421,9 +1607,9 @@ class GSE_GL_Kernel(Kernel):
                 covm = kfac * (dt + jt + rt)
             elif hder == 0:
                 drdx1 = np.ones(rr.shape)
-                dldx1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx1 = self._wfunc(x1,lder)
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 dd = dldx1 * dldx2
                 ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
                 jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
@@ -1437,20 +1623,21 @@ class GSE_GL_Kernel(Kernel):
                 jt = jj / ll * (6.0 / ll - 4.0 * np.power(rr / ll,2.0)) - ii / ll
                 rt = 2.0 * drdx1 * drdx2 / np.power(ll,2.0) * (2.0 * np.power(rr,2.0) - ll)
                 covm = kfac * (dt + jt + rt)
-            elif hder >= 1 and hder <= 3:
+            elif hder > 0 and hder <= hdermax:
+                ghder = hder - 1
                 drdx1 = np.ones(rr.shape)
-                dldx1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx1 = self._wfunc(x1,lder)
                 drdx2 = -np.ones(rr.shape)
-                dldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder)
+                dldx2 = self._wfunc(x2,lder)
                 dd = dldx1 * dldx2
                 ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
                 jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
-                dlh1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der,ghder)
-                dlh2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der,ghder)
+                dlh1 = self._wfunc(x1,0,ghder)
+                dlh2 = self._wfunc(x2,0,ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx1 = self._lfunc(x1,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
-                ddldx2 = self._lfunc(x2,lb_hyp,lp_hyp,lm_hyp,ls_hyp,lder,ghder)
+                ddldx1 = self._wfunc(x1,lder,ghder)
+                ddldx2 = self._wfunc(x2,lder,ghder)
                 ddd = ddldx1 * dldx2 + dldx1 * ddldx2
                 dii = drdx1 * rr * ddldx2 / l_hyp2 - drdx1 * rr * dldx2 * dlh2 / np.power(l_hyp2,2.0) + \
                       drdx2 * rr * ddldx1 / l_hyp1 - drdx2 * rr * dldx1 * dlh1 / np.power(l_hyp1,2.0)
@@ -1484,118 +1671,271 @@ class GSE_GL_Kernel(Kernel):
             raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
         return covm
 
-    def __gauss_ls(self,x,base=1.0,amp=1.0,mu=0.0,sig=1.0,der=0,ghder=None):
-        """
-        An inverted Gaussian length scale function, with minimum value (peak value of Gaussian) limited to 0.4 * [base length scale].
-        """
+    def get_lsf_name():
+        return self._wfunc.get_name()
 
-        maxfrac = 0.6
-        hh = amp if amp < (maxfrac * base) else maxfrac * base
-        ls = np.ones(x.shape) * base
-        if der == 0:
-            if ghder is None:
-                ls = base - hh * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 0:
-                ls = np.ones(x.shape)
-            elif ghder == 1:
-                ls = -np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 2:
-                ls = -hh * (np.power(x - mu,2.0) / sig**3.0) * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-        elif der == 1 or der == -1:
-            if ghder is None:
-                ls = hh * (x - mu) / sig**2.0 * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 0:
-                ls = np.zeros(x.shape)
-            elif ghder == 1:
-                ls = (x - mu) / sig**2.0 * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 2:
-                t1 = -2.0 * (x - mu) / sig
-                t2 = np.power((x - mu) / sig,3.0)
-                ls = (t1 + t2) * hh / sig**2.0 * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-        elif der == 2 or der == -2:
-            if ghder is None:
-                t1 = 1.0
-                t2 = -np.power((x - mu) / sig,2.0) 
-                ls = (t1 + t2) * hh / sig**2.0 * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 0:
-                ls = np.zeros(x.shape)
-            elif ghder == 1:
-                t1 = 1.0
-                t2 = -np.power((x - mu) / sig,2.0)
-                ls = (t1 + t2) / sig**2.0 * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-            elif ghder == 2:
-                t1 = -2.0 / sig**3.0
-                t2 = 4.0 * np.power(x - mu,2.0) / sig**5.0
-                t3 = (1.0 - np.power((x - mu) / sig,2.0)) * np.power(x - mu,2.0) / sig**3.0
-                ls = (t1 + t2 + t3) * np.exp(-np.power(x - mu,2.0) / (2.0 * sig**2.0))
-        return ls
-
-    def evaluate_lsf(self,xx,der=0):
-        v_hyp = self._hyperparameters[0]
-        lb_hyp = self._hyperparameters[1]
-        lp_hyp = self._hyperparameters[2]
-        lm_hyp = self._constants[0]
-        ls_hyp = self._hyperparameters[3]
-        lsf = self._lfunc(xx,lb_hyp,lp_hyp,lm_hyp,ls_hyp,der)
+    def evaluate_lsf(self,zz,der=0,hder=None):
+        lsf = self._wfunc(zz,der,hder)
         return lsf
 
-    def set_lsf_mu(self,lm=1.0):
-        """
-        Set the constant mu of the length scale function.
-
-        :param lm" float. Constant indicating location of maximal variability.
-	"""
-
-        if isinstance(lm,(float,int)):
-            self._constants[0] = float(lm)
-        else:
-            raise ValueError('Length scale function exponential mu hyperparameter must be a real number.')
-
-    def __init__(self,var=1.0,lb=1.0,gh=0.5,lm=0.0,lsig=1.0):
+    def __init__(self,var=1.0,wfunc=None):
         """
         :param var: float. Hyperparameter representing variability of model in y.
 
-        :param lb: float. Hyperparameter representing base variability of model in x, ie. base length scale.
-
-        :param gh: float. Hyperparameter representing maximal variability of model in x, ie. feature length scale.
-
-        :param lm: float. Constant indicating location of maximal variability.
-
-        :param lsig: float. Hyperparameter indicating width of Gaussian envelope adjusting the variability in x.
+        :param wfunc: WarpingFunction object. The parameterized function representing the variability of model in x as a function of x.
         """
 
-        self._lfunc = self.__gauss_ls
-        hyps = np.zeros((4,))
-        csts = np.zeros((1,))
+        self._wfunc = None
+        if isinstance(wfunc,WarpingFunction):
+            self._wfunc = copy.copy(wfunc)
+        elif wfunc is None:
+            self._wfunc = Constant_WarpingFunction(1.0e0)
+        wfname = self._wfunc.get_name()
+        wfhyps = self._wfunc.get_hyperparameters()
+        wfcsts = self._wfunc.get_constants()
+
+        hyps = np.zeros((1,))
         if isinstance(var,(float,int)):
             hyps[0] = float(var)
         else:
-            raise ValueError('Constant hyperparameter must be a real number.')
-        if isinstance(lb,(float,int)) and float(lb) > 0.0:
-            hyps[1] = float(lb)
-        else:
-            raise ValueError('Length scale function base hyperparameter must be greater than 0.')
-        if isinstance(gh,(float,int)) and float(gh) > 0.0:
-            hyps[2] = float(gh)
-        else:
-            raise ValueError('Length scale function peak hyperparameter must be greater than 0.')
-        if isinstance(lm,(float,int)):
-            csts[0] = float(lm)
-        else:
-            raise ValueError('Length scale function exponential mu hyperparameter must be a real number.')
-        if isinstance(lsig,(float,int)) and float(lsig) > 0.0:
-            hyps[3] = float(lsig)
-        else:
-            raise ValueError('Length scale function sigma hyperparameter must be greater than 0.')
-        Kernel.__init__(self,"GGL",self.__calc_covm,True,hyps,csts)
+            raise ValueError('Amplitude hyperparameter must be a real number.')
+        hyps = np.hstack((hyps,wfhyps))
+        csts = wfcsts.copy() if wfcsts.size > 0 else None 
+        super(Gibbs_Kernel,self).__init__("Gw"+wfname,self.__calc_covm,True,hyps,csts)
+
+    def set_hyperparameters(self,theta,log=False):
+        """
+        Set the hyperparameters stored in the Gibbs_Kernel object.
+
+        :param theta: array. Hyperparameter list to be stored, ordered according to the specific Kernel object.
+
+        :param log: bool. Indicates that theta is passed in as log10(theta).
+
+        :returns: none.
+        """
+
+        super(Gibbs_Kernel,self).set_hyperparameters(theta,log)
+        if self._hyperparameters.size > 1:
+            self._wfunc.set_hyperparameters(self._hyperparameters[1:])
+
+#    def set_parameters(self,params):
+#        """
+#        Set the parameters stored in the Kernel object.
+#
+#        :param params: array. Parameter list to be stored, ordered according to the specific Kernel object.
+#
+#        :returns: none.
+#        """
+#
+#        super(Gibbs_Kernel,self).set_parameters(params)
+#        if self._parameters.size > 0:
+#            self._wfunc.set_parameters(self._parameters)
+
+    def set_constants(self,consts):
+        """
+        Set the constants stored in the Kernel object.
+
+        :param const: array. Constant list to be stored, ordered according to the specific Kernel object.
+
+        :returns: none.
+        """
+
+        super(Gibbs_Kernel,self).set_constants(consts)
+        if self._constants.size > 0:
+            self._wfunc.set_constants(self._constants)
+
+    def set_bounds(self,lbounds,ubounds,log=False):
+        """
+        Set the hyperparameter bounds stored in the Kernel object.
+
+        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific Kernel object.
+
+        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific Kernel object.
+
+        :param log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
+
+        :returns: none.
+        """
+
+        super(Gibbs_Kernel,self).set_bounds(lbounds,ubounds,log)
+        if self._hyperparameters.size > 1:
+            self._wfunc.set_hyperparameters(self._hyperparameters[1:])        
 
     def __copy__(self):
         chp = float(self._hyperparameters[0])
-        lbhp = float(self._hyperparameters[1])
-        lphp = float(self._hyperparameters[2])
-        lmhp = float(self._constants[0])
-        lshp = float(self._hyperparameters[3])
-        kcopy = GSE_GL_Kernel(chp,lbhp,lphp,lmhp,lshp)
+        wfunc = self._wfunc
+        kcopy = Gibbs_Kernel(chp,wfunc)
+        return kcopy
+
+
+class Constant_WarpingFunction(WarpingFunction):
+    """
+    Constant warping function for Gibbs Kernel: effectively reduces Gibbs kernel to squared-exponential kernel.
+    
+    :param cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
+    """
+
+    def __calc_ls(self,zz,der=0,hder=None):
+        c_hyp = self._hyperparameters[0]
+        ls = np.zeros(zz.shape)
+        if der == 0:
+            if hder is None:
+                ls = c_hyp * np.ones(zz.shape)
+            elif hder == 0:
+                ls = np.ones(zz.shape)
+        return ls
+
+    def __init__(self,cv=1.0):
+        """
+        :param cv: float. Hyperparameter representing constant value which warping function always evaluates to.
+        """
+
+        hyps = np.zeros((1,))
+        if isinstance(cv,(float,int)):
+            hyps[0] = float(cv)
+        else:
+            raise ValueError('Constant value must be a real number.')
+        super(Constant_WarpingFunction,self).__init__("C",self.__calc_ls,True,hyps)
+
+    def __copy__(self):
+        chp = float(self._hyperparameters[0])
+        kcopy = Constant_WarpingFunction(chp)
+        return kcopy
+
+
+class IG_WarpingFunction(WarpingFunction):
+    """
+    Inverse Gaussian warping function for Gibbs Kernel: localized variation of length-scale with variation limit.
+
+    :param lb: float. Hyperparameter representing base length scale.
+
+    :param gh: float. Hyperparameter representing height of Gaussian envelope adjusting the length scale.
+
+    :param gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
+
+    :param gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
+
+    :param mf: float. Constant indicating lower limit for height-to-base ratio, to improve stability.
+    """
+
+    def __calc_ls(self,zz,der=0,hder=None):
+        base = self._hyperparameters[0]
+        amp = self._hyperparameters[1]
+        sig = self._hyperparameters[2]
+        mu = self._constants[0]
+        maxfrac = self._constants[1]
+        nn = int(np.abs(der))
+        hh = amp if amp < (maxfrac * base) else maxfrac * base
+        ls = np.ones(zz.shape) * base
+        if hder is None:
+            afac = -hh * np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn)
+            sfac = np.zeros(zz.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
+            ls = base + afac * sfac if der == 0 else afac * sfac
+        elif hder == 0:
+            ls = np.ones(zz.shape) if der == 0 else np.zeros(zz.shape)
+        elif hder == 1:
+            afac = -np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn)
+            sfac = np.zeros(zz.shape)
+            for jj in np.arange(0,nn + 1,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
+            ls = afac * sfac
+        elif hder == 2:
+            afac = -hh * np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn + 1)
+            sfac = np.zeros(zz.shape)
+            for jj in np.arange(0,nn + 3,2):
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
+                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
+                sfac = sfac + lfac * np.power((zz - mu) / sig,nn - jj + 2)
+            ls = afac * sfac
+        return ls
+
+    def __init__(self,lb=1.0,gh=0.5,gs=1.0,gm=0.0,mf=0.6):
+        """
+        :param lb: float. Hyperparameter representing base length scale.
+
+        :param gh: float. Hyperparameter representing minimal length scale.
+
+        :param gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
+
+        :param gm: float. Constant indicating location of minimal length scale.
+
+        :param mf: float. Constant indicating lower limit for ratio of minimal-to-base length scale, to improve stability.
+        """
+
+        hyps = np.zeros((3,))
+        csts = np.zeros((2,))
+        if isinstance(lb,(float,int)) and float(lb) > 0.0:
+            hyps[0] = float(lb)
+        else:
+            raise ValueError('Length scale function base hyperparameter must be greater than 0.')
+        if isinstance(gh,(float,int)) and float(gh) > 0.0:
+            hyps[1] = float(gh)
+        else:
+            raise ValueError('Length scale function minimum hyperparameter must be greater than 0.')
+        if isinstance(gs,(float,int)) and float(gs) > 0.0:
+            hyps[2] = float(gs)
+        else:
+            raise ValueError('Length scale function sigma hyperparameter must be greater than 0.')
+        if isinstance(gm,(float,int)):
+            csts[0] = float(gm)
+        else:
+            raise ValueError('Length scale function mu constant must be a real number.')
+        if isinstance(mf,(float,int)) and float(mf) < 1.0:
+            csts[1] = float(mf)
+        else:
+            raise ValueError('Length scale function minimum-to-base ratio limit must be less than 1.')
+        if hyps[1] > (csts[1] * hyps[0]):
+            hyps[1] = float(csts[1] * hyps[0])
+        super(IG_WarpingFunction,self).__init__("IG",self.__calc_ls,True,hyps,csts)
+
+    def set_hyperparameters(self,theta,log=False):
+        """
+        Set the hyperparameters stored in the WarpingFunction object.
+
+        :param theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
+
+        :param log: bool. Indicates that theta is passed in as log10(theta).
+
+        :returns: none.
+        """
+
+        super(IG_WarpingFunction,self).set_hyperparameters(theta,log)
+        base = self._hyperparameters[0]
+        amp = self._hyperparameters[1]
+        maxfrac = self._constants[1]
+        if amp > (maxfrac * base):
+            self._hyperparameters[1] = maxfrac * base
+
+    def set_constants(self,consts):
+        """
+        Set the constants stored in the WarpingFunction object.
+
+        :param const: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
+
+        :returns: none.
+        """
+
+        super(IG_WarpingFunction,self).set_constants(consts)
+        base = self._hyperparameters[0]
+        amp = self._hyperparameters[1]
+        maxfrac = self._constants[1]
+        if amp > (maxfrac * base):
+            self._hyperparameters[1] = maxfrac * base
+
+    def __copy__(self):
+        lbhp = float(self._hyperparameters[0])
+        ghhp = float(self._hyperparameters[1])
+        gshp = float(self._hyperparameters[2])
+        gmc = float(self._constants[0])
+        lrc = float(self._constants[1])
+        kcopy = IG_WarpingFunction(lbhp,ghhp,gshp,gmc,lrc)
         return kcopy
 
 
@@ -1637,8 +1977,14 @@ def KernelConstructor(name):
                 kernel = Matern_HI_Kernel()
             elif re.match('^NN$',name):
                 kernel = NN_Kernel()
-            elif re.match('^GGL$',name):
-                kernel = GSE_GL_Kernel()
+            elif re.match('^Gw',name):
+                wname = re.search('^Gw(.*)$',name).group(1)
+                wfunc = None
+                if re.match('^C$',wname):
+                    wfunc = Constant_WarpingFunction()
+                elif re.match('^IG$',wname):
+                    wfunc = IG_WarpingFunction()
+                kernel = Gibbs_Kernel(wfunc=wfunc)
     return kernel
 
 
@@ -1693,16 +2039,16 @@ class GPR1D():
         self.dyy = None
         self.dye = None
         self.eps = None
-        self.slh = 0.005
-        self.dlh = 0.01
+        self.slh = 1.0e-5
+        self.dlh = 1.0e-2
         self.lb = None
         self.ub = None
         self.cn = None
         self.ekk = None
         self.ekb = None
-        self.elp = None
+        self.elp = 6.0
         self.enr = 5
-        self.esflag = True
+        self.eeps = None
         self._ikk = None
         self._xF = None
         self._barF = None
@@ -1855,7 +2201,7 @@ class GPR1D():
             self.ub = None
 
 
-    def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None,searchflag=True):
+    def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None,epsilon=None):
         """
         Specify the kernel that the Gaussian process regression on the error function 
         will be performed with.
@@ -1868,7 +2214,7 @@ class GPR1D():
 
         :param nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
 
-        :param searchflag: bool. Enable hyperparameter optimization of error kernel for error function determination.
+        :param epsilon: bool. Enable hyperparameter optimization of error kernel for error function determination.
 
         :returns: none. Sets internal class variables.
         """
@@ -1895,7 +2241,12 @@ class GPR1D():
             self._eflag = False
         if isinstance(nrestarts,(float,int)):
             self.enr = int(nrestarts) if int(nrestarts) > 0 else 0
-        self.esflag = True if searchflag else False
+        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
+            self.eeps = float(epsilon)
+        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
+            self.eeps = None
+        elif isinstance(epsilon,str):
+            self.eeps = None
 
 
     def set_search_parameters(self,epsilon=None,sgain=None,sdiff=None):
@@ -2316,7 +2667,7 @@ class GPR1D():
                     theta_in[ii] = theta_old[ii] + 0.5 * dlh
                     testkk.set_hyperparameters(theta_in,log=True)
                     ulml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
-                    gradtheta[ii] = (ulml - llml) / dlh
+                    gradtheta[ii] = 1.0e1 * (ulml - llml) / dlh
             theta_new = theta_old + slh * gradtheta
             newkk.set_hyperparameters(theta_new,log=True)
             lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -2744,13 +3095,14 @@ class GPR1D():
             if hscflag:
                 xntest = np.array([0.0])
                 ye = self.ye if self._nye is None else self._nye
-                if isinstance(self.ekk,Kernel) and self.ekb is not None and not self._eflag and self.esflag:
-                    elp = self.elp if self.elp is not None else 6.0
+                if isinstance(self.ekk,Kernel) and self.ekb is not None and not self._eflag and self.eeps is not None:
+                    elp = self.elp
                     ekk = copy.copy(self.ekk)
+                    eeps = self.eeps
                     ekkvec = []
                     elmlvec = []
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=1.0e-3))
+                        (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
@@ -2760,7 +3112,7 @@ class GPR1D():
                         etheta = np.abs(self.ekb[:,1] - self.ekb[:,0]).flatten() * np.random.random_sample((self.ekb.shape[0],)) + np.nanmin(self.ekb,axis=1).flatten()
                         ekk.set_hyperparameters(etheta,log=True)
                         try:
-                            (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=1.0e-3))
+                            (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
                             ekkvec.append(copy.copy(ekk))
                             elmlvec.append(elml)
                         except (ValueError,np.linalg.linalg.LinAlgError):
@@ -2773,9 +3125,9 @@ class GPR1D():
                         self._eflag = True
                     else:
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-                elif not self._eflag and self.esflag:
+                elif not self._eflag and self.eeps is not None:
                     ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=1.0e-3))
+                    (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
                     self.ekk = copy.copy(ekk)
                     self._eflag = True
                 barE = itemgetter(0)(self.basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
