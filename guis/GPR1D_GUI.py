@@ -5,6 +5,7 @@ import os
 import sys
 import re
 import pwd
+import time
 import copy
 import pickle
 import numpy as np
@@ -396,27 +397,16 @@ class MHKernelWidget(QtGui.QWidget):
         return bounds
 
 
-class GGLKernelWidget(QtGui.QWidget):
+class GibbsKernelWidget(QtGui.QWidget):
 
     def __init__(self,fOn=True,fRestart=False):
-        super(GGLKernelWidget, self).__init__()
-        self.name = "GGL"
+        super(GibbsKernelWidget, self).__init__()
+        self.name = "Gw"
         self.aflag = True if fOn else False
         self.bflag = True if fRestart else False
-        self.GGLKernelUI()
+        self.GibbsKernelUI()
 
-    def GGLKernelUI(self):
-
-        self.MuParLabel = QtGui.QLabel("Gaussian Peak Location:")
-        self.MuParLabel.setEnabled(self.aflag)
-        self.MuParLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.MuParEntry = QtGui.QLineEdit("1.0e0")
-        self.MuParEntry.setEnabled(self.aflag)
-        self.MuParEntry.setValidator(QtGui.QDoubleValidator())
-
-        pbox = QtGui.QHBoxLayout()
-        pbox.addWidget(self.MuParLabel)
-        pbox.addWidget(self.MuParEntry)
+    def GibbsKernelUI(self):
 
         self.InitGuessLabel = QtGui.QLabel("Initial Guess")
         self.InitGuessLabel.setEnabled(self.aflag)
@@ -424,7 +414,6 @@ class GGLKernelWidget(QtGui.QWidget):
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-
         self.SigmaHypLabel = QtGui.QLabel("Amplitude:")
         self.SigmaHypLabel.setEnabled(self.aflag)
         self.SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
@@ -437,6 +426,216 @@ class GGLKernelWidget(QtGui.QWidget):
         self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
         self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
         self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator())
+
+        gbox = QtGui.QGridLayout()
+        gbox.addWidget(self.InitGuessLabel,0,1)
+        gbox.addWidget(self.LowerBoundLabel,0,2)
+        gbox.addWidget(self.UpperBoundLabel,0,3)
+        gbox.addWidget(self.SigmaHypLabel,1,0)
+        gbox.addWidget(self.SigmaHypEntry,1,1)
+        gbox.addWidget(self.SigmaLBEntry,1,2)
+        gbox.addWidget(self.SigmaUBEntry,1,3)
+
+        self.WarpFuncSelectionLabel = QtGui.QLabel("Warping Function:")
+        self.WarpFuncSelectionList = QtGui.QComboBox()
+        self.WarpFuncSelectionList.addItem("Constant Function")
+        self.WarpFuncSelectionList.addItem("Inverse Gaussian")
+        self.WarpFuncSelectionList.setCurrentIndex(1)
+        self.WarpFuncSelectionList.currentIndexChanged.connect(self.switch_warpfunc_ui)
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.WarpFuncSelectionLabel,self.WarpFuncSelectionList)
+
+        self.CWarpFuncSettings = CWarpFunctionWidget(self.aflag,self.bflag)
+        self.IGWarpFuncSettings = IGWarpFunctionWidget(self.aflag,self.bflag)
+
+        self.WarpFuncSettings = QtGui.QStackedLayout()
+        self.WarpFuncSettings.addWidget(self.CWarpFuncSettings)
+        self.WarpFuncSettings.addWidget(self.IGWarpFuncSettings)
+        self.WarpFuncSettings.setCurrentIndex(1)
+
+        tbox = QtGui.QVBoxLayout()
+        tbox.addLayout(gbox)
+        tbox.addLayout(fbox)
+        tbox.addLayout(self.WarpFuncSettings)
+
+        self.setLayout(tbox)
+
+    def switch_warpfunc_ui(self):
+        self.WarpFuncSettings.setCurrentIndex(self.WarpFuncSelectionList.currentIndex())
+
+    def toggle_bounds(self,tRestart=None):
+        if tRestart is None:
+            self.bflag = (not self.bflag)
+        else:
+            self.bflag = True if tRestart else False
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        for ii in np.arange(0,self.WarpFuncSettings.count()):
+            self.WarpFuncSettings.widget(ii).toggle_bounds(self.bflag)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.SigmaHypLabel.setEnabled(self.aflag)
+        self.SigmaHypEntry.setEnabled(self.aflag)
+        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        self.WarpFuncSelectionLabel.setEnabled(self.aflag)
+        self.WarpFuncSelectionList.setEnabled(self.aflag)
+        for ii in np.arange(0,self.WarpFuncSettings.count()):
+            self.WarpFuncSettings.widget(ii).toggle_all(self.aflag)
+
+    def get_name(self):
+        name = None
+        if self.aflag:
+            idx = self.WarpFuncSettings.currentIndex()
+            wname = self.WarpFuncSettings.widget(idx).get_name()
+            name = self.name + wname
+        return name
+
+    def get_initial_guess(self):
+        hyps = None
+        csts = None
+        if self.aflag:
+            idx = self.WarpFuncSettings.currentIndex()
+            (whyps,wcsts) = self.WarpFuncSettings.widget(idx).get_initial_guess()
+            hyps = []
+            hyps.append(float(self.SigmaHypEntry.text()))
+            hyps = np.array(hyps).flatten()
+            csts = []
+            csts = np.array(csts).flatten()
+            if whyps is not None:
+                hyps = np.hstack((hyps,whyps))
+            if wcsts is not None:
+                csts = np.hstack((csts,wcsts))
+        return (hyps,csts)
+
+    def get_bounds(self):
+        bounds = None
+        if self.aflag and self.bflag:
+            idx = self.WarpFuncSettings.currentIndex()
+            wbounds = self.WarpFuncSettings.widget(idx).get_bounds()
+            bounds = []
+            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
+            bounds = np.atleast_2d(bounds)
+            if wbounds is not None:
+                bounds = np.vstack((bounds,wbounds))
+        return bounds
+
+
+class CWarpFunctionWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True,fRestart=False):
+        super(CWarpFunctionWidget,self).__init__()
+        self.name = "C"
+        self.aflag = True if fOn else False
+        self.bflag = True if fRestart else False
+        self.CWarpFunctionUI()
+
+    def CWarpFunctionUI(self):
+
+        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthHypLabel = QtGui.QLabel("Base Length:")
+        self.ConstantLengthHypLabel.setEnabled(self.aflag)
+        self.ConstantLengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.ConstantLengthHypEntry = QtGui.QLineEdit("1.0e0")
+        self.ConstantLengthHypEntry.setEnabled(self.aflag)
+        self.ConstantLengthHypEntry.setValidator(QtGui.QDoubleValidator())
+        self.ConstantLengthLBEntry = QtGui.QLineEdit("1.0e0")
+        self.ConstantLengthLBEntry.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthLBEntry.setValidator(QtGui.QDoubleValidator())
+        self.ConstantLengthUBEntry = QtGui.QLineEdit("1.0e0")
+        self.ConstantLengthUBEntry.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthUBEntry.setValidator(QtGui.QDoubleValidator())
+
+        gbox = QtGui.QGridLayout()
+        gbox.addWidget(self.InitGuessLabel,0,1)
+        gbox.addWidget(self.LowerBoundLabel,0,2)
+        gbox.addWidget(self.UpperBoundLabel,0,3)
+        gbox.addWidget(self.ConstantLengthHypLabel,1,0)
+        gbox.addWidget(self.ConstantLengthHypEntry,1,1)
+        gbox.addWidget(self.ConstantLengthLBEntry,1,2)
+        gbox.addWidget(self.ConstantLengthUBEntry,1,3)
+
+        self.setLayout(gbox)
+
+    def toggle_bounds(self,tRestart=None):
+        if tRestart is None:
+            self.bflag = (not self.bflag)
+        else:
+            self.bflag = True if tRestart else False
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthLBEntry.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthUBEntry.setEnabled(self.aflag and self.bflag)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthHypLabel.setEnabled(self.aflag)
+        self.ConstantLengthHypEntry.setEnabled(self.aflag)
+        self.ConstantLengthLBEntry.setEnabled(self.aflag and self.bflag)
+        self.ConstantLengthUBEntry.setEnabled(self.aflag and self.bflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_initial_guess(self):
+        hyps = None
+        csts = None
+        if self.aflag:
+            hyps = []
+            hyps.append(float(self.ConstantLengthHypEntry.text()))
+            hyps = np.array(hyps).flatten()
+            csts = []
+            csts = np.array(csts).flatten()
+        return (hyps,csts)
+
+    def get_bounds(self):
+        bounds = None
+        if self.aflag and self.bflag:
+            bounds = []
+            bounds.append([float(self.ConstantLengthLBEntry.text()),float(self.ConstantLengthUBEntry.text())])
+            bounds = np.atleast_2d(bounds)
+        return bounds
+
+
+class IGWarpFunctionWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True,fRestart=False):
+        super(IGWarpFunctionWidget,self).__init__()
+        self.name = "IG"
+        self.aflag = True if fOn else False
+        self.bflag = True if fRestart else False
+        self.IGWarpFunctionUI()
+
+    def IGWarpFunctionUI(self):
+
+        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
         self.BaseLengthHypLabel = QtGui.QLabel("Base Length:")
         self.BaseLengthHypLabel.setEnabled(self.aflag)
         self.BaseLengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
@@ -449,7 +648,7 @@ class GGLKernelWidget(QtGui.QWidget):
         self.BaseLengthUBEntry = QtGui.QLineEdit("1.0e0")
         self.BaseLengthUBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthUBEntry.setValidator(QtGui.QDoubleValidator())
-        self.PeakLengthHypLabel = QtGui.QLabel("Peak Length:")
+        self.PeakLengthHypLabel = QtGui.QLabel("Gaussian Height:")
         self.PeakLengthHypLabel.setEnabled(self.aflag)
         self.PeakLengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
         self.PeakLengthHypEntry = QtGui.QLineEdit("1.0e0")
@@ -478,26 +677,37 @@ class GGLKernelWidget(QtGui.QWidget):
         gbox.addWidget(self.InitGuessLabel,0,1)
         gbox.addWidget(self.LowerBoundLabel,0,2)
         gbox.addWidget(self.UpperBoundLabel,0,3)
-        gbox.addWidget(self.SigmaHypLabel,1,0)
-        gbox.addWidget(self.SigmaHypEntry,1,1)
-        gbox.addWidget(self.SigmaLBEntry,1,2)
-        gbox.addWidget(self.SigmaUBEntry,1,3)
-        gbox.addWidget(self.BaseLengthHypLabel,2,0)
-        gbox.addWidget(self.BaseLengthHypEntry,2,1)
-        gbox.addWidget(self.BaseLengthLBEntry,2,2)
-        gbox.addWidget(self.BaseLengthUBEntry,2,3)
-        gbox.addWidget(self.PeakLengthHypLabel,3,0)
-        gbox.addWidget(self.PeakLengthHypEntry,3,1)
-        gbox.addWidget(self.PeakLengthLBEntry,3,2)
-        gbox.addWidget(self.PeakLengthUBEntry,3,3)
-        gbox.addWidget(self.PeakWidthHypLabel,4,0)
-        gbox.addWidget(self.PeakWidthHypEntry,4,1)
-        gbox.addWidget(self.PeakWidthLBEntry,4,2)
-        gbox.addWidget(self.PeakWidthUBEntry,4,3)
+        gbox.addWidget(self.BaseLengthHypLabel,1,0)
+        gbox.addWidget(self.BaseLengthHypEntry,1,1)
+        gbox.addWidget(self.BaseLengthLBEntry,1,2)
+        gbox.addWidget(self.BaseLengthUBEntry,1,3)
+        gbox.addWidget(self.PeakLengthHypLabel,2,0)
+        gbox.addWidget(self.PeakLengthHypEntry,2,1)
+        gbox.addWidget(self.PeakLengthLBEntry,2,2)
+        gbox.addWidget(self.PeakLengthUBEntry,2,3)
+        gbox.addWidget(self.PeakWidthHypLabel,3,0)
+        gbox.addWidget(self.PeakWidthHypEntry,3,1)
+        gbox.addWidget(self.PeakWidthLBEntry,3,2)
+        gbox.addWidget(self.PeakWidthUBEntry,3,3)
+
+        self.MuCstLabel = QtGui.QLabel("Gaussian Peak Location:")
+        self.MuCstLabel.setEnabled(self.aflag)
+        self.MuCstEntry = QtGui.QLineEdit("1.0e0")
+        self.MuCstEntry.setEnabled(self.aflag)
+        self.MuCstEntry.setValidator(QtGui.QDoubleValidator())
+        self.MaxFracCstLabel = QtGui.QLabel("Maximum Peak-to-Base Ratio:")
+        self.MaxFracCstLabel.setEnabled(self.aflag)
+        self.MaxFracCstEntry = QtGui.QLineEdit("5.0e-1")
+        self.MaxFracCstEntry.setEnabled(self.aflag)
+        self.MaxFracCstEntry.setValidator(QtGui.QDoubleValidator())
+
+        cbox = QtGui.QFormLayout()
+        cbox.addRow(self.MuCstLabel,self.MuCstEntry)
+        cbox.addRow(self.MaxFracCstLabel,self.MaxFracCstEntry)
 
         tbox = QtGui.QVBoxLayout()
-        tbox.addLayout(pbox)
         tbox.addLayout(gbox)
+        tbox.addLayout(cbox)
 
         self.setLayout(tbox)
 
@@ -508,8 +718,6 @@ class GGLKernelWidget(QtGui.QWidget):
             self.bflag = True if tRestart else False
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthLBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthUBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakLengthLBEntry.setEnabled(self.aflag and self.bflag)
@@ -522,15 +730,9 @@ class GGLKernelWidget(QtGui.QWidget):
             self.aflag = (not self.aflag)
         else:
             self.aflag = True if tOn else False
-        self.MuParLabel.setEnabled(self.aflag)
-        self.MuParEntry.setEnabled(self.aflag)
         self.InitGuessLabel.setEnabled(self.aflag)
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
         self.BaseLengthHypLabel.setEnabled(self.aflag)
         self.BaseLengthHypEntry.setEnabled(self.aflag)
         self.BaseLengthLBEntry.setEnabled(self.aflag and self.bflag)
@@ -543,6 +745,10 @@ class GGLKernelWidget(QtGui.QWidget):
         self.PeakWidthHypEntry.setEnabled(self.aflag)
         self.PeakWidthLBEntry.setEnabled(self.aflag and self.bflag)
         self.PeakWidthUBEntry.setEnabled(self.aflag and self.bflag)
+        self.MuCstLabel.setEnabled(self.aflag)
+        self.MuCstEntry.setEnabled(self.aflag)
+        self.MaxFracCstLabel.setEnabled(self.aflag)
+        self.MaxFracCstEntry.setEnabled(self.aflag)
 
     def get_name(self):
         name = self.name if self.aflag else None
@@ -553,13 +759,13 @@ class GGLKernelWidget(QtGui.QWidget):
         csts = None
         if self.aflag:
             hyps = []
-            hyps.append(float(self.SigmaHypEntry.text()))
             hyps.append(float(self.BaseLengthHypEntry.text()))
             hyps.append(float(self.PeakLengthHypEntry.text()))
             hyps.append(float(self.PeakWidthHypEntry.text()))
             hyps = np.array(hyps).flatten()
             csts = []
-            csts.append(float(self.MuParEntry.text()))
+            csts.append(float(self.MuCstEntry.text()))
+            csts.append(float(self.MaxFracCstEntry.text()))
             csts = np.array(csts).flatten()
         return (hyps,csts)
 
@@ -567,7 +773,6 @@ class GGLKernelWidget(QtGui.QWidget):
         bounds = None
         if self.aflag and self.bflag:
             bounds = []
-            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
             bounds.append([float(self.BaseLengthLBEntry.text()),float(self.BaseLengthUBEntry.text())])
             bounds.append([float(self.PeakLengthLBEntry.text()),float(self.PeakLengthUBEntry.text())])
             bounds.append([float(self.PeakWidthLBEntry.text()),float(self.PeakWidthUBEntry.text())])
@@ -730,7 +935,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSelectionList.addItem("Squared Exponential")
         self.YKernelSelectionList.addItem("Rational Quadratic")
         self.YKernelSelectionList.addItem("Matern Half-Integer")
-        self.YKernelSelectionList.addItem("Gibbs - Gaussian l-Function")
+        self.YKernelSelectionList.addItem("Gibbs Kernel")
         self.YKernelSelectionList.setCurrentIndex(0)
         self.YKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_y)
 
@@ -774,13 +979,13 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YSEKernelSettings = SEKernelWidget(True,self.YKernelRestartBox.isChecked())
         self.YRQKernelSettings = RQKernelWidget(True,self.YKernelRestartBox.isChecked())
         self.YMHKernelSettings = MHKernelWidget(True,self.YKernelRestartBox.isChecked())
-        self.YGGLKernelSettings = GGLKernelWidget(True,self.YKernelRestartBox.isChecked())
+        self.YGGKernelSettings = GibbsKernelWidget(True,self.YKernelRestartBox.isChecked())
 
         self.YKernelSettings = QtGui.QStackedLayout()
         self.YKernelSettings.addWidget(self.YSEKernelSettings)
         self.YKernelSettings.addWidget(self.YRQKernelSettings)
         self.YKernelSettings.addWidget(self.YMHKernelSettings)
-        self.YKernelSettings.addWidget(self.YGGLKernelSettings)
+        self.YKernelSettings.addWidget(self.YGGKernelSettings)
         self.YKernelSettings.setCurrentIndex(0)
 
         ynlbox = QtGui.QHBoxLayout()
@@ -819,7 +1024,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSelectionList.addItem("Squared Exponential")
         self.EKernelSelectionList.addItem("Rational Quadratic")
         self.EKernelSelectionList.addItem("Matern Half-Integer")
-        self.EKernelSelectionList.addItem("Gibbs - Gaussian l-Function")
+        self.EKernelSelectionList.addItem("Gibbs Kernel")
         self.EKernelSelectionList.setCurrentIndex(1)
         self.EKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_e)
 
@@ -833,7 +1038,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EOptimizeBox.toggled.connect(self.toggle_optimize_e)
         self.EEpsilonLabel = QtGui.QLabel("Convergence Criteria:")
         self.EEpsilonLabel.setEnabled(False)
-        self.EEpsilonEntry = QtGui.QLineEdit("1.0e-3")
+        self.EEpsilonEntry = QtGui.QLineEdit("1.0e-1")
         self.EEpsilonEntry.setEnabled(False)
         self.EEpsilonEntry.setValidator(QtGui.QDoubleValidator())
         self.EAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
@@ -868,13 +1073,13 @@ class GPR1D_GUI(QtGui.QWidget):
         self.ESEKernelSettings = SEKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
         self.ERQKernelSettings = RQKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
         self.EMHKernelSettings = MHKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
-        self.EGGLKernelSettings = GGLKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
+        self.EGGKernelSettings = GibbsKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
 
         self.EKernelSettings = QtGui.QStackedLayout()
         self.EKernelSettings.addWidget(self.ESEKernelSettings)
         self.EKernelSettings.addWidget(self.ERQKernelSettings)
         self.EKernelSettings.addWidget(self.EMHKernelSettings)
-        self.EKernelSettings.addWidget(self.EGGLKernelSettings)
+        self.EKernelSettings.addWidget(self.EGGKernelSettings)
         self.EKernelSettings.setEnabled(False)
         self.EKernelSettings.setCurrentIndex(1)
 
@@ -1200,7 +1405,7 @@ class GPR1D_GUI(QtGui.QWidget):
             (ykhyps,ykcsts) = self.YKernelSettings.currentWidget().get_initial_guess()
             ykbounds = self.YKernelSettings.currentWidget().get_bounds()
             yregpar = float(self.YRegularizationEntry.text()) if self.YRegularizationEntry.text() else None
-            yeps = float(self.YEpsilonEntry.text()) if self.YOptimizeBox.isChecked() else None
+            yeps = float(self.YEpsilonEntry.text()) if self.YOptimizeBox.isChecked() and self.YEpsilonEntry.text() else 'None'
             if self.YAddNoiseBox.isChecked():
                 ykname = 'Sum_' + ykname + '-n'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
@@ -1213,11 +1418,11 @@ class GPR1D_GUI(QtGui.QWidget):
             (ekhyps,ekcsts) = self.EKernelSettings.currentWidget().get_initial_guess()
             ekbounds = self.EKernelSettings.currentWidget().get_bounds()
             eregpar = None
-            efsearch = False
+            eeps = 'None'
             enres = None
             if self.HeteroscedasticBox.isChecked():
                 eregpar = float(self.ERegularizationEntry.text()) if self.ERegularizationEntry.text() else None
-                efsearch = True if self.EOptimizeBox.isChecked() else False
+                eeps = float(self.EEpsilonEntry.text()) if self.EOptimizeBox.isChecked() and self.EEpsilonEntry.text() else 'None'
                 if self.EAddNoiseBox.isChecked():
                     ekname = 'Sum_' + ekname + '-n'
                     ekhyps = np.hstack((ekhyps,float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
@@ -1226,14 +1431,19 @@ class GPR1D_GUI(QtGui.QWidget):
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
 
             try:
+                tic = time.perf_counter()
                 xnew = np.linspace(float(self.PredictStartEntry.text()),float(self.PredictEndEntry.text()),int(float(self.PredictNPointsEntry.text())))
                 self.gpr.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=dxx,dydata=dyy,dyerr=dye)
                 self.gpr.set_kernel(kernel=ykernel,kbounds=ykbounds,regpar=yregpar)
-                self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres,searchflag=efsearch)
+                self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres,epsilon=eeps)
                 self.gpr.set_search_parameters(epsilon=yeps)
                 self.gpr.GPRFit(xnew,nigp_flag=use_xerrs,nrestarts=ynres)
                 self.fNewData = False
-                print("Fitting routine completed.")
+                toc = time.perf_counter()
+                print("Fitting routine completed. Elapsed time: %.5f" % (toc - tic))
+                if (yeps is not None and yeps > 0.0) or (ynres is not None and ynres > 0):
+                    fhyps = self.gpr.get_gp_kernel().get_hyperparameters()
+                    print("   Optimized hyp.s: ",fhyps)
             except Exception as e:
                 print(repr(e))
                 msg = QtGui.QMessageBox()

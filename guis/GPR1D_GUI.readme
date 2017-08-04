@@ -85,7 +85,7 @@ Step 2: Specify kernels for Gaussian process regression
                                   hyperparameter when using
                                   kernel restarts (>0)
 
-   Upper Bound:       float     - initial guess for associated
+   Upper Bound:       float     - upper bound for associated
                                   hyperparameter when using
                                   kernel restarts (>0)
 
@@ -111,6 +111,17 @@ Step 2: Specify kernels for Gaussian process regression
 
    Noise Hyperparameter:  float - initial guess for noise level
                                   used by noise kernel
+
+   Initial Guess:     float     - initial guess for noise level
+                                  (>0)
+
+   Lower Bound:       float     - lower bound for noise level
+                                  when using kernel restarts
+                                  (>0)
+
+   Upper Bound:       float     - upper bound for noise level
+                                  when using kernel restarts
+                                  (>0)
 
    Use Kernel Restarts:   check - toggle kernel restarts using
                                   randomized initial guesses
@@ -180,7 +191,7 @@ Step 3: Perform Gaussian process regression fits and save data
 Final Notes:
    This GUI is provided primarily for users to understand
    and experiment with the fitting routine on various data,
-   it is NOT meant to handle a large quantity of data!
+   it is NOT meant to handle large quantities of data!
 
    For running production runs, please see the gp_demo.py
    script provided in GPR1D/scripts for learning how to
