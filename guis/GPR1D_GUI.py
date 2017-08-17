@@ -697,7 +697,7 @@ class IGWarpFunctionWidget(QtGui.QWidget):
         self.MuCstEntry.setValidator(QtGui.QDoubleValidator())
         self.MaxFracCstLabel = QtGui.QLabel("Maximum Peak-to-Base Ratio:")
         self.MaxFracCstLabel.setEnabled(self.aflag)
-        self.MaxFracCstEntry = QtGui.QLineEdit("5.0e-1")
+        self.MaxFracCstEntry = QtGui.QLineEdit("0.5")
         self.MaxFracCstEntry.setEnabled(self.aflag)
         self.MaxFracCstEntry.setValidator(QtGui.QDoubleValidator())
 
@@ -778,6 +778,423 @@ class IGWarpFunctionWidget(QtGui.QWidget):
             bounds.append([float(self.PeakWidthLBEntry.text()),float(self.PeakWidthUBEntry.text())])
             bounds = np.atleast_2d(bounds)
         return bounds
+
+
+class GradAscentOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(GradAscentOptimizerWidget, self).__init__()
+        self.name = 'grad'
+        self.aflag = True if fOn else False
+        self.GradOptUI()
+
+    def GradOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-5")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class MomentumOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(MomentumOptimizerWidget, self).__init__()
+        self.name = 'mom'
+        self.aflag = True if fOn else False
+        self.MomOptUI()
+
+    def MomOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-5")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.MomentumLabel = QtGui.QLabel("Momentum Factor:")
+        self.MomentumLabel.setEnabled(self.aflag)
+        self.MomentumEntry = QtGui.QLineEdit("0.9")
+        self.MomentumEntry.setEnabled(self.aflag)
+        self.MomentumEntry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.MomentumLabel,self.MomentumEntry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.MomentumLabel.setEnabled(self.aflag)
+        self.MomentumEntry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.MomentumEntry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class NesterovOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(NesterovOptimizerWidget, self).__init__()
+        self.name = 'nag'
+        self.aflag = True if fOn else False
+        self.NagOptUI()
+
+    def NagOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-5")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.MomentumLabel = QtGui.QLabel("Momentum Factor:")
+        self.MomentumLabel.setEnabled(self.aflag)
+        self.MomentumEntry = QtGui.QLineEdit("0.9")
+        self.MomentumEntry.setEnabled(self.aflag)
+        self.MomentumEntry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.MomentumLabel,self.MomentumEntry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.MomentumLabel.setEnabled(self.aflag)
+        self.MomentumEntry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.MomentumEntry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class AdagradOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(AdagradOptimizerWidget, self).__init__()
+        self.name = 'adagrad'
+        self.aflag = True if fOn else False
+        self.AdagradOptUI()
+
+    def AdagradOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-2")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class AdadeltaOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(AdadeltaOptimizerWidget, self).__init__()
+        self.name = 'adadelta'
+        self.aflag = True if fOn else False
+        self.AdadeltaOptUI()
+
+    def AdadeltaOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-2")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.ForgetLabel = QtGui.QLabel("Forgetting Factor:")
+        self.ForgetLabel.setEnabled(self.aflag)
+        self.ForgetEntry = QtGui.QLineEdit("0.9")
+        self.ForgetEntry.setEnabled(self.aflag)
+        self.ForgetEntry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.ForgetLabel,self.ForgetEntry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.ForgetLabel.setEnabled(self.aflag)
+        self.ForgetEntry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.ForgetEntry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class AdamOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(AdamOptimizerWidget, self).__init__()
+        self.name = 'adam'
+        self.aflag = True if fOn else False
+        self.AdamOptUI()
+
+    def AdamOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-3")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.Beta1Label = QtGui.QLabel("Gradient Factor:")
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry = QtGui.QLineEdit("0.9")
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta1Entry.setValidator(QtGui.QDoubleValidator())
+        self.Beta2Label = QtGui.QLabel("Sq. Gradient Factor:")
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry = QtGui.QLineEdit("0.999")
+        self.Beta2Entry.setEnabled(self.aflag)
+        self.Beta2Entry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.Beta1Label,self.Beta1Entry)
+        fbox.addRow(self.Beta2Label,self.Beta2Entry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.Beta1Entry.text()))
+            pars.append(float(self.Beta2Entry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class AdamaxOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(AdamaxOptimizerWidget, self).__init__()
+        self.name = 'adamax'
+        self.aflag = True if fOn else False
+        self.AdamaxOptUI()
+
+    def AdamaxOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("2.0e-3")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.Beta1Label = QtGui.QLabel("Gradient Factor:")
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry = QtGui.QLineEdit("0.9")
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta1Entry.setValidator(QtGui.QDoubleValidator())
+        self.Beta2Label = QtGui.QLabel("Sq. Gradient Factor:")
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry = QtGui.QLineEdit("0.999")
+        self.Beta2Entry.setEnabled(self.aflag)
+        self.Beta2Entry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.Beta1Label,self.Beta1Entry)
+        fbox.addRow(self.Beta2Label,self.Beta2Entry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.Beta1Entry.text()))
+            pars.append(float(self.Beta2Entry.text()))
+            pars = np.array(pars)
+        return pars
+
+
+class NadamOptimizerWidget(QtGui.QWidget):
+
+    def __init__(self,fOn=True):
+        super(NadamOptimizerWidget, self).__init__()
+        self.name = 'nadam'
+        self.aflag = True if fOn else False
+        self.NadamOptUI()
+
+    def NadamOptUI(self):
+
+        self.GainLabel = QtGui.QLabel("Gain Factor:")
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry = QtGui.QLineEdit("1.0e-3")
+        self.GainEntry.setEnabled(self.aflag)
+        self.GainEntry.setValidator(QtGui.QDoubleValidator())
+        self.Beta1Label = QtGui.QLabel("Gradient Factor:")
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry = QtGui.QLineEdit("0.9")
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta1Entry.setValidator(QtGui.QDoubleValidator())
+        self.Beta2Label = QtGui.QLabel("Sq. Gradient Factor:")
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry = QtGui.QLineEdit("0.999")
+        self.Beta2Entry.setEnabled(self.aflag)
+        self.Beta2Entry.setValidator(QtGui.QDoubleValidator())
+
+        fbox = QtGui.QFormLayout()
+        fbox.addRow(self.GainLabel,self.GainEntry)
+        fbox.addRow(self.Beta1Label,self.Beta1Entry)
+        fbox.addRow(self.Beta2Label,self.Beta2Entry)
+
+        self.setLayout(fbox)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.GainLabel.setEnabled(self.aflag)
+        self.GainEntry.setEnabled(self.aflag)
+        self.Beta1Label.setEnabled(self.aflag)
+        self.Beta1Entry.setEnabled(self.aflag)
+        self.Beta2Label.setEnabled(self.aflag)
+        self.Beta2Entry.setEnabled(self.aflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_parameters(self):
+        pars = None
+        if self.aflag:
+            pars = []
+            pars.append(float(self.GainEntry.text()))
+            pars.append(float(self.Beta1Entry.text()))
+            pars.append(float(self.Beta2Entry.text()))
+            pars = np.array(pars)
+        return pars
 
 
 class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
@@ -939,41 +1356,58 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSelectionList.setCurrentIndex(0)
         self.YKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_y)
 
+        self.YOptimizeBox = QtGui.QCheckBox("Optimize")
+        self.YOptimizeBox.toggled.connect(self.toggle_optimize_y)
+        self.YAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
+        self.YAddNoiseBox.toggled.connect(self.toggle_noise_kernel_y)
+        self.YKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
+        self.YKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_y)
+
         self.YRegularizationLabel = QtGui.QLabel("Reg. Parameter:")
         self.YRegularizationEntry = QtGui.QLineEdit("1.0")
         self.YRegularizationEntry.setValidator(QtGui.QDoubleValidator())
-        self.YOptimizeBox = QtGui.QCheckBox("Optimize")
-        self.YOptimizeBox.toggled.connect(self.toggle_optimize_y)
         self.YEpsilonLabel = QtGui.QLabel("Convergence Criteria:")
-        self.YEpsilonLabel.setEnabled(False)
+        self.YEpsilonLabel.setEnabled(self.YOptimizeBox.isChecked())
         self.YEpsilonEntry = QtGui.QLineEdit("1.0e-3")
-        self.YEpsilonEntry.setEnabled(False)
+        self.YEpsilonEntry.setEnabled(self.YOptimizeBox.isChecked())
         self.YEpsilonEntry.setValidator(QtGui.QDoubleValidator())
-        self.YAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
-        self.YAddNoiseBox.toggled.connect(self.toggle_noise_kernel_y)
+
+        self.YOptimizerSelectionLabel = QtGui.QLabel("Optimizer:")
+        self.YOptimizerSelectionLabel.setEnabled(self.YOptimizeBox.isChecked())
+        self.YOptimizerSelectionList = QtGui.QComboBox()
+        self.YOptimizerSelectionList.setEnabled(self.YOptimizeBox.isChecked())
+        self.YOptimizerSelectionList.addItem("Gradient Ascent")
+        self.YOptimizerSelectionList.addItem("Momentum Gradient Ascent")
+        self.YOptimizerSelectionList.addItem("Nesterov-Accelerated Momentum Gradient Ascent")
+        self.YOptimizerSelectionList.addItem("Adaptive Gradient Ascent")
+        self.YOptimizerSelectionList.addItem("Decaying Adaptive Gradient Ascent")
+        self.YOptimizerSelectionList.addItem("Adaptive Moment Estimation")
+        self.YOptimizerSelectionList.addItem("Adaptive Moment Estimation with L-Infinity")
+        self.YOptimizerSelectionList.addItem("Nesterov-Accelerated Adaptive Moment Estimation")
+        self.YOptimizerSelectionList.setCurrentIndex(0)
+        self.YOptimizerSelectionList.currentIndexChanged.connect(self.switch_optimizer_ui_y)
+
         self.YNoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.YNoiseInitGuessLabel.setEnabled(False)
+        self.YNoiseInitGuessLabel.setEnabled(self.YAddNoiseBox.isChecked())
         self.YNoiseLowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.YNoiseLowerBoundLabel.setEnabled(False)
+        self.YNoiseLowerBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseUpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.YNoiseUpperBoundLabel.setEnabled(False)
+        self.YNoiseUpperBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseHypLabel = QtGui.QLabel("Noise Hyperparameter:")
-        self.YNoiseHypLabel.setEnabled(False)
+        self.YNoiseHypLabel.setEnabled(self.YAddNoiseBox.isChecked())
         self.YNoiseHypEntry = QtGui.QLineEdit("1.0e-2")
-        self.YNoiseHypEntry.setEnabled(False)
+        self.YNoiseHypEntry.setEnabled(self.YAddNoiseBox.isChecked())
         self.YNoiseHypEntry.setValidator(QtGui.QDoubleValidator())
         self.YNoiseLBEntry = QtGui.QLineEdit("1.0e-3")
-        self.YNoiseLBEntry.setEnabled(False)
+        self.YNoiseLBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseLBEntry.setValidator(QtGui.QDoubleValidator())
         self.YNoiseUBEntry = QtGui.QLineEdit("1.0e-2")
-        self.YNoiseUBEntry.setEnabled(False)
+        self.YNoiseUBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseUBEntry.setValidator(QtGui.QDoubleValidator())
-        self.YKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
-        self.YKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_y)
         self.YNRestartsLabel = QtGui.QLabel("Number of Restarts:")
-        self.YNRestartsLabel.setEnabled(False)
+        self.YNRestartsLabel.setEnabled(self.YKernelRestartBox.isChecked())
         self.YNRestartsEntry = QtGui.QLineEdit("5")
-        self.YNRestartsEntry.setEnabled(False)
+        self.YNRestartsEntry.setEnabled(self.YKernelRestartBox.isChecked())
         self.YNRestartsEntry.setValidator(QtGui.QIntValidator())
 
         self.YSEKernelSettings = SEKernelWidget(True,self.YKernelRestartBox.isChecked())
@@ -987,6 +1421,26 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSettings.addWidget(self.YMHKernelSettings)
         self.YKernelSettings.addWidget(self.YGGKernelSettings)
         self.YKernelSettings.setCurrentIndex(0)
+
+        self.YGradOptSettings = GradAscentOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YMomOptSettings = MomentumOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YNagOptSettings = NesterovOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YAdagradOptSettings = AdagradOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YAdadeltaOptSettings = AdadeltaOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YAdamOptSettings = AdamOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YAdamaxOptSettings = AdamaxOptimizerWidget(self.YOptimizeBox.isChecked())
+        self.YNadamOptSettings = NadamOptimizerWidget(self.YOptimizeBox.isChecked())
+
+        self.YOptimizerSettings = QtGui.QStackedLayout()
+        self.YOptimizerSettings.addWidget(self.YGradOptSettings)
+        self.YOptimizerSettings.addWidget(self.YMomOptSettings)
+        self.YOptimizerSettings.addWidget(self.YNagOptSettings)
+        self.YOptimizerSettings.addWidget(self.YAdagradOptSettings)
+        self.YOptimizerSettings.addWidget(self.YAdadeltaOptSettings)
+        self.YOptimizerSettings.addWidget(self.YAdamOptSettings)
+        self.YOptimizerSettings.addWidget(self.YAdamaxOptSettings)
+        self.YOptimizerSettings.addWidget(self.YNadamOptSettings)
+        self.YOptimizerSettings.setCurrentIndex(0)
 
         ynlbox = QtGui.QHBoxLayout()
         ynlbox.addWidget(self.YNoiseInitGuessLabel)
@@ -1004,6 +1458,8 @@ class GPR1D_GUI(QtGui.QWidget):
         ykbox.addRow(self.YRegularizationLabel,self.YRegularizationEntry)
         ykbox.addRow(self.YOptimizeBox)
         ykbox.addRow(self.YEpsilonLabel,self.YEpsilonEntry)
+        ykbox.addRow(self.YOptimizerSelectionLabel,self.YOptimizerSelectionList)
+        ykbox.addRow(self.YOptimizerSettings)
         ykbox.addRow(self.YAddNoiseBox)
         ykbox.addRow("",ynlbox)
         ykbox.addRow(self.YNoiseHypLabel,ynebox)
@@ -1018,9 +1474,9 @@ class GPR1D_GUI(QtGui.QWidget):
         self.HeteroscedasticBox.toggled.connect(self.toggle_error_kernel)
 
         self.EKernelSelectionLabel = QtGui.QLabel("Kernel:")
-        self.EKernelSelectionLabel.setEnabled(False)
+        self.EKernelSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSelectionList = QtGui.QComboBox()
-        self.EKernelSelectionList.setEnabled(False)
+        self.EKernelSelectionList.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSelectionList.addItem("Squared Exponential")
         self.EKernelSelectionList.addItem("Rational Quadratic")
         self.EKernelSelectionList.addItem("Matern Half-Integer")
@@ -1028,60 +1484,97 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSelectionList.setCurrentIndex(1)
         self.EKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_e)
 
-        self.ERegularizationLabel = QtGui.QLabel("Reg. Parameter:")
-        self.ERegularizationLabel.setEnabled(False)
-        self.ERegularizationEntry = QtGui.QLineEdit("6.0")
-        self.ERegularizationEntry.setEnabled(False)
-        self.ERegularizationEntry.setValidator(QtGui.QDoubleValidator())
         self.EOptimizeBox = QtGui.QCheckBox("Optimize")
-        self.EOptimizeBox.setEnabled(False)
+        self.EOptimizeBox.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EOptimizeBox.toggled.connect(self.toggle_optimize_e)
-        self.EEpsilonLabel = QtGui.QLabel("Convergence Criteria:")
-        self.EEpsilonLabel.setEnabled(False)
-        self.EEpsilonEntry = QtGui.QLineEdit("1.0e-1")
-        self.EEpsilonEntry.setEnabled(False)
-        self.EEpsilonEntry.setValidator(QtGui.QDoubleValidator())
         self.EAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
-        self.EAddNoiseBox.setEnabled(False)
+        self.EAddNoiseBox.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EAddNoiseBox.toggled.connect(self.toggle_noise_kernel_e)
+        self.EKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
+        self.EKernelRestartBox.setEnabled(self.HeteroscedasticBox.isChecked())
+        self.EKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_e)
+
+        self.ERegularizationLabel = QtGui.QLabel("Reg. Parameter:")
+        self.ERegularizationLabel.setEnabled(self.HeteroscedasticBox.isChecked())
+        self.ERegularizationEntry = QtGui.QLineEdit("6.0")
+        self.ERegularizationEntry.setEnabled(self.HeteroscedasticBox.isChecked())
+        self.ERegularizationEntry.setValidator(QtGui.QDoubleValidator())
+        self.EEpsilonLabel = QtGui.QLabel("Convergence Criteria:")
+        self.EEpsilonLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EEpsilonEntry = QtGui.QLineEdit("1.0e-1")
+        self.EEpsilonEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EEpsilonEntry.setValidator(QtGui.QDoubleValidator())
+
+        self.EOptimizerSelectionLabel = QtGui.QLabel("Optimizer:")
+        self.EOptimizerSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionList = QtGui.QComboBox()
+        self.EOptimizerSelectionList.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionList.addItem("Gradient Ascent")
+        self.EOptimizerSelectionList.addItem("Momentum Gradient Ascent")
+        self.EOptimizerSelectionList.addItem("Nesterov-Accelerated Momentum Gradient Ascent")
+        self.EOptimizerSelectionList.addItem("Adaptive Gradient Ascent")
+        self.EOptimizerSelectionList.addItem("Decaying Adaptive Gradient Ascent")
+        self.EOptimizerSelectionList.addItem("Adaptive Moment Estimation")
+        self.EOptimizerSelectionList.addItem("Adaptive Moment Estimation with L-Infinity")
+        self.EOptimizerSelectionList.addItem("Nesterov-Accelerated Adaptive Moment Estimation")
+        self.EOptimizerSelectionList.setCurrentIndex(0)
+        self.EOptimizerSelectionList.currentIndexChanged.connect(self.switch_optimizer_ui_e)
+
         self.ENoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.ENoiseInitGuessLabel.setEnabled(False)
+        self.ENoiseInitGuessLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
         self.ENoiseLowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.ENoiseLowerBoundLabel.setEnabled(False)
+        self.ENoiseLowerBoundLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseUpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.ENoiseUpperBoundLabel.setEnabled(False)
+        self.ENoiseUpperBoundLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseHypLabel = QtGui.QLabel("Noise Hyperparameter:")
-        self.ENoiseHypLabel.setEnabled(False)
+        self.ENoiseHypLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
         self.ENoiseHypEntry = QtGui.QLineEdit("1.0e-3")
-        self.ENoiseHypEntry.setEnabled(False)
+        self.ENoiseHypEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
         self.ENoiseHypEntry.setValidator(QtGui.QDoubleValidator())
         self.ENoiseLBEntry = QtGui.QLineEdit("1.0e-3")
-        self.ENoiseLBEntry.setEnabled(False)
+        self.ENoiseLBEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseLBEntry.setValidator(QtGui.QDoubleValidator())
         self.ENoiseUBEntry = QtGui.QLineEdit("1.0e-2")
-        self.ENoiseUBEntry.setEnabled(False)
+        self.ENoiseUBEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseUBEntry.setValidator(QtGui.QDoubleValidator())
-        self.EKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
-        self.EKernelRestartBox.setEnabled(False)
-        self.EKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_e)
         self.ENRestartsLabel = QtGui.QLabel("Number of Restarts:")
-        self.ENRestartsLabel.setEnabled(False)
+        self.ENRestartsLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry = QtGui.QLineEdit("5")
-        self.ENRestartsEntry.setEnabled(False)
+        self.ENRestartsEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setValidator(QtGui.QIntValidator())
 
-        self.ESEKernelSettings = SEKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
-        self.ERQKernelSettings = RQKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
-        self.EMHKernelSettings = MHKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
-        self.EGGKernelSettings = GibbsKernelWidget(self.HeteroscedasticBox.isChecked(),self.YKernelRestartBox.isChecked())
+        self.ESEKernelSettings = SEKernelWidget(self.HeteroscedasticBox.isChecked(),self.EKernelRestartBox.isChecked())
+        self.ERQKernelSettings = RQKernelWidget(self.HeteroscedasticBox.isChecked(),self.EKernelRestartBox.isChecked())
+        self.EMHKernelSettings = MHKernelWidget(self.HeteroscedasticBox.isChecked(),self.EKernelRestartBox.isChecked())
+        self.EGGKernelSettings = GibbsKernelWidget(self.HeteroscedasticBox.isChecked(),self.EKernelRestartBox.isChecked())
 
         self.EKernelSettings = QtGui.QStackedLayout()
         self.EKernelSettings.addWidget(self.ESEKernelSettings)
         self.EKernelSettings.addWidget(self.ERQKernelSettings)
         self.EKernelSettings.addWidget(self.EMHKernelSettings)
         self.EKernelSettings.addWidget(self.EGGKernelSettings)
-        self.EKernelSettings.setEnabled(False)
+        self.EKernelSettings.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSettings.setCurrentIndex(1)
+
+        self.EGradOptSettings = GradAscentOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EMomOptSettings = MomentumOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.ENagOptSettings = NesterovOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EAdagradOptSettings = AdagradOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EAdadeltaOptSettings = AdadeltaOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EAdamOptSettings = AdamOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EAdamaxOptSettings = AdamaxOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.ENadamOptSettings = NadamOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+
+        self.EOptimizerSettings = QtGui.QStackedLayout()
+        self.EOptimizerSettings.addWidget(self.EGradOptSettings)
+        self.EOptimizerSettings.addWidget(self.EMomOptSettings)
+        self.EOptimizerSettings.addWidget(self.ENagOptSettings)
+        self.EOptimizerSettings.addWidget(self.EAdagradOptSettings)
+        self.EOptimizerSettings.addWidget(self.EAdadeltaOptSettings)
+        self.EOptimizerSettings.addWidget(self.EAdamOptSettings)
+        self.EOptimizerSettings.addWidget(self.EAdamaxOptSettings)
+        self.EOptimizerSettings.addWidget(self.ENadamOptSettings)
+        self.EOptimizerSettings.setCurrentIndex(0)
 
         enlbox = QtGui.QHBoxLayout()
         enlbox.addWidget(self.ENoiseInitGuessLabel)
@@ -1099,6 +1592,8 @@ class GPR1D_GUI(QtGui.QWidget):
         ekbox.addRow(self.ERegularizationLabel,self.ERegularizationEntry)
         ekbox.addRow(self.EOptimizeBox)
         ekbox.addRow(self.EEpsilonLabel,self.EEpsilonEntry)
+        ekbox.addRow(self.EOptimizerSelectionLabel,self.EOptimizerSelectionList)
+        ekbox.addRow(self.EOptimizerSettings)
         ekbox.addRow(self.EAddNoiseBox)
         ekbox.addRow("",enlbox)
         ekbox.addRow(self.ENoiseHypLabel,enebox)
@@ -1302,6 +1797,14 @@ class GPR1D_GUI(QtGui.QWidget):
     def toggle_optimize_y(self):
         self.YEpsilonLabel.setEnabled(self.YOptimizeBox.isChecked())
         self.YEpsilonEntry.setEnabled(self.YOptimizeBox.isChecked())
+        self.YOptimizerSelectionLabel.setEnabled(self.YOptimizeBox.isChecked())
+        self.YOptimizerSelectionList.setEnabled(self.YOptimizeBox.isChecked())
+        self.YOptimizerSettings.setEnabled(self.YOptimizeBox.isChecked())
+        for ii in np.arange(0,self.YOptimizerSettings.count()):
+            self.YOptimizerSettings.widget(ii).toggle_all(self.YOptimizeBox.isChecked())
+
+    def switch_optimizer_ui_y(self):
+        self.YOptimizerSettings.setCurrentIndex(self.YOptimizerSelectionList.currentIndex())
 
     def toggle_noise_kernel_y(self):
         self.YNoiseInitGuessLabel.setEnabled(self.YAddNoiseBox.isChecked())
@@ -1333,6 +1836,11 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EOptimizeBox.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EEpsilonLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
         self.EEpsilonEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionList.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        self.EOptimizerSettings.setEnabled(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
+        for ii in np.arange(0,self.EOptimizerSettings.count()):
+            self.EOptimizerSettings.widget(ii).toggle_all(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
         self.EAddNoiseBox.setEnabled(self.HeteroscedasticBox.isChecked())
         self.ENoiseInitGuessLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
         self.ENoiseLowerBoundLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
@@ -1351,6 +1859,14 @@ class GPR1D_GUI(QtGui.QWidget):
     def toggle_optimize_e(self):
         self.EEpsilonLabel.setEnabled(self.EOptimizeBox.isChecked())
         self.EEpsilonEntry.setEnabled(self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionLabel.setEnabled(self.EOptimizeBox.isChecked())
+        self.EOptimizerSelectionList.setEnabled(self.EOptimizeBox.isChecked())
+        self.EOptimizerSettings.setEnabled(self.EOptimizeBox.isChecked())
+        for ii in np.arange(0,self.EOptimizerSettings.count()):
+            self.EOptimizerSettings.widget(ii).toggle_all(self.EOptimizeBox.isChecked())
+
+    def switch_optimizer_ui_e(self):
+        self.EOptimizerSettings.setCurrentIndex(self.EOptimizerSelectionList.currentIndex())
 
     def toggle_noise_kernel_e(self):
         self.ENoiseInitGuessLabel.setEnabled(self.EAddNoiseBox.isChecked())
@@ -1406,6 +1922,8 @@ class GPR1D_GUI(QtGui.QWidget):
             ykbounds = self.YKernelSettings.currentWidget().get_bounds()
             yregpar = float(self.YRegularizationEntry.text()) if self.YRegularizationEntry.text() else None
             yeps = float(self.YEpsilonEntry.text()) if self.YOptimizeBox.isChecked() and self.YEpsilonEntry.text() else 'None'
+            yopm = self.YOptimizerSettings.widget(self.YOptimizerSelectionList.currentIndex()).get_name()
+            yopp = self.YOptimizerSettings.widget(self.YOptimizerSelectionList.currentIndex()).get_parameters()
             if self.YAddNoiseBox.isChecked():
                 ykname = 'Sum_' + ykname + '-n'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
@@ -1419,10 +1937,14 @@ class GPR1D_GUI(QtGui.QWidget):
             ekbounds = self.EKernelSettings.currentWidget().get_bounds()
             eregpar = None
             eeps = 'None'
+            eopm = None
+            eopp = None
             enres = None
             if self.HeteroscedasticBox.isChecked():
                 eregpar = float(self.ERegularizationEntry.text()) if self.ERegularizationEntry.text() else None
                 eeps = float(self.EEpsilonEntry.text()) if self.EOptimizeBox.isChecked() and self.EEpsilonEntry.text() else 'None'
+                eopm = self.EOptimizerSettings.widget(self.EOptimizerSelectionList.currentIndex()).get_name()
+                eopp = self.EOptimizerSettings.widget(self.EOptimizerSelectionList.currentIndex()).get_parameters()
                 if self.EAddNoiseBox.isChecked():
                     ekname = 'Sum_' + ekname + '-n'
                     ekhyps = np.hstack((ekhyps,float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
@@ -1435,15 +1957,21 @@ class GPR1D_GUI(QtGui.QWidget):
                 xnew = np.linspace(float(self.PredictStartEntry.text()),float(self.PredictEndEntry.text()),int(float(self.PredictNPointsEntry.text())))
                 self.gpr.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=dxx,dydata=dyy,dyerr=dye)
                 self.gpr.set_kernel(kernel=ykernel,kbounds=ykbounds,regpar=yregpar)
-                self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres,epsilon=eeps)
-                self.gpr.set_search_parameters(epsilon=yeps)
+                self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres)
+                self.gpr.set_search_parameters(epsilon=yeps,method=yopm,spars=yopp)
+                self.gpr.set_error_search_parameters(epsilon=eeps,method=eopm,spars=eopp)
                 self.gpr.GPRFit(xnew,nigp_flag=use_xerrs,nrestarts=ynres)
                 self.fNewData = False
                 toc = time.perf_counter()
                 print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))
+                if (eeps is not None and eeps > 0.0) or (enres is not None and enres > 0):
+                    ehyps = self.gpr.get_error_kernel().get_hyperparameters()
+                    print("   --- Optimized error kernel hyperparameters: ---")
+                    print(ehyps)
                 if (yeps is not None and yeps > 0.0) or (ynres is not None and ynres > 0):
-                    fhyps = self.gpr.get_gp_kernel().get_hyperparameters()
-                    print("   Optimized hyp.s: ",fhyps)
+                    yhyps = self.gpr.get_gp_kernel().get_hyperparameters()
+                    print("   *** Optimized kernel hyperparameters ***")
+                    print(yhyps)
             except Exception as e:
                 print(repr(e))
                 msg = QtGui.QMessageBox()

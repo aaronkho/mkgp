@@ -1121,7 +1121,7 @@ class SE_Kernel(Kernel):
             efac = np.exp(-np.power(rr,2.0) / (2.0 * l_hyp**2.0))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
-                ii = int(zz / 2)                # Note that jj = 2 * ii  ALWAYS!
+                ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power(rr / l_hyp,nn - jj)
             covm = afac * efac * sfac
@@ -2039,8 +2039,9 @@ class GPR1D():
         self.dyy = None
         self.dye = None
         self.eps = None
-        self.slh = 1.0e-5
-        self.dlh = 1.0e-2
+        self.opm = 'grad'
+        self.opp = np.array([1.0e-5])
+        self.dh = 1.0e-2
         self.lb = None
         self.ub = None
         self.cn = None
@@ -2049,6 +2050,9 @@ class GPR1D():
         self.elp = 6.0
         self.enr = 5
         self.eeps = None
+        self.eopm = 'grad'
+        self.eopp = np.array([1.0e-5])
+        self.edh = 1.0e-2
         self._ikk = None
         self._xF = None
         self._barF = None
@@ -2060,6 +2064,7 @@ class GPR1D():
         self._varN = None
         self._dvarN = None
         self._nye = None
+        self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
 
     def set_kernel(self,kernel=None,kbounds=None,regpar=None):
@@ -2201,7 +2206,7 @@ class GPR1D():
             self.ub = None
 
 
-    def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None,epsilon=None):
+    def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None):
         """
         Specify the kernel that the Gaussian process regression on the error function 
         will be performed with.
@@ -2213,8 +2218,6 @@ class GPR1D():
         :param regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
 
         :param nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
-
-        :param epsilon: bool. Enable hyperparameter optimization of error kernel for error function determination.
 
         :returns: none. Sets internal class variables.
         """
@@ -2241,24 +2244,20 @@ class GPR1D():
             self._eflag = False
         if isinstance(nrestarts,(float,int)):
             self.enr = int(nrestarts) if int(nrestarts) > 0 else 0
-        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
-            self.eeps = float(epsilon)
-        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
-            self.eeps = None
-        elif isinstance(epsilon,str):
-            self.eeps = None
 
 
-    def set_search_parameters(self,epsilon=None,sgain=None,sdiff=None):
+    def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
         """
         Specify the search parameters that the Gaussian process regression will use.
         Performs some consistency checks on input values to ensure validity.
 
-        :param epsilon: float. Convergence criteria for gradient-ascent search algorithm, set negative to disable.
+        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :param sgain: float. Gain factor for step size in gradient-ascent search algorithm, default is 5.0e-3.
+        :param method: str or int. Hyperparameter optimization algorithm selection.
 
-        :param sdiff: float. Step size for hyperparameter derivative approximations in gradient-ascent search algorithm, default is 1.0e-2.
+        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
+
+        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
 
         :returns: none. Sets internal class variables.
         """
@@ -2269,10 +2268,194 @@ class GPR1D():
             self.eps = None
         elif isinstance(epsilon,str):
             self.eps = None
-        if isinstance(sgain,(float,int)) and float(sgain) > 0.0:
-            self.slh = float(sgain)
+        if isinstance(method,str):
+            if re.match('^mom$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[1]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^nag$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[2]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^adagrad$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[3]
+                opp = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^adadelta$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[4]
+                opp = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^adam$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[5]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^adamax$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[6]
+                opp = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif re.match('^nadam$',method,flags=re.IGNORECASE):
+                self.opm = self._opopts[7]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            else:
+                self.opm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+        elif isinstance(method,(float,int)):
+            if int(method) == 1:
+                self.opm = self._opopts[1]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 2:
+                self.opm = self._opopts[2]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 3:
+                self.opm = self._opopts[3]
+                opp = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 4:
+                self.opm = self._opopts[4]
+                opp = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 5:
+                self.opm = self._opopts[5]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 6:
+                self.opm = self._opopts[6]
+                opp = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            elif int(method) == 7:
+                self.opm = self._opopts[7]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+            else:
+                self.opm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self.opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.opp[ii]
+                self.opp = opp.copy()
+        if isinstance(spars,(list,tuple)):
+            for ii in np.arange(0,len(spars)):
+                if ii < self.opp.size and isinstance(spars[ii],(float,int)):
+                    self.opp[ii] = float(spars[ii])
+        elif isinstance(spars,np.ndarray):
+            for ii in np.arange(0,spars.size):
+                if ii < self.opp.size and isinstance(spars[ii],(float,int)):
+                    self.opp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
-            self.dlh = float(sdiff)
+            self.dh = float(sdiff)
+
+
+    def set_error_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
+        """
+        Specify the search parameters that the Gaussian process regression will use for the error function.
+        Performs some consistency checks on input values to ensure validity.
+
+        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
+
+        :param method: str or int. Hyperparameter optimization algorithm selection.
+
+        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
+
+        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
+
+        :returns: none. Sets internal class variables.
+        """
+
+        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
+            self.eeps = float(epsilon)
+        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
+            self.eeps = None
+        elif isinstance(epsilon,str):
+            self.eeps = None
+        if isinstance(method,str):
+            if re.match('^adam$',method,flags=re.IGNORECASE):
+                self.eopm = self._opopts[1]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.eopp[ii]
+                self.eopp = opp.copy()
+            else:
+                self.eopm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self.eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.eopp[ii]
+                self.eopp = opp.copy()
+        elif isinstance(method,(float,int)):
+            if int(method) == 1:
+                self.eopm = self._opopts[1]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self.eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.eopp[ii]
+                self.eopp = opp.copy()
+            else:
+                self.eopm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self.eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self.eopp[ii]
+                self.eopp = opp.copy()
+        if isinstance(spars,(list,tuple)):
+            for ii in np.arange(0,len(spars)):
+                if ii < self.eopp.size and isinstance(spars[ii],(float,int)):
+                    self.eopp[ii] = float(spars[ii])
+        elif isinstance(spars,np.ndarray):
+            for ii in np.arange(0,spars.size):
+                if ii < self.eopp.size and isinstance(spars[ii],(float,int)):
+                    self.eopp[ii] = float(spars[ii])
+        if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
+            self.edh = float(sdiff)
 
 
     def get_raw_data(self,conditioned=False):
@@ -2505,14 +2688,14 @@ class GPR1D():
         ye = self.ye if self._nye is None else self._nye
         barE = None
         if xn is not None and ye is not None and self._eflag:
-            barE = itemgetter(0)(self.basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
+            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
         return barE
 
 
     def __gp_base_alg(self,xn,kk,lp,xx,yy,ye,dxx,dyy,dye,dd):
         """
         Bare-bones algorithm for gaussian process regression, no idiot-proofing, no pre- or post-processing
-        Note that it is recommended that covf be a Kernel object as specified in this file
+        Note that it is recommended that kk be a Kernel object as specified in this file
         but it can be, in essence, any passed object which can be called with arguments:
             (x1,x2,derivative_order) with (x1,x2) being a meshgrid
         and returns an array with shape of x1 and/or x2 (these should have identical shape)
@@ -2602,73 +2785,109 @@ class GPR1D():
         return (barF,varF,lml)
 
 
-    def __gp_grad_ascent(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,slh,dlh):
+    def __gp_brute_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye,dh):
         """
-        Gradient ascent hyperparameter searching algorithm, searches hyperparameters in log-space and parameters in linear-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        It may be important to adjust these depending on the data given to the GP
-            eps = desired convergence criteria
-            dlh = the step size used to calculate the gradient
-            slh = the gain factor on gradient to choose next step
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        Bare-bones algorithm for brute-force computation of gradient of log-marginal-likelihood with respect to the
+        hyperparameters in logarithmic space
+        Result must be divided by ln(10) * theta in order to have the gradient with respect to the hyperparameters
+        in linear space
         """
 
-        # Set up the required data for performing the gradient ascent search
+        xn = np.array([0.0])
+        theta = kk.get_hyperparameters(log=True)
+        gradlml = np.zeros(theta.shape).flatten()
+        for ii in np.arange(0,theta.size):
+            testkk = copy.copy(kk)
+            theta_in = theta.copy()
+            theta_in[ii] = theta[ii] - 0.5 * dh
+            testkk.set_hyperparameters(theta_in,log=True)
+            llml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            theta_in[ii] = theta[ii] + 0.5 * dh
+            testkk.set_hyperparameters(theta_in,log=True)
+            ulml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            gradlml[ii] = (ulml - llml) / dh
+
+        return gradlml
+
+
+    def __gp_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye):
+        """
+        Bare-bones algorithm for computation of gradient of log-marginal-likelihood with respect to the hyperparameters
+        in linear space
+        Result must be multiplied by ln(10) * theta in order to have the gradient with respect to the hyperparameters
+        in logarithmic space
+        """
+
+        # Set up the problem grids for calculating the required matrices from covf
+        theta = kk.get_hyperparameters()
+        dflag = True if dxx is not None and dyy is not None and dye is not None else False
+        xxd = dxx if dflag else []
+        xf = np.append(xx,xxd)
+        yyd = dyy if dflag else []
+        yf = np.append(yy,yyd)
+        yed = dye if dflag else []
+        yef = np.append(ye,yed)
+        (x1,x2) = np.meshgrid(xx,xx)
+        (x1h1,x2h1) = np.meshgrid(xx,xxd)
+        (x1h2,x2h2) = np.meshgrid(xxd,xx)
+        (x1d,x2d) = np.meshgrid(xxd,xxd)
+
+        # Algorithm, see theory (located in book specified at top of file) for details
+        KKb = kk(x1,x2,der=0)
+        KKh1 = kk(x1h1,x2h1,der=1)
+        KKh2 = kk(x1h2,x2h2,der=-1)
+        KKd = kk(x1d,x2d,der=2)
+        KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
+        LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
+        alpha = spla.cho_solve((LL,True),yf)
+        gradlml = np.zeros(theta.shape).flatten()
+        for ii in np.arange(0,theta.size):
+             HHb = kk(x1,x2,der=0,hder=ii)
+             HHh1 = kk(x1h1,x2h1,der=1,hder=ii)
+             HHh2 = kk(x1h2,x2h2,der=-1,hder=ii)
+             HHd = kk(x1d,x2d,der=2,hder=ii)
+             HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
+             PP = np.dot(alpha.T,HH)
+             QQ = spla.cho_solve((LL,True),HH)
+             gradlml[ii] = 0.5 * np.dot(PP,alpha) - 0.5 * lp * np.sum(np.diag(QQ))
+
+        return gradlml
+
+
+    def __gp_grad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
+        """
+        Gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = kk.get_hyperparameters(log=True)
-        gradtheta = np.zeros(theta_base.shape)
+        theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
-        dlml = np.abs(lmlold - lmlnew)
+        dlml = eps + 1.0
         icount = 0
         itermax = 500
         while dlml > eps and icount < itermax:
             if newkk.is_hderiv_implemented():
-                # Set up the problem grids for calculating the required matrices from covf
-                dflag = True if dxx is not None and dyy is not None and dye is not None else False
-                xxd = dxx if dflag else []
-                xf = np.append(xx,xxd)
-                yyd = dyy if dflag else []
-                yf = np.append(yy,yyd)
-                yed = dye if dflag else []
-                yef = np.append(ye,yed)
-                (x1,x2) = np.meshgrid(xx,xx)
-                (x1h1,x2h1) = np.meshgrid(xx,xxd)
-                (x1h2,x2h2) = np.meshgrid(xxd,xx)
-                (x1d,x2d) = np.meshgrid(xxd,xxd)
-
-                # Algorithm, see theory (located in book specified at top of file) for details
-                KKb = newkk(x1,x2,der=0)
-                KKh1 = newkk(x1h1,x2h1,der=1)
-                KKh2 = newkk(x1h2,x2h2,der=-1)
-                KKd = newkk(x1d,x2d,der=2)
-                KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
-                LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
-                alpha = spla.cho_solve((LL,True),yf)
-                for ii in np.arange(0,theta_base.size):
-                    HHb = newkk(x1,x2,der=0,hder=ii)
-                    HHh1 = newkk(x1h1,x2h1,der=1,hder=ii)
-                    HHh2 = newkk(x1h2,x2h2,der=-1,hder=ii)
-                    HHd = newkk(x1d,x2d,der=2,hder=ii)
-                    HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
-                    PP = np.dot(alpha.T,HH)
-                    QQ = spla.cho_solve((LL,True),HH)
-                    dlml = 0.5 * np.dot(PP,alpha) - 0.5 * np.sum(np.diag(QQ)) 
-                    gradtheta[ii] = dlml
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                for ii in np.arange(0,theta_base.size):
-                    testkk = copy.copy(kk)
-                    theta_in = theta_old.copy()
-                    theta_in[ii] = theta_old[ii] - 0.5 * dlh
-                    testkk.set_hyperparameters(theta_in,log=True)
-                    llml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
-                    theta_in[ii] = theta_old[ii] + 0.5 * dlh
-                    testkk.set_hyperparameters(theta_in,log=True)
-                    ulml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
-                    gradtheta[ii] = 1.0e1 * (ulml - llml) / dlh
-            theta_new = theta_old + slh * gradtheta
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+#                gradlml = 1.0e1 * gradlml
+            theta_step = eta * gradlml
+            theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
             newkk.set_hyperparameters(theta_new,log=True)
             lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
@@ -2677,6 +2896,368 @@ class GPR1D():
             icount = icount + 1
         if icount == itermax:
             print('   Maximum number of iterations performed on gradient ascent search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_momentum_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+        """
+        Gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+
+        :param gam: float. Momentum factor multiplying previous step, recommended 0.9.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            theta_step = gam * theta_step + eta * gradlml
+            theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on momentum gradient ascent search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_nesterov_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+        """
+        Nesterov-accelerated gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters in log-space
+           Effectively makes prediction of the next step and uses that with back-correction factor as the current update
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+
+        :param gam: float. Momentum factor multiplying previous step, recommended 0.9.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        theta_new = theta_old + theta_step
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            newkk.set_hyperparameters(theta_new,log=True)
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            theta_step = gam * theta_step + eta * gradlml
+            theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on Nesterov-accelerated gradient ascent search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_adagrad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
+        """
+        Adaptive gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space
+           Suffers from extremely aggressive step modification due to continuous accumulation of denominator term, recommended to use AdaDelta
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-2.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        gold = np.zeros(theta_base.shape)
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+#                gradlml = -gradlml
+            gnew = gold + np.power(gradlml,2.0)
+            theta_step = eta * gradlml / np.sqrt(gnew + 1.0e-8)
+            theta_new = theta_old + theta_step
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            gold = gnew
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on adaptive gradient ascent search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_adadelta_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+        """
+        Adaptive gradient ascent hyperparameter optimization algorithm with decaying accumulation window, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Initial guess for gain factor on gradient to define next step, recommended 1.0e-2.
+
+        :param gam: float. Forgetting factor on accumulated gradient term, recommended 0.9.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        etatemp = np.ones(theta_base.shape) * eta
+        told = theta_step.copy()
+        gold = np.zeros(theta_base.shape)
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+#                gradlml = -gradlml
+            gnew = gam * gold + (1.0 - gam) * np.power(gradlml,2.0)
+            theta_step = etatemp * gradlml / np.sqrt(gnew + 1.0e-8)
+            theta_new = theta_old + theta_step
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            tnew = gam * told + (1.0 - gam) * np.power(theta_step,2.0)
+            etatemp = np.sqrt(tnew + 1.0e-8)
+            told = tnew
+            gold = gnew
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on decaying adaptive gradient ascent search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_adam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+        """
+        Adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+
+        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        mold = None
+        vold = None
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
+            vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
+            theta_step = eta * (mnew / (1.0 - b1**(icount + 1))) / (np.sqrt(vnew / (1.0 - b2**(icount + 1))) + 1.0e-8)
+            theta_new = theta_old + theta_step
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            mold = mnew
+            vold = vnew
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on adaptive moment estimation search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_adamax_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+        """
+        Adaptive moment estimation hyperparameter optimization algorithm with l-infinity, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 2.0e-3.
+
+        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        mold = None
+        vold = None
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
+            vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
+            unew = np.nanmax([b2 * vold,np.abs(gradlml)],axis=0)
+            theta_step = eta * (mnew / (1.0 - b1**(icount + 1))) / unew
+            theta_new = theta_old + theta_step
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            mold = mnew
+            vold = vnew
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on adaptive moment estimation search.')
+        return (newkk,lmlnew)
+
+
+    def __gp_nadam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+        """
+        Nesterov-accelerated adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+
+        :param eps: float. Desired convergence criteria.
+
+        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+
+        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        """
+
+        # Set up required data for performing the search
+        xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
+        newkk = copy.copy(kk)
+        theta_base = kk.get_hyperparameters(log=True)
+        theta_step = np.zeros(theta_base.shape)
+        theta_old = theta_base.copy()
+        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlnew = 0.0
+        dlml = eps + 1.0
+        mold = None
+        vold = None
+        icount = 0
+        itermax = 500
+        while dlml > eps and icount < itermax:
+            if newkk.is_hderiv_implemented():
+                # Hyperparameter derivatives computed in linear space
+                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            else:
+                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
+            vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
+            theta_step = eta * (mnew / (1.0 - b1**(icount + 1)) + (1.0 - b1) * gradlml / (1.0 - b1**(icount + 1))) / (np.sqrt(vnew / (1.0 - b2)) + 1.0e-8)
+            theta_new = theta_old + theta_step
+            newkk.set_hyperparameters(theta_new,log=True)
+            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            dlml = np.abs(lmlold - lmlnew)
+            theta_old = theta_new.copy()
+            mold = mnew
+            vold = vnew
+            lmlold = lmlnew
+            icount = icount + 1
+        if icount == itermax:
+            print('   Maximum number of iterations performed on adaptive moment estimation search.')
         return (newkk,lmlnew)
 
 
@@ -2726,7 +3307,7 @@ class GPR1D():
         return (cxx,cxe,cyy,cye,nn)
 
 
-    def basic_fit(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,dxdata=None,dydata=None,dyerr=None,epsilon=None,sgain=None,sdiff=None,do_drv=False,rtn_cov=False):
+    def __basic_fit(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,dxdata=None,dydata=None,dyerr=None,epsilon=None,method=None,spars=None,sdiff=None,do_drv=False,rtn_cov=False):
         """
         Basic GP regression fitting routine, RECOMMENDED to call this instead of the bare-bones functions
         as this applies additional input checking. Note that this function does NOT strictly use class data!!!
@@ -2749,11 +3330,11 @@ class GPR1D():
 
         :param dyerr: array. dy/dx-errors of derivative data points to be included in fit. (optional)
 
-        :param epsilon: float. Convergence criteria for gradient-ascent search algorithm, set negative to disable.
+        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :param sgain: float. Gain factor for step size in gradient-ascent search algorithm, default is 5.0e-3.
+        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
 
-        :param sdiff: float. Step size for hyperparameter derivative approximations in gradient-ascent search algorithm, default is 1.0e-2.
+        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
 
         :param do_drv: bool. Set as true to predict the derivative of the fit instead of the fit.
 
@@ -2772,8 +3353,9 @@ class GPR1D():
         dyy = self.dyy
         dye = self.dye
         eps = self.eps
-        slh = self.slh
-        dlh = self.dlh
+        opm = self.opm
+        opp = self.opp
+        dh = self.dh
         lb = -1.0e50 if self.lb is None else self.lb
         ub = 1.0e50 if self.ub is None else self.ub
         cn = 5.0e-3 if self.cn is None else self.cn
@@ -2832,10 +3414,130 @@ class GPR1D():
             eps = None
         elif isinstance(epsilon,str):
             eps = None
-        if isinstance(sgain,(float,int)) and float(sgain) > 0.0:
-            slh = float(sgain)
+        if isinstance(method,str):
+            if re.match('^mom$',method,flags=re.IGNORECASE):
+                opm = self._opopts[1]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^nag$',method,flags=re.IGNORECASE):
+                opm = self._opopts[2]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^adagrad$',method,flags=re.IGNORECASE):
+                opm = self._opopts[3]
+                oppt = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^adadelta$',method,flags=re.IGNORECASE):
+                opm = self._opopts[4]
+                oppt = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^adam$',method,flags=re.IGNORECASE):
+                opm = self._opopts[5]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^adamax$',method,flags=re.IGNORECASE):
+                opm = self._opopts[6]
+                oppt = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif re.match('^nadam$',method,flags=re.IGNORECASE):
+                opm = self._opopts[7]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            else:
+                opm = self._opopts[0]
+                oppt = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+        elif isinstance(method,(float,int)):
+            if int(method) == 1:
+                opm = self._opopts[1]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 2:
+                opm = self._opopts[2]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 3:
+                opm = self._opopts[3]
+                oppt = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 4:
+                opm = self._opopts[4]
+                oppt = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 5:
+                opm = self._opopts[5]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 6:
+                opm = self._opopts[6]
+                oppt = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif int(method) == 7:
+                opm = self._opopts[7]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            else:
+                opm = self._opopts[0]
+                oppt = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+        if isinstance(spars,(list,tuple)):
+            for ii in np.arange(0,len(spars)):
+                if ii < opp.size and isinstance(spars[ii],(float,int)):
+                    opp[ii] = float(spars[ii])
+        elif isinstance(spars,np.ndarray):
+            for ii in np.arange(0,spars.size):
+                if ii < opp.size and isinstance(spars[ii],(float,int)):
+                    opp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
-            dlh = float(sdiff)
+            dh = float(sdiff)
 
         barF = None
         errF = None
@@ -2865,7 +3567,22 @@ class GPR1D():
             dd = 1 if do_drv else 0
             nkk = copy.copy(kk)
             if eps is not None and not do_drv:
-                (nkk,lml) = self.__gp_grad_ascent(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,slh,dlh)
+                if opm == 'mom' and opp.size > 1:
+                    (nkk,lml) = self.__gp_momentum_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                elif opm == 'nag' and opp.size > 1:
+                    (nkk,lml) = self.__gp_nesterov_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                elif opm == 'adagrad' and opp.size > 0:
+                    (nkk,lml) = self.__gp_adagrad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
+                elif opm == 'adadelta' and opp.size > 1:
+                    (nkk,lml) = self.__gp_adadelta_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                elif opm == 'adam' and opp.size > 2:
+                    (nkk,lml) = self.__gp_adam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                elif opm == 'adamax' and opp.size > 2:
+                    (nkk,lml) = self.__gp_adamax_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                elif opm == 'nadam' and opp.size > 2:
+                    (nkk,lml) = self.__gp_nadam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                elif opm == 'grad' and opp.size > 0:
+                    (nkk,lml) = self.__gp_grad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
             (barF,varF,lml) = self.__gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
             barF = barF * sc if do_drv else barF * sc + myy
             varF = varF * sc**2.0
@@ -2879,7 +3596,7 @@ class GPR1D():
         """
         Brute-force numerical GP regression derivative routine, RECOMMENDED to call this instead of bare-bones functions above
         Kept for ability to convince user of validity of regular GP derivative, but can also be wildly wrong on some data due to numerical errors
-        RECOMMENDED to use derivative flag on basic_fit() function, as it was tested and seems to be more robust, provided kernels are properly defined
+        RECOMMENDED to use derivative flag on __basic_fit() function, as it was tested and seems to be more robust, provided kernels are properly defined
 
         :param xnew: array. x-values at which the predicted fit will be evaluated at.
 
@@ -2982,7 +3699,7 @@ class GPR1D():
                 lmlvec = []
                 tkk = copy.copy(self.kk)
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.basic_fit(xntest))
+                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except ValueError:
@@ -2992,19 +3709,19 @@ class GPR1D():
                     theta = np.abs(self.kb[:,1] - self.kb[:,0]).flatten() * np.random.random_sample((self.kb.shape[0],)) + np.nanmin(self.kb,axis=1).flatten()
                     tkk.set_hyperparameters(theta,log=True)
                     try:
-                        (tlml,tkk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=tkk))
+                        (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                         kkvec.append(copy.copy(tkk))
                         lmlvec.append(tlml)
                     except ValueError:
                         kkvec.append(None)
                         lmlvec.append(np.NaN)
                 imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
-                (barF,nkk) = itemgetter(0,3)(self.basic_fit(xntest,kernel=kkvec[imax],epsilon=-1.0))
+                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon=-1.0))
             else:
-                (barF,nkk) = itemgetter(0,3)(self.basic_fit(xntest))
+                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest))
             if barF is not None and isinstance(nkk,Kernel):
                 xntest = self.xx.copy() + 1.0e-8
-                dbarF = itemgetter(0)(self.basic_fit(xntest,kernel=nkk,do_drv=True))
+                dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
                 nfilt = np.any([np.isnan(self.xe),np.isnan(self.ye)],axis=0)
                 cxe = self.xe
                 cxe[nfilt] = 0.0
@@ -3017,7 +3734,7 @@ class GPR1D():
 
     def GPRFit(self,xnew,nigp_flag=False,nrestarts=None):
         """
-        Main GP regression fitting routine, RECOMMENDED to call this after using set functions instead of basic_fit()
+        Main GP regression fitting routine, RECOMMENDED to call this after using set functions instead of __basic_fit()
         as this adapts the method based on inputs, performs 1st derivative and saves output to class variables
 
         Includes implementation of Monte Carlo kernel restarts within the user-defined bounds, via nrestarts argument
@@ -3063,7 +3780,7 @@ class GPR1D():
             lmlvec = []
             tkk = copy.copy(self.kk)
             try:
-                (tlml,tkk) = itemgetter(2,3)(self.basic_fit(xntest))
+                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
                 kkvec.append(copy.copy(tkk))
                 lmlvec.append(tlml)
             except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3073,7 +3790,7 @@ class GPR1D():
                 theta = np.abs(self.kb[:,1] - self.kb[:,0]).flatten() * np.random.random_sample((self.kb.shape[0],)) + np.nanmin(self.kb,axis=1).flatten()
                 tkk.set_hyperparameters(theta,log=True)
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=tkk))
+                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3082,11 +3799,11 @@ class GPR1D():
             imaxv = np.where(lmlvec == np.nanmax(lmlvec))[0]
             if len(imaxv) > 0:
                 imax = imaxv[0]
-                (barF,varF,lml,nkk) = self.basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
+                (barF,varF,lml,nkk) = self.__basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
             else:
                 raise ValueError('None of the fit attempts converged. Please adjust kernel settings and try again.')
         else:
-            (barF,varF,lml,nkk) = self.basic_fit(xn,rtn_cov=True)
+            (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
 
         if barF is not None and isinstance(nkk,Kernel):
             barE = None
@@ -3099,10 +3816,13 @@ class GPR1D():
                     elp = self.elp
                     ekk = copy.copy(self.ekk)
                     eeps = self.eeps
+                    eopm = self.eopm
+                    eopp = self.eopp
+                    edh = self.edh
                     ekkvec = []
                     elmlvec = []
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3112,7 +3832,7 @@ class GPR1D():
                         etheta = np.abs(self.ekb[:,1] - self.ekb[:,0]).flatten() * np.random.random_sample((self.ekb.shape[0],)) + np.nanmin(self.ekb,axis=1).flatten()
                         ekk.set_hyperparameters(etheta,log=True)
                         try:
-                            (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
+                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
                             ekkvec.append(copy.copy(ekk))
                             elmlvec.append(elml)
                         except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3127,18 +3847,22 @@ class GPR1D():
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
                 elif not self._eflag and self.eeps is not None:
                     ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps))
+                    eeps = self.eeps
+                    eopm = self.eopm
+                    eopp = self.eopp
+                    edh = self.edh
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
                     self.ekk = copy.copy(ekk)
                     self._eflag = True
-                barE = itemgetter(0)(self.basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                barE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
                 if barE is not None:
-                    dbarE = itemgetter(0)(self.basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True))
+                    dbarE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True))
                     nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
                     ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
                     xnl = nxn - 0.5 * ddx
                     xnu = nxn + 0.5 * ddx
-                    dbarEl = itemgetter(0)(self.basic_fit(xnl,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
-                    dbarEu = itemgetter(0)(self.basic_fit(xnu,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
+                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
+                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
                     ddbarEt = np.abs(dbarEu - dbarEl) / ddx
                     nsum = 50
                     ddbarE = np.zeros(xn.shape)
@@ -3164,7 +3888,7 @@ class GPR1D():
             self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
             self._lml = lml
             self.kk = copy.copy(nkk) if isinstance(nkk,Kernel) else None
-            (dbarF,dvarF) = itemgetter(0,1)(self.basic_fit(xn,do_drv=True,rtn_cov=True))
+            (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = dbarF.copy() if dbarF is not None else None
             self._dvarF = dvarF.copy() if dvarF is not None else None
 #            self._dvarN = dvarF + np.diag(np.power(dbarE,2.0)) if dvarF is not None and dbarE is not None else None
@@ -3219,7 +3943,7 @@ class GPR1D():
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters, using LML as the likelihood
         User note: This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
                    acceptance criterion. However, MCMC analysis is only necessary when using non-Gaussian
-                   likelihoods, otherwise the result is equivalent to gradient ascent optimization of LML
+                   likelihoods, otherwise the result is equivalent to maximization of LML
 
         :param nsamples: int. Number of samples to perform.
 
@@ -3256,14 +3980,14 @@ class GPR1D():
                     tkk.set_hyperparameters(theta_new,log=True)
                     ulml = None
                     try:
-                        ulml = itemgetter(2)(self.basic_fit(xntest,kernel=tkk,epsilon='None'))
+                        ulml = itemgetter(2)(self.__basic_fit(xntest,kernel=tkk,epsilon='None'))
                     except (ValueError,np.linalg.linalg.LinAlgError):
                         ulml = tlml - 3.0
                     theta_new = theta - theta_step
                     tkk.set_hyperparameters(theta_new,log=True)
                     llml = None
                     try:
-                        llml = itemgetter(2)(self.basic_fit(xntest,kernel=tkk,epsilon='None'))
+                        llml = itemgetter(2)(self.__basic_fit(xntest,kernel=tkk,epsilon='None'))
                     except (ValueError,np.linalg.linalg.LinAlgError):
                         llml = tlml - 3.0
                     if (ulml - tlml) >= -2.0 or (llml - tlml) >= -2.0:
@@ -3285,7 +4009,7 @@ class GPR1D():
                     theta_prop = theta_prop + rstep
                     nkk.set_hyperparameters(theta_prop,log=True)
                     try:
-                        nlml = itemgetter(2)(self.basic_fit(xntest,kernel=nkk,epsilon='None'))
+                        nlml = itemgetter(2)(self.__basic_fit(xntest,kernel=nkk,epsilon='None'))
                         if (nlml - tlml) > 0.0:
                             accept = True
                         else:
@@ -3304,10 +4028,10 @@ class GPR1D():
                 theta = theta_prop.copy()
                 xn = self._xF.copy()
                 nkk.set_hyperparameters(theta,log=True)
-                (barF,sigF,tlml,nkk) = self.basic_fit(xn,kernel=nkk,epsilon='None')
+                (barF,sigF,tlml,nkk) = self.__basic_fit(xn,kernel=nkk,epsilon='None')
                 sbarM = barF.copy() if sbarM is None else np.vstack((sbarM,barF))
                 ssigM = sigF.copy() if ssigM is None else np.vstack((ssigM,sigF))
-                (dbarF,dsigF) = itemgetter(0,1)(self.basic_fit(xn,kernel=nkk,epsilon='None',do_drv=True))
+                (dbarF,dsigF) = itemgetter(0,1)(self.__basic_fit(xn,kernel=nkk,epsilon='None',do_drv=True))
                 sdbarM = dbarF.copy() if sdbarM is None else np.vstack((sdbarM,dbarF))
                 sdsigM = dsigF.copy() if sdsigM is None else np.vstack((sdsigM,dsigF))
         else:
