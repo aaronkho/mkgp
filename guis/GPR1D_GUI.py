@@ -16,6 +16,109 @@ from pyqtgraph import setConfigOption
 
 from GPR1D import GPR1D
 
+# For later use
+class KernelWidget(QtGui.QWidget):
+
+    def __init__(self,name,fOn=True,fRestart=False):
+        super(KernelWidget, self).__init__()
+        self.name = name
+        self.aflag = True if fOn else False
+        self.bflag = True if fRestart else False
+        self.plabels = dict()
+        self.pwidgets = dict()
+        self.lbwidgets = dict()
+        self.ubwidgets = dict()
+
+        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+
+    def addParameter(self,widget,label=None,lbwidget=None,ubwidget=None):
+        if isinstance(widget,QtGui.QLineEdit):
+            self.pwidgets.append(widget)
+            if isinstance(label,QtGui.QLabel):
+                self.plabels.append(label)
+            elif label is None:
+                self.plabels.append(None)
+            else:
+                raise TypeError("Invalid input type for parameter label")
+            if isinstance(lbwidget,QtGui.QLineEdit) and isinstance(ubwidget,QtGui.QLineEdit):
+                self.lbwidgets.append(lbwidget)
+                self.ubwidgets.append(ubwidget)
+            elif lbwidget is None or ubwidget is None:
+                self.lbwidgets.append(None)
+                self.ubwidgets.append(None)
+            else:
+                raise TypeError("Invalid input type for lower / upper bound widget")
+        else:
+            raise TypeError("Input parameter to KernelWidget must be a QtGui.QLineEdit widget")
+
+    def toggle_bounds(self,tRestart=None):
+        if tRestart is None:
+            self.bflag = (not self.bflag)
+        else:
+            self.bflag = True if tRestart else False
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        for ii in np.arange(0,len(self.lbwidgets)):
+            if isinstance(self.lbwidgets[ii],QtGui.QWidget):
+                self.lbwidgets[ii].setEnabled(self.aflag and self.bflag)
+            if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QWidget):
+                self.ubwidgets[ii].setEnabled(self.aflag and self.bflag)
+
+    def toggle_all(self,tOn=None):
+        if tOn is None:
+            self.aflag = (not self.aflag)
+        else:
+            self.aflag = True if tOn else False
+        self.InitGuessLabel.setEnabled(self.aflag)
+        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        for ii in np.arange(0,len(self.pwidgets)):
+            if isinstance(self.pwidgets[ii],QtGui.QWidget):
+                self.pwidgets[ii].setEnabled(self.aflag)
+            if ii < len(self.plabels) and isinstance(self.plabels[ii],QtGui.QWidget):
+                self.plabels[ii].setEnabled(self.aflag)
+            if ii < len(self.lbwidgets) and isinstance(self.lbwidgets[ii],QtGui.QWidget):
+                self.lbwidgets[ii].setEnabled(self.aflag and self.bflag)
+            if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QWidget):
+                self.ubwidgets[ii].setEnabled(self.aflag and self.bflag)
+
+    def get_name(self):
+        name = self.name if self.aflag else None
+        return name
+
+    def get_initial_guess(self):
+        hyps = None
+        csts = None
+        if self.aflag:
+            hyps = []
+            csts = []
+            for ii in np.arange(0,len(self.pwidgets)):
+                if isinstance(self.pwidgets[ii],QtGui.QLineEdit):
+                    if ii < len(self.lbwidgets) and isinstance(self.lbwidgets[ii],QtGui.QLineEdit):
+                        hyps.append(float(self.pwidgets[ii].text()))
+                    else:
+                        csts.append(float(self.pwidgets[ii].text()))
+            hyps = np.array(hyps).flatten()
+            csts = np.array(csts).flatten()
+        return (hyps,csts)
+
+    def get_bounds(self):
+        bounds = None
+        if self.aflag and self.bflag:
+            bounds = []
+            for ii in np.arange(0,len(self.lbwidgets)):
+                if isinstance(self.lbwidgets[ii],QtGui.QLineEdit):
+                    if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QLineEdit):
+                        bounds.append([float(self.lbwidgets[ii].text()),float(self.ubwidgets[ii].text())])
+            bounds = np.atleast_2d(bounds)
+        return bounds
+
+
 class SEKernelWidget(QtGui.QWidget):
 
     def __init__(self,fOn=True,fRestart=False):
@@ -1420,7 +1523,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSettings.addWidget(self.YRQKernelSettings)
         self.YKernelSettings.addWidget(self.YMHKernelSettings)
         self.YKernelSettings.addWidget(self.YGGKernelSettings)
-        self.YKernelSettings.setCurrentIndex(0)
+        self.YKernelSettings.setCurrentIndex(self.YKernelSelectionList.currentIndex())
 
         self.YGradOptSettings = GradAscentOptimizerWidget(self.YOptimizeBox.isChecked())
         self.YMomOptSettings = MomentumOptimizerWidget(self.YOptimizeBox.isChecked())
@@ -1440,7 +1543,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YOptimizerSettings.addWidget(self.YAdamOptSettings)
         self.YOptimizerSettings.addWidget(self.YAdamaxOptSettings)
         self.YOptimizerSettings.addWidget(self.YNadamOptSettings)
-        self.YOptimizerSettings.setCurrentIndex(0)
+        self.YOptimizerSettings.setCurrentIndex(self.YOptimizerSelectionList.currentIndex())
 
         ynlbox = QtGui.QHBoxLayout()
         ynlbox.addWidget(self.YNoiseInitGuessLabel)
@@ -1465,6 +1568,7 @@ class GPR1D_GUI(QtGui.QWidget):
         ykbox.addRow(self.YNoiseHypLabel,ynebox)
         ykbox.addRow(self.YKernelRestartBox)
         ykbox.addRow(self.YNRestartsLabel,self.YNRestartsEntry)
+        ykbox.setLabelAlignment(QtCore.Qt.AlignBottom)
 
         self.YKernelSelectionTab.setLayout(ykbox)
 
@@ -1554,7 +1658,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSettings.addWidget(self.EMHKernelSettings)
         self.EKernelSettings.addWidget(self.EGGKernelSettings)
         self.EKernelSettings.setEnabled(self.HeteroscedasticBox.isChecked())
-        self.EKernelSettings.setCurrentIndex(1)
+        self.EKernelSettings.setCurrentIndex(self.EKernelSelectionList.currentIndex())
 
         self.EGradOptSettings = GradAscentOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
         self.EMomOptSettings = MomentumOptimizerWidget(self.HeteroscedasticBox.isChecked() and self.EOptimizeBox.isChecked())
@@ -1574,7 +1678,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EOptimizerSettings.addWidget(self.EAdamOptSettings)
         self.EOptimizerSettings.addWidget(self.EAdamaxOptSettings)
         self.EOptimizerSettings.addWidget(self.ENadamOptSettings)
-        self.EOptimizerSettings.setCurrentIndex(0)
+        self.EOptimizerSettings.setCurrentIndex(self.EOptimizerSelectionList.currentIndex())
 
         enlbox = QtGui.QHBoxLayout()
         enlbox.addWidget(self.ENoiseInitGuessLabel)
@@ -1599,6 +1703,7 @@ class GPR1D_GUI(QtGui.QWidget):
         ekbox.addRow(self.ENoiseHypLabel,enebox)
         ekbox.addRow(self.EKernelRestartBox)
         ekbox.addRow(self.ENRestartsLabel,self.ENRestartsEntry)
+        ekbox.setLabelAlignment(QtCore.Qt.AlignBottom)
 
         eebox = QtGui.QVBoxLayout()
         eebox.addWidget(self.HeteroscedasticBox)

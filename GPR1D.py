@@ -2706,14 +2706,14 @@ class GPR1D():
         alpha = spla.cho_solve((LL,True),yf)
         gradlml = np.zeros(theta.shape).flatten()
         for ii in np.arange(0,theta.size):
-             HHb = kk(x1,x2,der=0,hder=ii)
-             HHh1 = kk(x1h1,x2h1,der=1,hder=ii)
-             HHh2 = kk(x1h2,x2h2,der=-1,hder=ii)
-             HHd = kk(x1d,x2d,der=2,hder=ii)
-             HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
-             PP = np.dot(alpha.T,HH)
-             QQ = spla.cho_solve((LL,True),HH)
-             gradlml[ii] = 0.5 * np.dot(PP,alpha) - 0.5 * lp * np.sum(np.diag(QQ))
+            HHb = kk(x1,x2,der=0,hder=ii)
+            HHh1 = kk(x1h1,x2h1,der=1,hder=ii)
+            HHh2 = kk(x1h2,x2h2,der=-1,hder=ii)
+            HHd = kk(x1d,x2d,der=2,hder=ii)
+            HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
+            PP = np.dot(alpha.T,HH)
+            QQ = spla.cho_solve((LL,True),HH)
+            gradlml[ii] = 0.5 * np.dot(PP,alpha) - 0.5 * lp * np.sum(np.diag(QQ))
 
         return gradlml
 
@@ -3679,14 +3679,10 @@ class GPR1D():
                 if isinstance(self.ekk,Kernel) and self.ekb is not None and not self._eflag and self.eeps is not None:
                     elp = self.elp
                     ekk = copy.copy(self.ekk)
-                    eeps = self.eeps
-                    eopm = self.eopm
-                    eopp = self.eopp
-                    edh = self.edh
                     ekkvec = []
                     elmlvec = []
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3696,7 +3692,7 @@ class GPR1D():
                         etheta = np.abs(self.ekb[:,1] - self.ekb[:,0]).flatten() * np.random.random_sample((self.ekb.shape[0],)) + np.nanmin(self.ekb,axis=1).flatten()
                         ekk.set_hyperparameters(etheta,log=True)
                         try:
-                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
+                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
                             ekkvec.append(copy.copy(ekk))
                             elmlvec.append(elml)
                         except (ValueError,np.linalg.linalg.LinAlgError):
@@ -3711,11 +3707,7 @@ class GPR1D():
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
                 elif not self._eflag and self.eeps is not None:
                     ekk = Noise_Kernel(float(np.mean(ye)))
-                    eeps = self.eeps
-                    eopm = self.eopm
-                    eopp = self.eopp
-                    edh = self.edh
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=eeps,method=eopm,spars=eopp,sdiff=edh))
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
                     self.ekk = copy.copy(ekk)
                     self._eflag = True
                 barE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
