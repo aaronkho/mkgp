@@ -1964,11 +1964,11 @@ class GPR1D_GUI(QtGui.QWidget):
                 self.fNewData = False
                 toc = time.perf_counter()
                 print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))
-                if (eeps is not None and eeps > 0.0) or (enres is not None and enres > 0):
+                if (isinstance(eeps,(float,int)) and eeps > 0.0) or (isinstance(enres,(float,int)) and enres > 0):
                     ehyps = self.gpr.get_error_kernel().get_hyperparameters()
                     print("   --- Optimized error kernel hyperparameters: ---")
                     print(ehyps)
-                if (yeps is not None and yeps > 0.0) or (ynres is not None and ynres > 0):
+                if (isinstance(yeps,(float,int)) and yeps > 0.0) or (isinstance(ynres,(float,int)) and ynres > 0):
                     yhyps = self.gpr.get_gp_kernel().get_hyperparameters()
                     print("   *** Optimized kernel hyperparameters ***")
                     print(yhyps)
@@ -2005,6 +2005,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 yraw = float(self.DataTable.item(ii,1).text())
                 yeraw = float(self.DataTable.item(ii,2).text())
                 xeraw = float(self.DataTable.item(ii,3).text())
+#                self.p1.plot([xraw],[yraw],pen=None,symbol='o',symbolSize=10,symbolPen=rawPen,symbolBrush=pg.mkBrush(255,255,255,120))
                 self.p1.plot([xraw,xraw],[yraw-sigma*yeraw,yraw+sigma*yeraw],pen=rawPen)
                 if self.UseXErrorsBox.isChecked():
                     self.p1.plot([xraw-sigma*xeraw,xraw+sigma*xeraw],[yraw,yraw],pen=rawPen)

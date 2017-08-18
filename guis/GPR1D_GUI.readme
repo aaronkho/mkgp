@@ -1,7 +1,7 @@
 *** README - GPR1D_GUI ***
 
 Developer: Aaron Ho - a.ho@differ.nl
-Last update: 04/08/2017
+Last update: 18/08/2017
 Repository: https://gitlab.com/aaronkho/GPR1D.git
 
 The GitLab repository is currently private, so explicit
@@ -67,7 +67,7 @@ Step 1: Specify data
    Use x errors:          check - toggles display and usage of
                                   input x errors
      NOTE: Running "Clean Data" with this box checked will
-           remove rows where "X Err." field is empty!
+           remove rows where the "X Err." field is empty!
 
 
 Step 2: Specify kernels for Gaussian process regression
@@ -111,13 +111,21 @@ Step 2: Specify kernels for Gaussian process regression
                                   with higher values enforcing
                                   greater smoothness (>0)
 
-   Optimize:          check     - toggle gradient ascent search
-                                  for optimum hyperparameters
+   Optimize:          check     - toggle optimization routine
+                                  for hyperparameters
                                   (highest log-marginal-
                                   likelihood)
 
    Convergence Criteria:  float - set criteria for stopping the
                                   optimization algorithm (>0)
+
+   Optimizer:         drop-down - select which optimization
+                                  algorithm will be used to
+                                  perform hyperparameter
+                                  search
+
+   Parameters:        float     - parameters used in the chosen
+                                  optimization algorithm
 
    Add Noise Kernel:  check     - toggle addition of noise
                                   kernel to chosen kernel in
@@ -163,9 +171,6 @@ Step 2: Specify kernels for Gaussian process regression
 **IMPORTANT!!**
    A high regularization parameter (>5) for the error kernel is
    recommended or else fit variance is greatly exaggerated!
-   The error kernel implementation does not actually use the
-   user-specified convergence criteria but will not do the
-   optimization if the "Optimize" box is unchecked.
 
 
 Step 3: Perform Gaussian process regression fits and save data

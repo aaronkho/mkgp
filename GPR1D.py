@@ -24,10 +24,7 @@ class Kernel():
     Get and set functions already given, but all functions can be overridden by specific implementation, NOT recommended
     """
 
-# Commented lines indicate the required statements to re-include parameters field
-
-#    def __init__(self,name="None",func=None,hderf=False,hyps=None,pars=None,csts=None):
-    def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None):
+    def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
         """
         :param name: str. Codename of Kernel object.
 
@@ -38,16 +35,18 @@ class Kernel():
         :param hyps: array. Hyperparameters to be stored in the Kernel object.
 
         :param csts: array. Constants to be stored in the Kernel object.
+
+        :param htags: array. Optional names of hyperparameters to be stored in the Kernel object.
+
+        :param ctags: array. Optional names of constants to be stored in the Kernel object.
         """
 
         self._fname = name
         self._function = func if func is not None else None
-        self._hyperparameters = copy.deepcopy(hyps) if hyps is not None else None
-#        self._parameters = copy.deepcopy(pars) if pars is not None else None
-        self._constants = copy.deepcopy(csts) if csts is not None else None
+        self._hyperparameters = np.array(copy.deepcopy(hyps)).flatten() if hyps is not None else None
+        self._constants = np.array(copy.deepcopy(csts)).flatten() if csts is not None else None
         self._bounds = None
         self._hderflag = hderf
-#        self._hderflag = False     # d/dhyp capability turned off, further testing required!
 
     def __call__(self,x1,x2,der=0,hder=None):
         """
@@ -91,18 +90,6 @@ class Kernel():
         if self._hyperparameters is not None:
             val = np.log10(self._hyperparameters) if log else self._hyperparameters
         return val
-
-#    def get_parameters(self):
-#        """
-#        Return the parameters stored in the Kernel object.
-#
-#        :returns: array. Parameter list.
-#        """
-#
-#        val = np.array([])
-#        if self._parameters is not None:
-#            val = self._parameters
-#        return val
 
     def get_constants(self):
         """
@@ -167,30 +154,6 @@ class Kernel():
                 raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
         else:
             raise AttributeError('Kernel object has no hyperparameters.')
-
-#    def set_parameters(self,params):
-#        """
-#        Set the parameters stored in the Kernel object.
-#
-#        :param params: array. Parameter list to be stored, ordered according to the specific Kernel object.
-#
-#        :returns: none.
-#        """
-#
-#        upars = None
-#        if isinstance(params,(list,tuple)):
-#            upars = np.array(params).flatten()
-#        elif isinstance(params,np.ndarray):
-#            upars = params.flatten()
-#        else:
-#            raise TypeError('Argument params must be an array-like object.')
-#        if self._parameters is not None:
-#            if upars.size >= self._parameters.size:
-#                self._parameters = upars[:self._parameters.size]
-#            else:
-#                raise ValueError('Argument params must contain at least %d elements.' % (self._parameters.size))
-#        else:
-#            raise AttributeError('Kernel object has no parameters.')
 
     def set_constants(self,consts):
         """
@@ -284,12 +247,6 @@ class OperatorKernel(Kernel):
             val = np.append(val,kk.get_hyperparameters(log=log))
         return val
 
-#    def get_parameters(self):
-#        val = np.array([])
-#        for kk in self._kernel_list:
-#            val = np.append(val,kk.get_parameters())
-#        return val
-
     def get_constants(self):
         """
         Return the constants stored in all the Kernel objects within the OperatorKernel object.
@@ -356,41 +313,6 @@ class OperatorKernel(Kernel):
                 raise ValueError('Argument theta must contain at least %d elements.' % (nhyps))
         else:
             raise AttributeError('Kernel object has no hyperparameters.')
-
-#    def set_parameters(self,params):
-#        """
-#        Set the hyperparameters stored in all the Kernel objects within the OperatorKernel object.
-#
-#        :param theta: array. Hyperparameter list to be stored, ordered according to the specific OperatorKernel object.
-#
-#        :param log: bool. Indicates that theta is passed in as log10(theta).
-#
-#        :returns: none.
-#        """
-#
-#        upars = None
-#        if isinstance(params,(list,tuple)):
-#            upars = np.array(params).flatten()
-#        elif isinstance(params,np.ndarray):
-#            upars = params.flatten()
-#        else:
-#            raise TypeError('Argument params must be an array-like object.')
-#        npars = self.get_parameters().size
-#        if npars > 0:
-#            if upars.size >= npars:
-#                ndone = 0
-#                for kk in self._kernel_list:
-#                    nhere = ndone + kk.get_parameters().size
-#                    if nhere != ndone:
-#                        if nhere == npars:
-#                            kk.set_parameters(params[ndone:])
-#                        else:
-#                            kk.set_parameters(params[ndone:nhere])
-#                        ndone = nhere
-#            else:
-#                raise ValueError('Argument params must contain at least %d elements.' % (npars))
-#        else:
-#            raise AttributeError('Kernel object has no parameters.')
 
     def set_constants(self,consts):
         """
@@ -477,7 +399,6 @@ class WarpingFunction():
         Type checking done with:     isinstance(<obj>,<this_module>.WarpingFunction)
     """
 
-#    def __init__(self,name="None",func=None,hderf=False,hyps=None,pars=None,csts=None):
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None):
         """
         :param name: str. Codename of WarpingFunction object.
@@ -494,11 +415,9 @@ class WarpingFunction():
         self._fname = name
         self._function = func if func is not None else None
         self._hyperparameters = copy.deepcopy(hyps) if hyps is not None else None
-#        self._parameters = copy.deepcopy(pars) if pars is not None else None
         self._constants = copy.deepcopy(csts) if csts is not None else None
         self._bounds = None
         self._hderflag = hderf
-#        self._hderflag = False     # d/dhyp capability turned off, further testing required!
 
     def __call__(self,zz,der=0,hder=None):
         """
@@ -540,18 +459,6 @@ class WarpingFunction():
         if self._hyperparameters is not None:
             val = np.log10(self._hyperparameters) if log else self._hyperparameters
         return val
-
-#    def get_parameters(self):
-#        """
-#        Return the parameters stored in the WarpingFunction object.
-#
-#        :returns: array. Parameter list.
-#        """
-#
-#        val = np.array([])
-#        if self._parameters is not None:
-#            val = self._parameters
-#        return val
 
     def get_constants(self):
         """
@@ -616,30 +523,6 @@ class WarpingFunction():
                 raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
         else:
             raise AttributeError('WarpingFunction object has no hyperparameters.')
-
-#    def set_parameters(self,params):
-#        """
-#        Set the parameters stored in the WarpingFunction object.
-#
-#        :param params: array. Parameter list to be stored, ordered according to the specific WarpingFunction object.
-#
-#        :returns: none.
-#        """
-#
-#        upars = None
-#        if isinstance(params,(list,tuple)):
-#            upars = np.array(params).flatten()
-#        elif isinstance(params,np.ndarray):
-#            upars = params.flatten()
-#        else:
-#            raise TypeError('Argument params must be an array-like object.')
-#        if self._parameters is not None:
-#            if upars.size >= self._parameters.size:
-#                self._parameters = upars[:self._parameters.size]
-#            else:
-#                raise ValueError('Argument params must contain at least %d elements.' % (self._parameters.size))
-#        else:
-#            raise AttributeError('WarpingFunction object has no parameters.')
 
     def set_constants(self,consts):
         """
@@ -729,9 +612,7 @@ class Sum_Kernel(OperatorKernel):
             if ihyp is not None:
                 hyps = np.array(kk.get_hyperparameters())
                 nhyps = hyps.size
-#                pars = np.array(kk.get_parameters())
-#                npars = pars.size
-                ihyp = ihyp - nhyps # - npars
+                ihyp = ihyp - nhyps
         return covm
 
     def __init__(self,*args,klist=None):
@@ -796,9 +677,7 @@ class Product_Kernel(OperatorKernel):
                 if ihyp is not None:
                     hyps = np.array(kk.get_hyperparameters())
                     nhyps = hyps.size
-#                    pars = np.array(kk.get_parameters())
-#                    npars = pars.size
-                    ihyp = ihyp - nhyps # - npars
+                    ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
 
@@ -850,9 +729,7 @@ class Symmetric_Kernel(OperatorKernel):
             if ihyp is not None:
                 hyps = np.array(kk.get_hyperparameters())
                 nhyps = hyps.size
-#                pars = np.array(kk.get_parameters())
-#                npars = pars.size
-                ihyp = ihyp - nhyps # - npars
+                ihyp = ihyp - nhyps
         return covm
 
     def __init__(self,*args,klist=None):
@@ -942,7 +819,7 @@ class Noise_Kernel(Kernel):
             elif hder == 0:
                 covm[rr == 0.0] = 2.0 * n_hyp
 # Applied second derivative of Kronecker delta, assuming n_hyp is actually a Gaussian centred on rr = 0 with width ss
-# Surprisingly provides good variance estimate but issues with enforcing derivative constraints (need more work!)
+# Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
 #        elif der == 2 or der == -2:
 #            drdx1 = np.sign(x1 - x2)
 #            drdx1[drdx1==0] = 1.0
@@ -1671,10 +1548,10 @@ class Gibbs_Kernel(Kernel):
             raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
         return covm
 
-    def get_lsf_name():
+    def get_wfunc_name():
         return self._wfunc.get_name()
 
-    def evaluate_lsf(self,zz,der=0,hder=None):
+    def evaluate_wfunc(self,zz,der=0,hder=None):
         lsf = self._wfunc(zz,der,hder)
         return lsf
 
@@ -1717,19 +1594,6 @@ class Gibbs_Kernel(Kernel):
         super(Gibbs_Kernel,self).set_hyperparameters(theta,log)
         if self._hyperparameters.size > 1:
             self._wfunc.set_hyperparameters(self._hyperparameters[1:])
-
-#    def set_parameters(self,params):
-#        """
-#        Set the parameters stored in the Kernel object.
-#
-#        :param params: array. Parameter list to be stored, ordered according to the specific Kernel object.
-#
-#        :returns: none.
-#        """
-#
-#        super(Gibbs_Kernel,self).set_parameters(params)
-#        if self._parameters.size > 0:
-#            self._wfunc.set_parameters(self._parameters)
 
     def set_constants(self,consts):
         """
@@ -3191,7 +3055,7 @@ class GPR1D():
                 gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
             vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
-            unew = np.nanmax([b2 * vold,np.abs(gradlml)],axis=0)
+            unew = b2 * vnew if vold is None else np.nanmax([b2 * vold,np.abs(gradlml)],axis=0)
             theta_step = eta * (mnew / (1.0 - b1**(icount + 1))) / unew
             theta_new = theta_old + theta_step
             newkk.set_hyperparameters(theta_new,log=True)
