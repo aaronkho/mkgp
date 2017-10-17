@@ -1924,7 +1924,7 @@ class GPR1D():
         self.ekk = None
         self.ekb = None
         self.elp = 6.0
-        self.enr = 5
+        self.enr = None
         self.eeps = None
         self.eopm = 'grad'
         self.eopp = np.array([1.0e-5])
