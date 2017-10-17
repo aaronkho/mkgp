@@ -42,7 +42,7 @@ class Kernel():
         """
 
         self._fname = name
-        self._function = func if func is not None else None
+        self._function = func if callable(func) else None
         self._hyperparameters = np.array(copy.deepcopy(hyps)).flatten() if hyps is not None else None
         self._constants = np.array(copy.deepcopy(csts)).flatten() if csts is not None else None
         self._bounds = None
@@ -62,7 +62,7 @@ class Kernel():
         """
 
         k_out = None
-        if self._function is not None:
+        if callable(self._function):
             k_out = self._function(x1,x2,der,hder)
         else:
             raise NotImplementedError('Kernel function not yet defined.')
@@ -627,7 +627,7 @@ class Sum_Kernel(OperatorKernel):
             for kk in args:
                 if isinstance(kk,Kernel):
                     uklist.append(kk)
-                    name = name + kk.get_name()
+                    name = name + "-" + kk.get_name() if name else kk.get_name()
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],Kernel) and isinstance(klist[1],Kernel):
             name = ""
             for kk in klist:
@@ -636,7 +636,7 @@ class Sum_Kernel(OperatorKernel):
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
-        super(Sum_Kernel,self).__init__("Sum_"+name,self.__calc_covm,True,uklist)
+        super(Sum_Kernel,self).__init__("Sum("+name+")",self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -693,7 +693,7 @@ class Product_Kernel(OperatorKernel):
             for kk in args:
                 if isinstance(kk,Kernel):
                     uklist.append(kk)
-                    name = name + kk.get_name()
+                    name = name + "-" + kk.get_name() if name else kk.get_name()
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],Kernel) and isinstance(klist[1],Kernel):
             name = ""
             for kk in klist:
@@ -702,7 +702,7 @@ class Product_Kernel(OperatorKernel):
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
-        super(Product_Kernel,self).__init__("Prod_"+name,self.__calc_covm,True,uklist)
+        super(Product_Kernel,self).__init__("Prod("+name+")",self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -734,7 +734,7 @@ class Symmetric_Kernel(OperatorKernel):
 
     def __init__(self,*args,klist=None):
         """
-        :keyword klist: list. Kernel objects to be added together, minimum of 2, can be passed in as separate arguments without a keyword.
+        :keyword klist: list. Kernel object, maximum of 1, to be made symmetric can be passed in as separate arguments without a keyword.
         """
 
         uklist = []
@@ -755,7 +755,7 @@ class Symmetric_Kernel(OperatorKernel):
             name = name + kk.get_name()
         else:
             raise TypeError('Arguments to Symmetric_Kernel must be Kernel objects.')
-        super(Symmetric_Kernel,self).__init__("Sym_"+name,self.__calc_covm,True,uklist)
+        super(Symmetric_Kernel,self).__init__("Sym("+name+")",self.__calc_covm,True,uklist)
 
     def __copy__(self):
         kcopy_list = []
@@ -1806,15 +1806,27 @@ class IG_WarpingFunction(WarpingFunction):
 def KernelConstructor(name):
     """
     Function to construct a kernel solely based on the kernel codename.
+    Note: OperatorKernel objects now use encapsulating round brackets to specify their constituents
 
     :param name: str. The codename of the desired Kernel object.
     """
 
     kernel = None
     if isinstance(name,str):
-        m = re.search(r'^(.*?)_(.*)$',name)
+        m = re.search(r'^(.*?)\((.*)\)$',name)
         if m:
-            names = m.group(2).split('-')
+            links = m.group(2).split('-')
+            names = []
+            bflag = False
+            rname = ''
+            for jj in np.arange(0,len(links)):
+                rname = links[jj] if not bflag else rname + '-' + links[jj]
+                if re.search('\(',links[jj]):
+                    bflag = True
+                if re.search('\)',links[jj]):
+                    bflag = False
+                if not bflag:
+                    names.append(rname)
             kklist = []
             for ii in np.arange(0,len(names)):
                 kklist.append(KernelConstructor(names[ii]))
@@ -2829,7 +2841,13 @@ class GPR1D():
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = kk.get_hyperparameters(log=True)
-        theta_step = np.zeros(theta_base.shape)
+        if newkk.is_hderiv_implemented():
+            # Hyperparameter derivatives computed in linear space
+            gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+            gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+        else:
+            gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+        theta_step = eta * gradlml
         theta_old = theta_base.copy()
         theta_new = theta_old + theta_step
         lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
