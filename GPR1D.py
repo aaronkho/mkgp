@@ -20,25 +20,28 @@ class Kernel():
               function contains the covariance function, k, along with dk/dx1, dk/dx2, and d^2k/dx1dx2
               hyperparameters contains free variables that vary in logarithmic-space
               constants contains "free" variables that should not be changed during parameter searches, or true constants
-              bounds contains the bounds of the free variables to be used in parameter searches   *** NOT YET IMPLEMENTED!!! ***
-    Get and set functions already given, but all functions can be overridden by specific implementation, NOT recommended
+              bounds contains the bounds of the free variables to be used in MC hyperparameter searches
+    Get/set functions already given, but as always in Python, all functions can be overridden by specific implementation.
+    This is strongly NOT recommended unless you are familiar with how these structures work and their interdependencies.
     """
 
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
         """
-        :param name: str. Codename of Kernel object.
+        Initializes the Kernel object.
 
-        :param func: callable. Evaluation function of Kernel object.
+        :kwarg name: str. Codename of Kernel object.
 
-        :param hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
+        :kwarg func: callable. Evaluation function of Kernel object.
 
-        :param hyps: array. Hyperparameters to be stored in the Kernel object.
+        :kwarg hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
 
-        :param csts: array. Constants to be stored in the Kernel object.
+        :kwarg hyps: array. Hyperparameters to be stored in the Kernel object.
 
-        :param htags: array. Optional names of hyperparameters to be stored in the Kernel object.
+        :kwarg csts: array. Constants to be stored in the Kernel object.
 
-        :param ctags: array. Optional names of constants to be stored in the Kernel object.
+        :kwarg htags: array. Optional names of hyperparameters to be stored in the Kernel object.
+
+        :kwarg ctags: array. Optional names of constants to be stored in the Kernel object.
         """
 
         self._fname = name
@@ -48,15 +51,16 @@ class Kernel():
         self._bounds = None
         self._hderflag = hderf
 
+
     def __call__(self,x1,x2,der=0,hder=None):
         """
-        :param x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
 
-        :param x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
 
-        :param der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
 
-        :param hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
 
         :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
         """
@@ -68,6 +72,7 @@ class Kernel():
             raise NotImplementedError('Kernel function not yet defined.')
         return k_out
 
+
     def get_name(self):
         """
         Returns the codename of the Kernel object.
@@ -77,11 +82,12 @@ class Kernel():
 
         return self._fname
 
+
     def get_hyperparameters(self,log=False):
         """
         Return the hyperparameters stored in the Kernel object.
 
-        :param log: bool. Returns values as log10(values).
+        :kwarg log: bool. Returns values as log10(values).
 
         :returns: array. Hyperparameter list.
         """
@@ -90,6 +96,7 @@ class Kernel():
         if self._hyperparameters is not None:
             val = np.log10(self._hyperparameters) if log else self._hyperparameters
         return val
+
 
     def get_constants(self):
         """
@@ -103,6 +110,7 @@ class Kernel():
             val = self._constants
         return val
 
+
     def get_bounds(self,log=False):
         """
         Return the hyperparameter search bounds stored in the Kernel object.
@@ -115,16 +123,24 @@ class Kernel():
             val = np.log10(self._bounds) if log else self._bounds
         return val
 
+
     def is_hderiv_implemented(self):
+        """
+        Checks if the explicit hyperparameter derivative is implemented in this Kernel object.
+
+        :returns: bool. True if explicit hyperparameter derivative is implemented.
+        """
+
         return self._hderflag
+
 
     def set_hyperparameters(self,theta,log=False):
         """
         Set the hyperparameters stored in the Kernel object.
 
-        :param theta: array. Hyperparameter list to be stored, ordered according to the specific Kernel object.
+        :arg theta: array. Hyperparameter list to be stored, ordered according to the specific Kernel object.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -155,11 +171,12 @@ class Kernel():
         else:
             raise AttributeError('Kernel object has no hyperparameters.')
 
+
     def set_constants(self,consts):
         """
         Set the constants stored in the Kernel object.
 
-        :param const: array. Constant list to be stored, ordered according to the specific Kernel object.
+        :arg consts: array. Constant list to be stored, ordered according to the specific Kernel object.
 
         :returns: none.
         """
@@ -179,15 +196,16 @@ class Kernel():
         else:
             raise AttributeError('Kernel object has no constants.')
 
+
     def set_bounds(self,lbounds,ubounds,log=False):
         """
         Set the hyperparameter bounds stored in the Kernel object.
 
-        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific Kernel object.
+        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific Kernel object.
 
-        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific Kernel object.
+        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific Kernel object.
 
-        :param log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
+        :kwarg log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
 
         :returns: none.
         """
@@ -224,20 +242,38 @@ class Kernel():
             raise AttributeError('Kernel object has no hyperparameters to set bounds for.')
 
 
+
 class OperatorKernel(Kernel):
     """
     Base operator class   *** To be inherited by ALL operator kernel implementations for obtain custom get/set functions ***
-    Ideology: get/set functions adjusted to call get/set functions of each constituent kernel
+        Type checking done with:     isinstance(<obj>,<this_module>.OperatorKernel) if needed
+    Ideology: kernel_list is a Python list of Kernel objects on which the specified operation will be performed on
+    Get/set functions adjusted to call get/set functions of each constituent kernel instead of using its own properties,
+    which are mostly left as None.
     """
     def __init__(self,name="None",func=None,hderf=False,klist=None):
+        """
+        Initializes the OperatorKernel object.
+
+        :kwarg name: str. Codename of OperatorKernel object.
+
+        :kwarg func: callable. Evaluation function of OperatorKernel object.
+
+        :kwarg hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
+
+        :kwarg klist: array. List of Kernel objects to be operated on by the OperatorKernel object.
+
+        :returns: none.
+        """
         super(OperatorKernel,self).__init__(name,func,hderf)
         self._kernel_list = klist if klist is not None else []
+
 
     def get_hyperparameters(self,log=False):
         """
         Return the hyperparameters stored in all the Kernel objects within the OperatorKernel object.
 
-        :param log: bool. Returns values as log10(values).
+        :kwarg log: bool. Returns values as log10(values).
 
         :returns: array. Hyperparameter list.
         """
@@ -246,6 +282,7 @@ class OperatorKernel(Kernel):
         for kk in self._kernel_list:
             val = np.append(val,kk.get_hyperparameters(log=log))
         return val
+
 
     def get_constants(self):
         """
@@ -259,11 +296,12 @@ class OperatorKernel(Kernel):
             val = np.append(val,kk.get_constants())
         return val
 
+
     def get_bounds(self,log=False):
         """
         Return the hyperparameter bounds stored in all the Kernel objects within the OperatorKernel object.
 
-        :param log: bool. Returns values as log10(values).
+        :kwarg log: bool. Returns values as log10(values).
 
         :returns: array. Hyperparameter bounds list.
         """
@@ -277,13 +315,14 @@ class OperatorKernel(Kernel):
             val = None
         return val
 
+
     def set_hyperparameters(self,theta,log=False):
         """
         Set the hyperparameters stored in all the Kernel objects within the OperatorKernel object.
 
-        :param theta: array. Hyperparameter list to be stored, ordered according to the specific OperatorKernel object.
+        :arg theta: array. Hyperparameter list to be stored, ordered according to the specific OperatorKernel object.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -314,11 +353,12 @@ class OperatorKernel(Kernel):
         else:
             raise AttributeError('Kernel object has no hyperparameters.')
 
+
     def set_constants(self,consts):
         """
         Set the constants stored in all the Kernel objects within the OperatorKernel object.
 
-        :param consts: array. Constant list to be stored, ordered according to the specific OperatorKernel object.
+        :arg consts: array. Constant list to be stored, ordered according to the specific OperatorKernel object.
 
         :returns: none.
         """
@@ -347,15 +387,16 @@ class OperatorKernel(Kernel):
         else:
             raise AttributeError('Kernel object has no constants.')
 
+
     def set_bounds(self,lbounds,ubounds,log=False):
         """
         Set the hyperparameter bounds stored in all the Kernel objects within the OperatorKernel object.
 
-        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific OperatorKernel object.
+        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific OperatorKernel object.
 
-        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific OperatorKernel object.
+        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific OperatorKernel object.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -393,23 +434,36 @@ class OperatorKernel(Kernel):
             raise AttributeError('Kernel object has no hyperparameters to set bounds for.')
 
 
+
 class WarpingFunction():
     """
     Base class   *** to be inherited by ALL warping function implementations in order for type checks to succeed ***
         Type checking done with:     isinstance(<obj>,<this_module>.WarpingFunction)
+    Ideology: fname is a string, designed to provide an easy way to check the warping function object type
+              function contains the warping function, l, along with dl/dz and d^2l/dz^2
+              hyperparameters contains free variables that vary in logarithmic-space
+              constants contains "free" variables that should not be changed during parameter searches, or true constants
+              bounds contains the bounds of the free variables to be used in MC hyperparameter searches
+    Get/set functions already given, but as always in Python, all functions can be overridden by specific implementation.
+    This is strongly NOT recommended unless you are familiar with how these structures work and their interdependencies.
+    User note: the usage of the variable z in the documentation is simply to emphasize the generality of the object.
     """
 
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None):
         """
-        :param name: str. Codename of WarpingFunction object.
+        Initializes the WarpingFunction object.
 
-        :param func: callable. Evaluation function of WarpingFunction object.
+        :kwarg name: str. Codename of WarpingFunction object.
 
-        :param hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
+        :kwarg func: callable. Evaluation function of WarpingFunction object.
 
-        :param hyps: array. Hyperparameters to be stored in the WarpingFunction object.
+        :kwarg hderf: bool. Indicates availability of analytical hyperparameter derivatives for optimization algorithms.
 
-        :param csts: array. Constants to be stored in the WarpingFunction object.
+        :kwarg hyps: array. Hyperparameters to be stored in the WarpingFunction object.
+
+        :kwarg csts: array. Constants to be stored in the WarpingFunction object.
+
+        :returns: none.
         """
 
         self._fname = name
@@ -419,15 +473,16 @@ class WarpingFunction():
         self._bounds = None
         self._hderflag = hderf
 
+
     def __call__(self,zz,der=0,hder=None):
         """
-        :param zz: array. x-values to evaulate the warping function at, can be 1-D or 2-D depending on application.
+        :arg zz: array. Values to evaulate the warping function at, can be 1-D or 2-D depending on application.
 
-        :param der: int. Order of x derivative to evaluate the warping function at, requires explicit implementation.
+        :kwarg der: int. Order of z derivative to evaluate the warping function at, requires explicit implementation.
 
-        :param hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
 
-        :returns: array. Warping function evaluations at input x-values, same dimensions as zz.
+        :returns: array. Warping function evaluations at input values, same dimensions as zz.
         """
 
         k_out = None
@@ -436,6 +491,7 @@ class WarpingFunction():
         else:
             raise NotImplementedError('Warping function not yet defined.')
         return k_out
+
 
     def get_name(self):
         """
@@ -446,11 +502,12 @@ class WarpingFunction():
 
         return self._fname
 
+
     def get_hyperparameters(self,log=False):
         """
         Return the hyperparameters stored in the WarpingFunction object.
 
-        :param log: bool. Returns values as log10(values).
+        :kwarg log: bool. Returns values as log10(values).
 
         :returns: array. Hyperparameter list.
         """
@@ -459,6 +516,7 @@ class WarpingFunction():
         if self._hyperparameters is not None:
             val = np.log10(self._hyperparameters) if log else self._hyperparameters
         return val
+
 
     def get_constants(self):
         """
@@ -472,6 +530,7 @@ class WarpingFunction():
             val = self._constants
         return val
 
+
     def get_bounds(self,log=False):
         """
         Return the hyperparameter search bounds stored in the WarpingFunction object.
@@ -484,16 +543,24 @@ class WarpingFunction():
             val = np.log10(self._bounds) if log else self._bounds
         return val
 
+
     def is_hderiv_implemented(self):
+        """
+        Checks if the explicit hyperparameter derivative is implemented in this WarpingFunction object.
+
+        :returns: bool. True if explicit hyperparameter derivative is implemented.
+        """
+
         return self._hderflag
+
 
     def set_hyperparameters(self,theta,log=False):
         """
         Set the hyperparameters stored in the WarpingFunction object.
 
-        :param theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
+        :arg theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -524,11 +591,12 @@ class WarpingFunction():
         else:
             raise AttributeError('WarpingFunction object has no hyperparameters.')
 
+
     def set_constants(self,consts):
         """
         Set the constants stored in the WarpingFunction object.
 
-        :param const: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
+        :arg consts: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
 
         :returns: none.
         """
@@ -548,15 +616,16 @@ class WarpingFunction():
         else:
             raise AttributeError('WarpingFunction object has no constants.')
 
+
     def set_bounds(self,lbounds,ubounds,log=False):
         """
         Set the hyperparameter bounds stored in the WarpingFunction object.
 
-        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific WarpingFunction object.
+        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific WarpingFunction object.
 
-        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific WarpingFunction object.
+        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific WarpingFunction object.
 
-        :param log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
+        :kwarg log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
 
         :returns: none.
         """
@@ -593,18 +662,35 @@ class WarpingFunction():
             raise AttributeError('WarpingFunction object has no hyperparameters to set bounds for.')
 
 
+
 # ****************************************************************************************************************************************
 # ------- Place ALL custom kernel implementations BELOW ----------------------------------------------------------------------------------
 # ****************************************************************************************************************************************
 
 class Sum_Kernel(OperatorKernel):
     """
-    Sum Kernel: Implements the sum of two (or more) Kernel objects
+    Sum Kernel: Implements the sum of two (or more) Kernel objects.
 
-    :keyword klist: list. Kernel objects to be added together, minimum of 2, can be passed in as separate arguments without a keyword.
+    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
+
+    :kwarg klist: list. Kernel objects to be added together, minimum of 2.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
         for kk in self._kernel_list:
@@ -615,9 +701,16 @@ class Sum_Kernel(OperatorKernel):
                 ihyp = ihyp - nhyps
         return covm
 
+
     def __init__(self,*args,klist=None):
         """
-        :keyword klist: list. Kernel objects to be added together, minimum of 2, can be passed in as separate arguments without a keyword.
+        Initializes the Sum_Kernel object.
+
+        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
+
+        :kwarg klist: list. Kernel objects to be added together, minimum of 2.
+
+        :returns: none.
         """
 
         uklist = []
@@ -638,21 +731,46 @@ class Sum_Kernel(OperatorKernel):
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
         super(Sum_Kernel,self).__init__("Sum("+name+")",self.__calc_covm,True,uklist)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
         kcopy = Sum_Kernel(klist=kcopy_list)
         return kcopy
 
+
+
 class Product_Kernel(OperatorKernel):
     """
-    Product Kernel: Implements the product of two (or more) Kernel objects
+    Product Kernel: Implements the product of two (or more) Kernel objects.
 
-    :keyword klist: list. Kernel objects to be multiplied together, minimum of 2, can be passed in as separate arguments without a keyword.
+    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
+
+    :kwarg klist: list. Kernel objects to be multiplied together, minimum of 2.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
         nks = len(self._kernel_list)
         dermat = np.atleast_2d([0] * nks)
@@ -681,9 +799,16 @@ class Product_Kernel(OperatorKernel):
             covm = covm + covterm
         return covm
 
+
     def __init__(self,*args,klist=None):
         """
-        :keyword klist: list. Kernel objects to be added together, minimum of 2, can be passed in as separate arguments without a keyword.
+        Initializes the Product_Kernel object.
+
+        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
+
+        :kwarg klist: list. Kernel objects to be multiplied together, minimum of 2.
+
+        :returns: none.
         """
 
         uklist = []
@@ -704,7 +829,14 @@ class Product_Kernel(OperatorKernel):
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
         super(Product_Kernel,self).__init__("Prod("+name+")",self.__calc_covm,True,uklist)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
@@ -712,16 +844,33 @@ class Product_Kernel(OperatorKernel):
         return kcopy
 
 
+
 class Symmetric_Kernel(OperatorKernel):
     """
-    1D Symmetric Kernel: Enforces even symmetry about zero for any given Kernel object (only uses first Kernel argument, though it accepts many)
+    1D Symmetric Kernel: Enforces even symmetry about zero for any given Kernel object (only uses first Kernel argument, though it accepts many).
     This is really only useful if you wish to rigourously infer data on other side of axis of symmetry without assuming the data
-    can just be flipped or if data on other side is present but require GP to return symmetric solution *** NOT TESTED! ***
+    can just be flipped or if data exists on other side but a symmetric solution is desired. *** NOT FULLY TESTED! ***
 
-    :keyword klist: list. Kernel object to be made symmetric, maximum of 1, can be passed in as a separate argument without a keyword.
+    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
+
+    :keyword klist: list. Kernel object to be made symmetric, maximum of 1.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
         for kk in self._kernel_list:
@@ -732,9 +881,16 @@ class Symmetric_Kernel(OperatorKernel):
                 ihyp = ihyp - nhyps
         return covm
 
+
     def __init__(self,*args,klist=None):
         """
-        :keyword klist: list. Kernel object, maximum of 1, to be made symmetric can be passed in as separate arguments without a keyword.
+        Initializes the Symmetric_Kernel object.
+
+        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
+
+        :keyword klist: list. Kernel object to be made symmetric, maximum of 1.
+
+        :returns: none.
         """
 
         uklist = []
@@ -757,7 +913,14 @@ class Symmetric_Kernel(OperatorKernel):
             raise TypeError('Arguments to Symmetric_Kernel must be Kernel objects.')
         super(Symmetric_Kernel,self).__init__("Sym("+name+")",self.__calc_covm,True,uklist)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
@@ -765,16 +928,31 @@ class Symmetric_Kernel(OperatorKernel):
         return kcopy
 
 
+
 class Constant_Kernel(Kernel):
     """
-    Constant Kernel: always evaluates to a constant value, regardless of x1 and x2
+    Constant Kernel: always evaluates to a constant value, regardless of x1 and x2.
     Note that this is NOT INHERENTLY A VALID COVARIANCE FUNCTION, as it yields singular covariance matrices!
-    However, it provides a nice way to add bias to any other kernel (is this even true?!?)
+    However, it provides a nice way to add bias to any other kernel. (is this even true?!?)
 
-    :param cv: float. Constant value which kernel always evaluates to.
+    :kwarg cv: float. Constant value which kernel always evaluates to.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         c_hyp = self._constants[0]
         rr = np.abs(x1 - x2)
         covm = np.zeros(rr.shape)
@@ -783,9 +961,14 @@ class Constant_Kernel(Kernel):
                 covm = c_hyp * np.ones(rr.shape)
         return covm
 
+
     def __init__(self,cv=1.0):
         """
-        :param cv: float. Constant value which kernel always evaluates to.
+        Initializes the Constant_Kernel object.
+
+        :kwarg cv: float. Constant value which kernel always evaluates to.
+
+        :returns: none.
         """
 
         csts = np.zeros((1,))
@@ -795,21 +978,43 @@ class Constant_Kernel(Kernel):
             raise ValueError('Constant value must be a real number.')
         super(Constant_Kernel,self).__init__("C",self.__calc_covm,True,None,csts)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._constants[0])
         kcopy = Constant_Kernel(chp)
         return kcopy
 
 
+
 class Noise_Kernel(Kernel):
     """
-    Noise Kernel: adds a user-defined degree of expected noise in the data / measurement process
+    Noise Kernel: adds a user-defined degree of expected noise in the data / measurement process.
     Note that this is NOT THE SAME as measurement error, which should be applied externally in GP!!!
 
-    :param nv: float. Hyperparameter representing the noise level.
+    :kwarg nv: float. Hyperparameter representing the noise level.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         n_hyp = self._hyperparameters[0]
         rr = np.abs(x1 - x2)
         covm = np.zeros(rr.shape)
@@ -818,8 +1023,8 @@ class Noise_Kernel(Kernel):
                 covm[rr == 0.0] = n_hyp**2.0
             elif hder == 0:
                 covm[rr == 0.0] = 2.0 * n_hyp
-# Applied second derivative of Kronecker delta, assuming n_hyp is actually a Gaussian centred on rr = 0 with width ss
-# Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
+#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centred on rr = 0 with small width ss
+#       Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
 #        elif der == 2 or der == -2:
 #            drdx1 = np.sign(x1 - x2)
 #            drdx1[drdx1==0] = 1.0
@@ -833,9 +1038,14 @@ class Noise_Kernel(Kernel):
 #                covm[rr == 0.0] = -drdx1[rr == 0.0] * drdx2[rr == 0.0] * 4.0 * n_hyp / ss**2.0
         return covm
 
+
     def __init__(self,nv=1.0):
         """
-        param nv: float. Hyperparameter representing the noise level.
+        Initializes the Noise_Kernel object.
+
+        :kwarg nv: float. Hyperparameter representing the noise level.
+
+        :returns: none.
         """
 
         hyps = np.zeros((1,))
@@ -846,20 +1056,41 @@ class Noise_Kernel(Kernel):
         super(Noise_Kernel,self).__init__("n",self.__calc_covm,True,hyps)
 
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         nhp = float(self._hyperparameters[0])
         kcopy = Noise_Kernel(nhp)
         return kcopy
 
 
+
 class Linear_Kernel(Kernel):
     """
     Linear Kernel: Applies linear regression ax + b, where b = 0, can be multiplied with itself
-    for higher order pure polynomials
+    for higher order pure polynomials.
 
-    :param var: float. Hyperparameter multiplying linear component of model, ie. a.
+    :kwarg var: float. Hyperparameter multiplying linear component of model, ie. a.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         v_hyp = self._hyperparameters[0]
         pp = x1 * x2
         covm = np.zeros(pp.shape)
@@ -887,9 +1118,14 @@ class Linear_Kernel(Kernel):
                 covm = 2.0 * v_hyp * np.ones(pp.shape)
         return covm
 
+
     def __init__(self,var=1.0):
         """
-        :param var: float. Hyperparameter multiplying linear component of model.
+        Initializes the Linear_Kernel object.
+
+        :kwarg var: float. Hyperparameter multiplying linear component of model.
+
+        :returns: none.
         """
 
         hyps = np.zeros((1,))
@@ -899,23 +1135,45 @@ class Linear_Kernel(Kernel):
             raise ValueError('Constant hyperparameter must be greater than 0.')
         super(Linear_Kernel,self).__init__("L",self.__calc_covm,True,hyps)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._hyperparameters[0])
         kcopy = Linear_Kernel(chp)
         return kcopy
 
 
+
 class Poly_Order_Kernel(Kernel):
     """
     Polynomial Order Kernel: Applies linear regression ax + b, where b != 0, can be multiplied with
-    itself for higher order polynomials
+    itself for higher order polynomials.
 
-    :param var: float. Hyperparameter multiplying linear component of model, ie. a.
+    :kwarg var: float. Hyperparameter multiplying linear component of model, ie. a.
 
-    :param cst: float. Hyperparameter added to linear component of model, ie. b.
+    :kwarg cst: float. Hyperparameter added to linear component of model, ie. b.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         v_hyp = self._hyperparameters[0]
         b_hyp = self._hyperparameters[1]
         pp = x1 * x2
@@ -946,11 +1204,16 @@ class Poly_Order_Kernel(Kernel):
                 covm = 2.0 * v_hyp * np.ones(pp.shape)
         return covm
 
+
     def __init__(self,var=1.0,cst=1.0):
         """
-        :param var: float. Hyperparameter multiplying linear component of model.
+        Initializes the Poly_Order_Kernel object.
 
-        :param cst: float. Hyperparameter added to linear component of model.
+        :kwarg var: float. Hyperparameter multiplying linear component of model.
+
+        :kwarg cst: float. Hyperparameter added to linear component of model.
+
+        :returns: none.
         """
 
         hyps = np.zeros((2,))
@@ -964,23 +1227,45 @@ class Poly_Order_Kernel(Kernel):
             raise ValueError('Additive hyperparameter must be greater than 0.')
         super(Poly_Order_Kernel,self).__init__("P",self.__calc_covm,True,hyps)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._hyperparameters[0])
         cst = float(self._hyperparameters[1])
         kcopy = Poly_Order_Kernel(chp,cst)
         return kcopy
 
 
+
 class SE_Kernel(Kernel):
     """
-    Square Exponential Kernel: Infinitely differentiable (ie. extremely smooth) covariance function
+    Square Exponential Kernel: Infinitely differentiable (ie. extremely smooth) covariance function.
 
-    :param var: float. Hyperparameter representing variability of  model in y.
+    :kwarg var: float. Hyperparameter representing variability of model in y.
 
-    :param ls: float. Hyperparameter representing variability of model in x, ie. length scale
+    :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         v_hyp = self._hyperparameters[0]
         l_hyp = self._hyperparameters[1]
         rr = np.abs(x1 - x2)
@@ -1023,11 +1308,16 @@ class SE_Kernel(Kernel):
             covm = afac * efac * sfac
         return covm
 
+
     def __init__(self,var=1.0,ls=1.0):
         """
-        :param var: float. Hyperparameter representing variability of model in y.
+        Initializes the SE_Kernel object.
 
-        :param ls: float. Hyperparameter represeting variability of model in x, ie. length scale.
+        :kwarg var: float. Hyperparameter representing variability of model in y.
+
+        :kwarg ls: float. Hyperparameter represeting variability of model in x, ie. length scale.
+
+        :returns: none.
         """
 
         hyps = np.zeros((2,))
@@ -1041,26 +1331,48 @@ class SE_Kernel(Kernel):
             raise ValueError('Length scale hyperparameter must be greater than 0.')
         super(SE_Kernel,self).__init__("SE",self.__calc_covm,True,hyps)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._hyperparameters[0])
         shp = float(self._hyperparameters[1])
         kcopy = SE_Kernel(chp,shp)
         return kcopy
 
 
+
 class RQ_Kernel(Kernel):
     """
-    Rational Quadratic Kernel: Also infinitely differentiable, but provides higher tolerance for steep slopes
-    Acts as infinite sum of SE kernels for a_hyp < 20, otherwise effectively identical to SE as a_hyp -> infinity
+    Rational Quadratic Kernel: Also infinitely differentiable, but provides higher tolerance for steep slopes.
+    Acts as infinite sum of SE kernels for a_hyp < 20, otherwise effectively identical to SE as a_hyp -> infinity.
 
-    :param amp: float. Hyperparameter representing variability of model in y.
+    :kwarg amp: float. Hyperparameter representing variability of model in y.
 
-    :param ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
+    :kwarg ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
 
-    :param alpha: float. Hyperparameter representing degree of length scale mixing in model.
+    :kwarg alpha: float. Hyperparameter representing degree of length scale mixing in model.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         rq_amp = self._hyperparameters[0]
         l_hyp = self._hyperparameters[1]
         a_hyp = self._hyperparameters[2]
@@ -1119,13 +1431,18 @@ class RQ_Kernel(Kernel):
             covm = afac * efac * sfac
         return covm
 
+
     def __init__(self,amp=1.0,ls=1.0,alpha=1.0):
         """
+        Initializes the RQ_Kernel object.
+
         :param amp: float. Hyperparameter representing variability of model in y.
 
         :param ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
 
         :param alpha: float. Hyperparameter representing degree of length scale mixing in model.
+
+        :returns: none.
         """
 
         hyps = np.zeros((3,))
@@ -1144,6 +1461,12 @@ class RQ_Kernel(Kernel):
         super(RQ_Kernel,self).__init__("RQ",self.__calc_covm,True,hyps)
 
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         ramp = float(self._hyperparameters[0])
         rhp = float(self._hyperparameters[1])
         ralp = float(self._hyperparameters[2])
@@ -1151,21 +1474,36 @@ class RQ_Kernel(Kernel):
         return kcopy
 
 
+
 class Matern_HI_Kernel(Kernel):
     """
-    Matern Kernel with Half-Integer nu: Only differentiable in orders less than given nu, allows fit to retain more features at expense of volatility
+    Matern Kernel with Half-Integer nu: Only differentiable in orders less than given nu, allows fit to retain more features at expense of volatility.
     The half-integer implentation allows for use of explicit simplifications of the derivatives, which greatly improves its speed.
 
-    Recommended nu: 5/2 for second order differentiability while retaining maximum feature representation, becomes SE Kernel with nu -> infinity
+    Recommended nu: 5/2 for second order differentiability while retaining maximum feature representation, becomes SE Kernel with nu -> infinity.
 
-    :param amp: float. Hyperparameter representing variability of model in y.
+    :kwarg amp: float. Hyperparameter representing variability of model in y.
 
-    :param ls: float. Hyperparameter representing variability of model in x, ie. length scale.
+    :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
 
-    :param nu: float. Constant value setting the volatility of the model, recommended valie is 2.5.
+    :kwarg nu: float. Constant value setting the volatility of the model, recommended valie is 2.5.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         mat_amp = self._hyperparameters[0]
         mat_hyp = self._hyperparameters[1]
         nu = self._constants[0]
@@ -1230,11 +1568,15 @@ class Matern_HI_Kernel(Kernel):
 
     def __init__(self,amp=0.1,ls=0.1,nu=2.5):
         """
-        :param amp: float. Hyperparameter representing variability of model in y.
+        Initializes the Matern_HI_Kernel object.
 
-        :param ls: float. Hyperparameter representing variability of model in x, ie. length scale.
+        :kwarg amp: float. Hyperparameter representing variability of model in y.
 
-        :param nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
+        :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
+
+        :kwarg nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
+
+        :returns: none.
         """
 
         hyps = np.zeros((2,))
@@ -1254,6 +1596,12 @@ class Matern_HI_Kernel(Kernel):
         super(Matern_HI_Kernel,self).__init__("MH",self.__calc_covm,True,hyps,csts)
 
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         mamp = float(self._hyperparameters[0])
         mhp = float(self._hyperparameters[1])
         nup = float(self._constants[0])
@@ -1261,19 +1609,34 @@ class Matern_HI_Kernel(Kernel):
         return kcopy
 
 
+
 class NN_Kernel(Kernel):
     """
-    Neural Network Style Kernel: implements a sigmoid covariance function similar to a perceptron in a neural network, good for strong discontinuities
-    User note: Suffers from high volatility like the Matern kernel, have not figured out how to localize impact of kernel to the features in data
+    Neural Network Style Kernel: implements a sigmoid covariance function similar to a perceptron in a neural network, good for strong discontinuities.
+    User note: Suffers from high volatility like the Matern kernel, have not figured out how to localize impact of kernel to the features in data.
 
-    :param nna: float. Hyperparameter representing variability of model in y.
+    :kwarg nna: float. Hyperparameter representing variability of model in y.
 
-    :param nno: float. Hyperparameter representing offset of the sigmoid from the origin.
+    :kwarg nno: float. Hyperparameter representing offset of the sigmoid from the origin.
 
-    :param nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
+    :kwarg nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         nn_amp = self._hyperparameters[0]
         nn_off = self._hyperparameters[1]
         nn_hyp = self._hyperparameters[2]
@@ -1314,13 +1677,18 @@ class NN_Kernel(Kernel):
             raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
         return covm
 
+
     def __init__(self,nna=1.0,nno=1.0,nnv=1.0):
         """
-        :param nna: float. Hyperparameter representing variability of model in y.
+        Initializes the NN_Kernel object.
 
-        :param nno: float. Hyperparameter representing offset of the sigmoid from the origin.
+        :kwarg nna: float. Hyperparameter representing variability of model in y.
 
-        :param nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
+        :kwarg nno: float. Hyperparameter representing offset of the sigmoid from the origin.
+
+        :kwarg nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
+
+        :returns: none.
         """
 
         hyps = np.zeros((3,))
@@ -1338,7 +1706,14 @@ class NN_Kernel(Kernel):
             raise ValueError('Neural network hyperparameter must be a real number.')
         super(NN_Kernel,self).__init__("NN",self.__calc_covm,False,hyps)
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         nnamp = float(self._hyperparameters[0])
         nnop = float(self._hyperparameters[1])
         nnhp = float(self._hyperparameters[2])
@@ -1346,18 +1721,33 @@ class NN_Kernel(Kernel):
         return kcopy
 
 
+
 class Gibbs_Kernel(Kernel):
     """
     Gibbs Kernel: implements a Gibbs covariance function with variable length scale defined by a warping
                   function self._lfunc, which can be any function which produces only positive values
-                  and has an implementation of its first derivative via the "der" argument in its call command
+                  and has an implementation of its first derivative via the "der" argument in its call command.
 
-    :param var: float. Hyperparameter representing variability of model in y.
+    :kwarg var: float. Hyperparameter representing variability of model in y.
 
-    :param wfunc: WarpingFunction object. The parameterized function representing the variability of model in x as a function of x.
+    :kwarg wfunc: obj. WarpingFunction object representing the variability of model in x as a function of x.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg x1: array. Meshgrid of x_1 values to evaulate the kernel function at.
+
+        :arg x2: array. Meshgrid of x_2 values to evaulate the kernel function at.
+
+        :kwarg der: int. Order of x derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the kernel function at, requires explicit implementation.
+
+        :returns: array. Kernel evaluations at (x_1,x_2) pairs, same dimensions as x1 and x2.
+        """
+
         v_hyp = self._hyperparameters[0]
         l_hyp1 = self._wfunc(x1,0)
         l_hyp2 = self._wfunc(x2,0)
@@ -1548,18 +1938,48 @@ class Gibbs_Kernel(Kernel):
             raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
         return covm
 
-    def get_wfunc_name():
-        return self._wfunc.get_name()
 
-    def evaluate_wfunc(self,zz,der=0,hder=None):
-        lsf = self._wfunc(zz,der,hder)
+    def get_wfunc_name():
+        """
+        Returns the codename of the stored WarpingFunction object.
+
+        :returns: str. WarpingFunction codename, returns UD if function is somehow not a WarpingFunction object.
+        """
+
+        wname = ""
+        try:
+            wname = self._wfunc.get_name()
+        except AttributeError:
+            wname = "UD"         # Stands for user-defined
+        return wname
+
+
+    def evaluate_wfunc(self,xx,der=0,hder=None):
+        """
+        Evaluates the stored WarpingFunction object at the specified values.
+
+        :arg xx: array. Values to evaulate the warping function at, can be 1-D or 2-D depending on application.
+
+        :kwarg der: int. Order of x derivative to evaluate the warping function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
+
+        :returns: array. Warping function evaluations at input values, same dimensions as xx.
+        """
+
+        lsf = self._wfunc(xx,der,hder)
         return lsf
+
 
     def __init__(self,var=1.0,wfunc=None):
         """
-        :param var: float. Hyperparameter representing variability of model in y.
+        Initialize the Gibbs_Kernel object.
 
-        :param wfunc: WarpingFunction object. The parameterized function representing the variability of model in x as a function of x.
+        :kwarg var: float. Hyperparameter representing variability of model in y.
+
+        :kwarg wfunc: obj. WarpingFunction object representing the variability of model in x as a function of x.
+
+        :returns: none.
         """
 
         self._wfunc = None
@@ -1580,13 +2000,14 @@ class Gibbs_Kernel(Kernel):
         csts = wfcsts.copy() if wfcsts.size > 0 else None 
         super(Gibbs_Kernel,self).__init__("Gw"+wfname,self.__calc_covm,True,hyps,csts)
 
+
     def set_hyperparameters(self,theta,log=False):
         """
-        Set the hyperparameters stored in the Gibbs_Kernel object.
+        Set the hyperparameters stored in the Gibbs_Kernel and stored WarpingFunction objects.
 
-        :param theta: array. Hyperparameter list to be stored, ordered according to the specific Kernel object.
+        :arg theta: array. Hyperparameter list to be stored, ordered according to the specific Kernel and WarpingFunction objects.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -1595,11 +2016,12 @@ class Gibbs_Kernel(Kernel):
         if self._hyperparameters.size > 1:
             self._wfunc.set_hyperparameters(self._hyperparameters[1:])
 
+
     def set_constants(self,consts):
         """
-        Set the constants stored in the Kernel object.
+        Set the constants stored in the Gibbs_Kernel and stored WarpingFunction objects.
 
-        :param const: array. Constant list to be stored, ordered according to the specific Kernel object.
+        :arg const: array. Constant list to be stored, ordered according to the specific Kernel and WarpingFunction objects.
 
         :returns: none.
         """
@@ -1608,15 +2030,16 @@ class Gibbs_Kernel(Kernel):
         if self._constants.size > 0:
             self._wfunc.set_constants(self._constants)
 
+
     def set_bounds(self,lbounds,ubounds,log=False):
         """
-        Set the hyperparameter bounds stored in the Kernel object.
+        Set the hyperparameter bounds stored in the Gibbs_Kernel and stored WarpingFunction objects.
 
-        :param lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific Kernel object.
+        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific Kernel and WarpingFunction objects.
 
-        :param ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific Kernel object.
+        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific Kernel and WarpingFunction objects.
 
-        :param log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
+        :kwarg log: bool. Indicates that lbounds and ubounds are passed in as log10(lbounds) and log10(ubounds).
 
         :returns: none.
         """
@@ -1625,33 +2048,58 @@ class Gibbs_Kernel(Kernel):
         if self._hyperparameters.size > 1:
             self._wfunc.set_hyperparameters(self._hyperparameters[1:])        
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._hyperparameters[0])
         wfunc = self._wfunc
         kcopy = Gibbs_Kernel(chp,wfunc)
         return kcopy
 
 
+
 class Constant_WarpingFunction(WarpingFunction):
     """
-    Constant warping function for Gibbs Kernel: effectively reduces Gibbs kernel to squared-exponential kernel.
+    Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared-exponential kernel.
     
-    :param cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
+    :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
     """
 
-    def __calc_ls(self,zz,der=0,hder=None):
+    def __calc_warp(self,zz,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg zz: array. Values to evaulate the warping function at, can be 1-D or 2-D depending on application.
+
+        :kwarg der: int. Order of z derivative to evaluate the warping function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
+
+        :returns: array. Warping function evaluations at input values, same dimensions as zz.
+        """
+
         c_hyp = self._hyperparameters[0]
-        ls = np.zeros(zz.shape)
+        warp = np.zeros(zz.shape)
         if der == 0:
             if hder is None:
-                ls = c_hyp * np.ones(zz.shape)
+                warp = c_hyp * np.ones(zz.shape)
             elif hder == 0:
-                ls = np.ones(zz.shape)
-        return ls
+                warp = np.ones(zz.shape)
+        return warp
+
 
     def __init__(self,cv=1.0):
         """
-        :param cv: float. Hyperparameter representing constant value which warping function always evaluates to.
+        Initializes the Constant_WarpingFunction object.
+
+        :kwarg cv: float. Hyperparameter representing constant value which warping function always evaluates to.
+
+        :returns: none.
         """
 
         hyps = np.zeros((1,))
@@ -1659,30 +2107,50 @@ class Constant_WarpingFunction(WarpingFunction):
             hyps[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
-        super(Constant_WarpingFunction,self).__init__("C",self.__calc_ls,True,hyps)
+        super(Constant_WarpingFunction,self).__init__("C",self.__calc_warp,True,hyps)
+
 
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         chp = float(self._hyperparameters[0])
         kcopy = Constant_WarpingFunction(chp)
         return kcopy
 
 
+
 class IG_WarpingFunction(WarpingFunction):
     """
-    Inverse Gaussian warping function for Gibbs Kernel: localized variation of length-scale with variation limit.
+    Inverse Gaussian Warping Function for Gibbs Kernel: localized variation of length-scale with variation limit.
 
-    :param lb: float. Hyperparameter representing base length scale.
+    :kwarg lb: float. Hyperparameter representing base length scale.
 
-    :param gh: float. Hyperparameter representing height of Gaussian envelope adjusting the length scale.
+    :kwarg gh: float. Hyperparameter representing height of Gaussian envelope adjusting the length scale.
 
-    :param gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
+    :kwarg gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
 
-    :param gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
+    :kwarg gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
 
-    :param mf: float. Constant indicating lower limit for height-to-base ratio, to improve stability.
+    :kwarg mf: float. Constant indicating lower limit for height-to-base ratio, to improve stability.
     """
 
-    def __calc_ls(self,zz,der=0,hder=None):
+    def __calc_warp(self,zz,der=0,hder=None):
+        """
+        Object-specific calculation function.
+
+        :arg zz: array. Values to evaulate the warping function at, can be 1-D or 2-D depending on application.
+
+        :kwarg der: int. Order of z derivative to evaluate the warping function at, requires explicit implementation.
+
+        :kwarg hder: int. Order of hyperparameter derivative to evaluate the warping function at, requires explicit implementation.
+
+        :returns: array. Warping function evaluations at input values, same dimensions as zz.
+        """
+
         base = self._hyperparameters[0]
         amp = self._hyperparameters[1]
         sig = self._hyperparameters[2]
@@ -1690,7 +2158,7 @@ class IG_WarpingFunction(WarpingFunction):
         maxfrac = self._constants[1]
         nn = int(np.abs(der))
         hh = amp if amp < (maxfrac * base) else maxfrac * base
-        ls = np.ones(zz.shape) * base
+        warp = np.ones(zz.shape) * base
         if hder is None:
             afac = -hh * np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn)
             sfac = np.zeros(zz.shape)
@@ -1698,9 +2166,9 @@ class IG_WarpingFunction(WarpingFunction):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
-            ls = base + afac * sfac if der == 0 else afac * sfac
+            warp = base + afac * sfac if der == 0 else afac * sfac
         elif hder == 0:
-            ls = np.ones(zz.shape) if der == 0 else np.zeros(zz.shape)
+            warp = np.ones(zz.shape) if der == 0 else np.zeros(zz.shape)
         elif hder == 1:
             afac = -np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn)
             sfac = np.zeros(zz.shape)
@@ -1708,7 +2176,7 @@ class IG_WarpingFunction(WarpingFunction):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
-            ls = afac * sfac
+            warp = afac * sfac
         elif hder == 2:
             afac = -hh * np.exp(-np.power(zz - mu,2.0) / (2.0 * sig**2.0)) / np.power(sig,nn + 1)
             sfac = np.zeros(zz.shape)
@@ -1717,20 +2185,25 @@ class IG_WarpingFunction(WarpingFunction):
                 dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
                 lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
                 sfac = sfac + lfac * np.power((zz - mu) / sig,nn - jj + 2)
-            ls = afac * sfac
-        return ls
+            warp = afac * sfac
+        return warp
+
 
     def __init__(self,lb=1.0,gh=0.5,gs=1.0,gm=0.0,mf=0.6):
         """
-        :param lb: float. Hyperparameter representing base length scale.
+        Initializes the IG_WarpingFunction object.
 
-        :param gh: float. Hyperparameter representing minimal length scale.
+        :kwarg lb: float. Hyperparameter representing base length scale.
 
-        :param gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
+        :kwarg gh: float. Hyperparameter representing minimal length scale.
 
-        :param gm: float. Constant indicating location of minimal length scale.
+        :kwarg gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
 
-        :param mf: float. Constant indicating lower limit for ratio of minimal-to-base length scale, to improve stability.
+        :kwarg gm: float. Constant indicating location of minimal length scale.
+
+        :kwarg mf: float. Constant indicating lower limit for ratio of minimal-to-base length scale, to improve stability.
+
+        :returns: none.
         """
 
         hyps = np.zeros((3,))
@@ -1759,13 +2232,14 @@ class IG_WarpingFunction(WarpingFunction):
             hyps[1] = float(csts[1] * hyps[0])
         super(IG_WarpingFunction,self).__init__("IG",self.__calc_ls,True,hyps,csts)
 
+
     def set_hyperparameters(self,theta,log=False):
         """
-        Set the hyperparameters stored in the WarpingFunction object.
+        Set the hyperparameters stored in the WarpingFunction object. Specific implementation due to maximum fraction limit.
 
-        :param theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
+        :arg theta: array. Hyperparameter list to be stored, ordered according to the specific WarpingFunction object.
 
-        :param log: bool. Indicates that theta is passed in as log10(theta).
+        :kwarg log: bool. Indicates that theta is passed in as log10(theta).
 
         :returns: none.
         """
@@ -1777,11 +2251,12 @@ class IG_WarpingFunction(WarpingFunction):
         if amp > (maxfrac * base):
             self._hyperparameters[1] = maxfrac * base
 
+
     def set_constants(self,consts):
         """
-        Set the constants stored in the WarpingFunction object.
+        Set the constants stored in the WarpingFunction object. Specific implementation due to maximum fraction limit.
 
-        :param const: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
+        :arg consts: array. Constant list to be stored, ordered according to the specific WarpingFunction object.
 
         :returns: none.
         """
@@ -1793,7 +2268,14 @@ class IG_WarpingFunction(WarpingFunction):
         if amp > (maxfrac * base):
             self._hyperparameters[1] = maxfrac * base
 
+
     def __copy__(self):
+        """
+        Object-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: obj. An exact duplicate of the current object, which can be modified without affecting the original.
+        """
+
         lbhp = float(self._hyperparameters[0])
         ghhp = float(self._hyperparameters[1])
         gshp = float(self._hyperparameters[2])
@@ -1801,6 +2283,7 @@ class IG_WarpingFunction(WarpingFunction):
         lrc = float(self._constants[1])
         kcopy = IG_WarpingFunction(lbhp,ghhp,gshp,gmc,lrc)
         return kcopy
+
 
 
 def KernelConstructor(name):
@@ -1899,6 +2382,7 @@ class GPR1D():
     Class containing variable containers, get/set functions, and fitting functions required to perform a 1-dimensional GPR fit.
     User note: This implementation requires the specific implementation of the Kernel class, provided in the same file!
     """
+
     def __init__(self):
         """
         Defines the input and output containers used within the class, still requires instantiation.
@@ -1947,13 +2431,13 @@ class GPR1D():
         """
         Specify the kernel that the Gaussian process regression will be performed with.
 
-        :param kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
+        :kwarg kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
 
-        :param kbounds: array. 2D array with rows being hyperparameters and columns being [lower,upper] bounds.
+        :kwarg kbounds: array. 2D array with rows being hyperparameters and columns being [lower,upper] bounds.
 
-        :param regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
+        :kwarg regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(kernel,Kernel):
@@ -1981,21 +2465,21 @@ class GPR1D():
         Specify the raw data that the Gaussian process regression will be performed on.
         Performs some consistency checks between the input raw data to ensure validity.
 
-        :param xdata: array. x-values of data points to be fitted.
+        :kwarg xdata: array. x-values of data points to be fitted.
 
-        :param ydata: array. y-values of data points to be fitted.
+        :kwarg ydata: array. y-values of data points to be fitted.
 
-        :param xerr: array. x-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
+        :kwarg xerr: array. x-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
 
-        :param yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
+        :kwarg yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
 
-        :param dxdata: array. x-values of derivative data points to be included in fit. (optional)
+        :kwarg dxdata: array. x-values of derivative data points to be included in fit. (optional)
 
-        :param dydata: array. dy/dx-values of derivative data points to be included in fit. (optional)
+        :kwarg dydata: array. dy/dx-values of derivative data points to be included in fit. (optional)
 
-        :param dyerr: array. dy/dx-errors of derivative data points to be included in fit. (optional)
+        :kwarg dyerr: array. dy/dx-errors of derivative data points to be included in fit. (optional)
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
@@ -2057,13 +2541,13 @@ class GPR1D():
         Specify the parameters to ensure the condition number of the matrix is good,
         as well as set upper and lower bounds for the input data to be included.
 
-        :param condnum: float. Minimum allowable delta-x for input data before applying Gaussian blending.
+        :kwarg condnum: float. Minimum allowable delta-x for input data before applying Gaussian blending.
 
-        :param lbound: float. Minimum allowable y-value for input data, values below are omitted from fit procedure.
+        :kwarg lbound: float. Minimum allowable y-value for input data, values below are omitted from fit procedure.
 
-        :param ubound: float. Maximum allowable y-value for input data, values above are omitted from fit procedure.
+        :kwarg ubound: float. Maximum allowable y-value for input data, values above are omitted from fit procedure.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(condnum,(float,int)) and float(condnum) > 0.0:
@@ -2087,15 +2571,15 @@ class GPR1D():
         Specify the kernel that the Gaussian process regression on the error function 
         will be performed with.
 
-        :param kernel: Kernel object. The covariance function to be used in fitting the error data with Gaussian process regression.
+        :kwarg kernel: Kernel object. The covariance function to be used in fitting the error data with Gaussian process regression.
 
-        :param kbounds: array. 2D array with rows being hyperparameters and columns being [lower,upper] bounds.
+        :kwarg kbounds: array. 2D array with rows being hyperparameters and columns being [lower,upper] bounds.
 
-        :param regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
+        :kwarg regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
 
-        :param nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(kernel,Kernel):
@@ -2127,15 +2611,15 @@ class GPR1D():
         Specify the search parameters that the Gaussian process regression will use.
         Performs some consistency checks on input values to ensure validity.
 
-        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
+        :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :param method: str or int. Hyperparameter optimization algorithm selection.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection.
 
-        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
+        :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
 
-        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
+        :kwarg sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
@@ -2275,15 +2759,15 @@ class GPR1D():
         Specify the search parameters that the Gaussian process regression will use for the error function.
         Performs some consistency checks on input values to ensure validity.
 
-        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
+        :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :param method: str or int. Hyperparameter optimization algorithm selection.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection.
 
-        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
+        :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
 
-        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
+        :kwarg sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
@@ -2340,9 +2824,10 @@ class GPR1D():
         with or without omissions / filters / conditioning.
         If set_conditioner() not called, uses default settings for conditioner.
 
-        :param conditioned: bool. Perform data conditioning before returning values to see data actually used by fitting routine.
+        :kwarg conditioned: bool. Perform data conditioning before returning values to see data actually used by fitting routine.
 
-        :returns: tuple. (x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors).
+        :returns: (array, array, array, array, array, array, array).
+            Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
         cxx = self.xx
@@ -2364,7 +2849,7 @@ class GPR1D():
         """
         Returns the x-values used in the latest GPRFit() call.
 
-        :returns: array. x-values corresponding to predicted y-values.
+        :returns: array. Vector of x-values corresponding to predicted y-values.
         """
 
         return self._xF
@@ -2428,7 +2913,7 @@ class GPR1D():
         Returns the full covariance matrix of the dy/dx-values computed in the latest
         GPRFit() call.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
 
         :returns: array. 2D meshgrid array containing full covariance matrix for predicted dy/dx-values from fit.
         """
@@ -2445,7 +2930,7 @@ class GPR1D():
         dy/dx-values computed in the latest GPRFit() call, corresponds to 1 sigma
         error of fit.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned 1 sigma errors.
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned 1 sigma errors.
 
         :returns: array. 1D array containing 1 sigma errors of predicted dy/dx-values from fit.
         """
@@ -2461,11 +2946,12 @@ class GPR1D():
         """
         Returns all common predicted values computed in the latest GPRFit() call.
 
-        :param rtn_cov: bool. Set as true to return the full predicted covariance matrix instead the 1 sigma errors.
+        :kwarg rtn_cov: bool. Set as true to return the full predicted covariance matrix instead the 1 sigma errors.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned variances or errors.
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variances or errors.
 
-        :returns: tuple. (y-values, y-errors, dy/dx-values, dy/dx-errors)
+        :returns: (array, array, array, array).
+            Vectors in order of y-values, y-errors, dy/dx-values, dy/dx-errors.
         """
 
         ra = self.get_gp_mean()
@@ -2490,7 +2976,7 @@ class GPR1D():
         Returns the original input kernel, with settings retained from before the 
         hyperparameter optimization step.
 
-        :returns: Kernel object. The original input kernel from latest set_kernel() call.
+        :returns: obj. The original input Kernel object from latest set_kernel() call.
         """
 
         return self._ikk
@@ -2500,7 +2986,7 @@ class GPR1D():
         """
         Returns the optimized kernel determined in the latest GPRFit() call.
 
-        :returns: Kernel object. The kernel used in the latest GPRFit() call, including optimized hyperparameters.
+        :returns: obj. The Kernel object from the latest GPRFit() call, including optimized hyperparameters if performed.
         """
 
         return self.kk
@@ -2510,7 +2996,8 @@ class GPR1D():
         """
         Returns the data needed to save the optimized kernel determined in the latest GPRFit() call.
 
-        :returns: tuple. (kernel codename, kernel hyperparameters and constants).
+        :returns: (str, array).
+            The Kernel object codename, vector of kernel hyperparameters and constants.
         """
 
         kname = None
@@ -2525,7 +3012,7 @@ class GPR1D():
         """
         Returns the optimized error kernel determined in the latest GPRFit() call.
 
-        :returns: Kernel object. The error kernel used in the latest GPRFit() call, including optimized hyperparameters.
+        :returns: obj. The error Kernel object from the latest GPRFit() call, including optimized hyperparameters if performed.
         """
 
         return self.ekk
@@ -2535,7 +3022,8 @@ class GPR1D():
         """
         Returns the data needed to save the optimized error kernel determined in the latest GPRFit() call.
 
-        :returns: tuple. (kernel codename, kernel hyperparameters and constants).
+        :returns: (str, array).
+            The error Kernel object codename, vector of kernel hyperparameters and constants.
         """
 
         kname = None
@@ -2551,7 +3039,7 @@ class GPR1D():
         Returns the error values used in heteroscedastic GPR, evaluated at the input x-values,
         using the error kernel determined in the latest GPRFit() call.
 
-        :param xnew: array. x-values at which the predicted error function should be evaluated at.
+        :arg xnew: array. Vector of x-values at which the predicted error function should be evaluated at.
 
         :returns: array. Predicted y-errors from the fit using the error kernel.
         """
@@ -2570,11 +3058,38 @@ class GPR1D():
 
     def __gp_base_alg(self,xn,kk,lp,xx,yy,ye,dxx,dyy,dye,dd):
         """
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
         Bare-bones algorithm for gaussian process regression, no idiot-proofing, no pre- or post-processing
+
         Note that it is recommended that kk be a Kernel object as specified in this file
         but it can be, in essence, any passed object which can be called with arguments:
             (x1,x2,derivative_order) with (x1,x2) being a meshgrid
-        and returns an array with shape of x1 and/or x2 (these should have identical shape)
+        and returns an array with shape of x1 and/or x2 (these must have identical shape).
+
+        :arg xn: array. Vector of x-values which the fit will be evaluated at.
+
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
+
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dd: int. Derivative order of output prediction.
+
+        :returns: (array, array, float).
+            Vector of predicted mean values, matrix of predicted variances and covariances,
+            log-marginal-likelihood of prediction including the regularization component.
         """
 
         # Set up the problem grids for calculating the required matrices from covf
@@ -2620,8 +3135,26 @@ class GPR1D():
 
     def __gp_brute_deriv1(self,xn,kk,lp,xx,yy,ye):
         """
-        Bare-bones algorithm for brute-force first-order derivative of gaussian process regression (single input dimension)
-        Not recommended for large training sets, but useful for testing custom Kernel objects which have hard-coded derivative calculations
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
+        Bare-bones algorithm for brute-force first-order derivative of Gaussian process regression (single input dimension).
+        Not recommended for production runs, but useful for testing custom Kernel objects which have hard-coded derivative calculations.
+
+        :arg xn: array. Vector of x-values which the fit will be evaluated at.
+
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
+
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :returns: (array, array, float).
+            Vector of predicted mean derivative values, matrix of predicted variances and covariances,
+            log-marginal-likelihood of prediction including the regularization component.
         """
 
         # Set up the problem grids for calculating the required matrices from covf
@@ -2663,10 +3196,32 @@ class GPR1D():
 
     def __gp_brute_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye,dh):
         """
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
         Bare-bones algorithm for brute-force computation of gradient of log-marginal-likelihood with respect to the
-        hyperparameters in logarithmic space
+        hyperparameters in logarithmic space.
         Result must be divided by ln(10) * theta in order to have the gradient with respect to the hyperparameters
-        in linear space
+        in linear space.
+
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
+
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dh: float. Step size in hyperparameter space used in derivative approximation.
+
+        :returns: array. Vector of log-marginal-likelihood derivatives with respect to the hyperparameters including the regularization component.
         """
 
         xn = np.array([0.0])
@@ -2688,10 +3243,30 @@ class GPR1D():
 
     def __gp_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye):
         """
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
         Bare-bones algorithm for computation of gradient of log-marginal-likelihood with respect to the hyperparameters
-        in linear space
+        in linear space.
         Result must be multiplied by ln(10) * theta in order to have the gradient with respect to the hyperparameters
-        in logarithmic space
+        in logarithmic space.
+
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
+
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :returns: array. Vector of log-marginal-likelihood derivatives with respect to the hyperparameters including the regularization component.
         """
 
         # Set up the problem grids for calculating the required matrices from covf
@@ -2732,15 +3307,36 @@ class GPR1D():
 
     def __gp_grad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
         """
-        Gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -2777,17 +3373,38 @@ class GPR1D():
 
     def __gp_momentum_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
         Gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters in log-space
         Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
 
-        :param eps: float. Desired convergence criteria.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
 
-        :param gam: float. Momentum factor multiplying previous step, recommended 0.9.
+        :arg xx: array. Vector of x-values of data to be fitted.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+
+        :arg gam: float. Momentum factor multiplying previous step, recommended 0.9.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -2823,10 +3440,28 @@ class GPR1D():
 
     def __gp_nesterov_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
-        Nesterov-accelerated gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters in log-space
-           Effectively makes prediction of the next step and uses that with back-correction factor as the current update
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
+        Nesterov-accelerated gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters in log-space.
+           Effectively makes prediction of the next step and uses that with back-correction factor as the current update.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
+
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
+
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
 
         :param eps: float. Desired convergence criteria.
 
@@ -2834,7 +3469,10 @@ class GPR1D():
 
         :param gam: float. Momentum factor multiplying previous step, recommended 0.9.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :param dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -2878,16 +3516,37 @@ class GPR1D():
 
     def __gp_adagrad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
         """
-        Adaptive gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space
-           Suffers from extremely aggressive step modification due to continuous accumulation of denominator term, recommended to use AdaDelta
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Adaptive gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space.
+           Suffers from extremely aggressive step modification due to continuous accumulation of denominator term, recommended to use AdaDelta.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-2.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-2.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -2927,17 +3586,38 @@ class GPR1D():
 
     def __gp_adadelta_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
-        Adaptive gradient ascent hyperparameter optimization algorithm with decaying accumulation window, searches hyperparameters in log-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Adaptive gradient ascent hyperparameter optimization algorithm with decaying accumulation window, searches hyperparameters in log-space.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Initial guess for gain factor on gradient to define next step, recommended 1.0e-2.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param gam: float. Forgetting factor on accumulated gradient term, recommended 0.9.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Initial guess for gain factor on gradient to define next step, recommended 1.0e-2.
+
+        :arg gam: float. Forgetting factor on accumulated gradient term, recommended 0.9.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -2982,19 +3662,40 @@ class GPR1D():
 
     def __gp_adam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
-        Adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
 
-        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+        :arg xx: array. Vector of x-values of data to be fitted.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+
+        :arg b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :arg b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3036,19 +3737,40 @@ class GPR1D():
 
     def __gp_adamax_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
-        Adaptive moment estimation hyperparameter optimization algorithm with l-infinity, searches hyperparameters in log-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Adaptive moment estimation hyperparameter optimization algorithm with l-infinity, searches hyperparameters in log-space.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 2.0e-3.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
 
-        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+        :arg xx: array. Vector of x-values of data to be fitted.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 2.0e-3.
+
+        :arg b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :arg b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :arg dh: float. Step size used to approximate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3091,19 +3813,40 @@ class GPR1D():
 
     def __gp_nadam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
-        Nesterov-accelerated adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space
-        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria
-        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
 
-        :param eps: float. Desired convergence criteria.
+        Nesterov-accelerated adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters in log-space.
+        Note that it is currently limited to 500 attempts to achieve the desired convergence criteria.
+        Message generated when the max. iterations is reached without desired convergence, though result is not necessarily bad.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+        :arg kk: callable. Any object which can be called with 2 arguments and optional derivative order argument, returning the covariance matrix.
 
-        :param b1: float. Forgetting factor on gradient term, recommended 0.9.
+        :arg lp: float. Regularization parameter, larger values effectively enforce smoother / flatter fits.
 
-        :param b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+        :arg xx: array. Vector of x-values of data to be fitted.
 
-        :param dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg dxx: array. Vector of x-values of derivative data to be included in fit. Set to an empty list to specify no data.
+
+        :arg dyy: array. Vector of dy-values of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg dye: array. Vector of dy-errors of derivative data to be included in fit. Must have same dimensions as dxx.
+
+        :arg eps: float. Desired convergence criteria.
+
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-3.
+
+        :arg b1: float. Forgetting factor on gradient term, recommended 0.9.
+
+        :arg b2: float. Forgetting factor on second moment of gradient term, recommended 0.999.
+
+        :arg dh: float. Step size used to calculate the gradient (only applicable if brute-force derivative is used), recommended 1.0e-2.
+
+        :returns: (obj, float).
+            Final Kernel object resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3145,8 +3888,28 @@ class GPR1D():
 
     def __condition_data(self,xx,xe,yy,ye,lb,ub,cn):
         """
+        INTERNAL FUNCTION - USE MAIN CALL FUNCTIONS
+
         Conditions the input data to remove data points which are too close together, as
-        defined by the user, and data points that are outside user-defined bounds
+        defined by the user, and data points that are outside user-defined bounds.
+
+        :arg xx: array. Vector of x-values of data to be fitted.
+
+        :arg xe: array. Vector of x-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg yy: array. Vector of y-values of data to be fitted. Must have same dimensions as xx.
+
+        :arg ye: array. Vector of y-errors of data to be fitted, assumed to be given as 1 sigma. Must have same dimensions as xx.
+
+        :arg lb: float. Minimum allowable y-value for input data, values below are omitted from fit procedure.
+
+        :arg ub: float. Maximum allowable y-value for input data, values above are omitted from fit procedure.
+
+        :arg cn: float. Minimum allowable delta-x for input data before applying Gaussian blending.
+
+        :returns: (array, array, array, array, array).
+            Vectors in order of conditioned x-values, conditioned x-errors, conditioned y-values, conditioned y-errors,
+            number of data points blended into corresponding index.
         """
 
         good = np.all([np.invert(np.isnan(xx)),np.invert(np.isnan(yy)),np.isfinite(xx),np.isfinite(yy)],axis=0)
@@ -3191,38 +3954,42 @@ class GPR1D():
 
     def __basic_fit(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,dxdata=None,dydata=None,dyerr=None,epsilon=None,method=None,spars=None,sdiff=None,do_drv=False,rtn_cov=False):
         """
+        RESTRICTED ACCESS FUNCTION - Can be called externally for testing if user is familiar with algorithm.
+
         Basic GP regression fitting routine, RECOMMENDED to call this instead of the bare-bones functions
         as this applies additional input checking. Note that this function does NOT strictly use class data!!!
 
-        :param xnew: array. x-values at which the predicted fit will be evaluated at.
+        :arg xnew: array. x-values at which the predicted fit will be evaluated at.
 
-        :param kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
+        :kwarg kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
 
-        :param regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
+        :kwarg regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
 
-        :param xdata: array. x-values of data points to be fitted.
+        :kwarg xdata: array. x-values of data points to be fitted.
 
-        :param ydata: array. y-values of data points to be fitted.
+        :kwarg ydata: array. y-values of data points to be fitted.
 
-        :param yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
+        :kwarg yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
 
-        :param dxdata: array. x-values of derivative data points to be included in fit. (optional)
+        :kwarg dxdata: array. x-values of derivative data points to be included in fit. (optional)
 
-        :param dydata: array. dy/dx-values of derivative data points to be included in fit. (optional)
+        :kwarg dydata: array. dy/dx-values of derivative data points to be included in fit. (optional)
 
-        :param dyerr: array. dy/dx-errors of derivative data points to be included in fit. (optional)
+        :kwarg dyerr: array. dy/dx-errors of derivative data points to be included in fit. (optional)
 
-        :param epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
+        :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :param spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
+        :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
 
-        :param sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
+        :kwarg sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
 
-        :param do_drv: bool. Set as true to predict the derivative of the fit instead of the fit.
+        :kwarg do_drv: bool. Set as true to predict the derivative of the fit instead of the fit.
 
-        :param rtn_cov: bool. Set as true to return the full predicted covariance matrix instead of the 1 sigma errors.
+        :kwarg rtn_cov: bool. Set as true to return the full predicted covariance matrix instead of the 1 sigma errors.
 
-        :returns: tuple. (y-values, y-errors, log-marginal-likelihood of fit, optimized Kernel object).
+        :returns: (array, array, float, obj).
+            Vector of predicted mean values, vector or matrix of predicted errors, log-marginal-likelihood of fit
+            including the regularization component, final Kernel object with optimized hyperparameters if performed.
         """
 
         xn = None
@@ -3474,27 +4241,31 @@ class GPR1D():
         return (barF,errF,lml,nkk)
 
 
-    def brute_derivative(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,rtn_cov=False):
+    def __brute_derivative(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,rtn_cov=False):
         """
+        RESTRICTED ACCESS FUNCTION - Can be called externally for testing if user is familiar with algorithm.
+
         Brute-force numerical GP regression derivative routine, RECOMMENDED to call this instead of bare-bones functions above
         Kept for ability to convince user of validity of regular GP derivative, but can also be wildly wrong on some data due to numerical errors
         RECOMMENDED to use derivative flag on __basic_fit() function, as it was tested and seems to be more robust, provided kernels are properly defined
 
-        :param xnew: array. x-values at which the predicted fit will be evaluated at.
+        :arg xnew: array. x-values at which the predicted fit will be evaluated at.
 
-        :param kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
+        :kwarg kernel: Kernel object. The covariance function to be used in fitting the data with Gaussian process regression.
 
-        :param regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
+        :kwarg regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility.
 
-        :param xdata: array. x-values of data points to be fitted.
+        :kwarg xdata: array. x-values of data points to be fitted.
 
-        :param ydata: array. y-values of data points to be fitted.
+        :kwarg ydata: array. y-values of data points to be fitted.
 
-        :param yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
+        :kwarg yerr: array. y-errors of data points to be fitted, assumed to be Gaussian noise specified at 1 sigma. (optional)
 
-        :param rtn_cov: bool. Set as true to return the full predicted covariance matrix instead of the 1 sigma errors.
+        :kwarg rtn_cov: bool. Set as true to return the full predicted covariance matrix instead of the 1 sigma errors.
 
-        :returns: tuple. (dy/dx-values, dy/dx-errors, log-marginal-likelihood of fit).
+        :returns: (array, array, float).
+            Vector of predicted dy/dx-values, vector or matrix of predicted dy/dx-errors, log-marginal-likelihood of fit
+            including the regularization component.
         """
 
         xn = None
@@ -3555,16 +4326,16 @@ class GPR1D():
         return (barF,errF,lml)
 
 
-    def make_NIGP_errors(self,nrestarts):
+    def make_NIGP_errors(self,nrestarts=0):
         """
         Automatically-called function which returns a vector of modified y-errors based
         on input x-errors and a test model gradient. Note that this function does not
         iterate until the test model derivatives and actual fit derivatives are self-
         consistent!
 
-        :param nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
 
         # Check inputs
@@ -3627,13 +4398,13 @@ class GPR1D():
             Developer note: Should this iterate until predicted derivative is consistent with the one
                             used to model impact of input noise?
 
-        :param xnew: array. x-values at which the predicted fit will be evaluated at.
+        :arg xnew: array. x-values at which the predicted fit will be evaluated at.
 
-        :param nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors.
+        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors.
 
-        :param nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument.
 
-        :returns: none. Sets internal class variables.
+        :returns: none.
         """
         # Check inputs
         xn = None
@@ -3778,11 +4549,11 @@ class GPR1D():
         Samples Gaussian process posterior for predictive functions, returns n samples
         Can be used by user to check validity of mean and variance outputs of GPRFit()
 
-        :param nsamples: int. Number of samples to perform.
+        :arg nsamples: int. Number of samples to perform.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
 
-        :param simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation.
+        :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation.
 
         :returns: array. Rows containing sampled fit evaluated at xnew. If simple_out, row 0 is the mean and row 1 is the 1 sigma error.
         """
@@ -3819,9 +4590,11 @@ class GPR1D():
                    acceptance criterion. However, MCMC analysis is only necessary when using non-Gaussian
                    likelihoods, otherwise the result is equivalent to maximization of LML
 
-        :param nsamples: int. Number of samples to perform.
+        :arg nsamples: int. Number of samples to perform.
 
-        :returns: tuple. (y-values, y-errors, dy/dx-values, dy/dx-errors) each containing nsample rows.
+        :returns: (array, array, array, array).
+            Matrices containing rows of predicted y-values, predicted y-errors, predicted dy/dx-values,
+            predicted dy/dx-errors with each having a number of rows equal to the number of samples.
         """
         # Check instantiation of output class variables
         if self._xF is None or self._barF is None or self._varF is None:
