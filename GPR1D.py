@@ -2230,7 +2230,7 @@ class IG_WarpingFunction(WarpingFunction):
             raise ValueError('Length scale function minimum-to-base ratio limit must be less than 1.')
         if hyps[1] > (csts[1] * hyps[0]):
             hyps[1] = float(csts[1] * hyps[0])
-        super(IG_WarpingFunction,self).__init__("IG",self.__calc_ls,True,hyps,csts)
+        super(IG_WarpingFunction,self).__init__("IG",self.__calc_warp,True,hyps,csts)
 
 
     def set_hyperparameters(self,theta,log=False):
