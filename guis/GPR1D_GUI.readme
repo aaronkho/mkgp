@@ -1,7 +1,7 @@
 *** README - GPR1D_GUI ***
 
 Developer: Aaron Ho - a.ho@differ.nl
-Last update: 18/08/2017
+Last update: 14/11/2017
 Repository: https://gitlab.com/aaronkho/GPR1D.git
 
 The GitLab repository is currently private, so explicit
@@ -16,7 +16,7 @@ user-friendly format. It can be used as follows:
 1) make sure the path to the cloned repository is on the
    environmental variable PYTHONPATH. If not, use this command:
 
-   export PYTHONPATH=$PYTHONPATH:/path/to/cloned/repository/
+   export PYTHONPATH=$PYTHONPATH:/path/to/dir/above/cloned/repo/
 
 2) copy or link GPR1D_GUI.py to your working directory or a
    directory on your PATH variable

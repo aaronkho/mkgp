@@ -2082,7 +2082,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 msg = QtGui.QMessageBox()
                 msg.setIcon(QtGui.QMessageBox.Critical)
                 msg.setWindowTitle("Fitting Routine Failed")
-                msg.setText("Fitting routine failure: Please check inputs and try again.")
+                msg.setText("Fitting routine failure: Please see console messages for more details.")
                 msg.exec_()
         else:
             msg = QtGui.QMessageBox()
