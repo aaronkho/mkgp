@@ -52,7 +52,6 @@ GPR.set_error_kernel(kernel=nkernel,kbounds=nkbounds,regpar=10.0)
 GPR.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=[0.0],dydata=[0.0],dyerr=[0.0])
 GPR.set_search_parameters(epsilon=1.0e-3)
 GPR.set_error_search_parameters(epsilon=1.0e-1)
-GPR.set_conditioner(condnum=1.0e-3)    # Defines minimum spacing between neighbouring points before mixing them
 
 # Uncomment these to test recommended optimizers
 #GPR.set_search_parameters(epsilon=1.0e-3,method='adadelta')
@@ -74,7 +73,6 @@ NIGPR.set_error_kernel(kernel=nkernel,kbounds=nkbounds,regpar=10.0)
 NIGPR.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=[0.0],dydata=[0.0],dyerr=[0.0])
 NIGPR.set_search_parameters(epsilon=1.0e-3)
 NIGPR.set_error_search_parameters(epsilon=1.0e-1)
-NIGPR.set_conditioner(condnum=1.0e-3)    # Defines minimum spacing between neighbouring points before mixing them
 
 # Uncomment these to test recommended optimizers
 #NIGPR.set_search_parameters(epsilon=1.0e-3,method='adadelta')
