@@ -10,7 +10,6 @@ import numpy as np
 import scipy.special as spsp
 import scipy.linalg as spla
 from operator import itemgetter
-import matplotlib.pyplot as plt
 
 class Kernel():
     """
