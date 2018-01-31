@@ -1,5 +1,3 @@
-#!/usr/local/depot/Python-3.5.1/bin/python
-
 # Required imports
 import os
 import sys
@@ -21,7 +19,6 @@ from matplotlib.backends import backend_qt4agg as mplqt
 
 from GPR1D import GPR1D
 
-# For later use
 class KernelWidget(QtGui.QWidget):
 
     def __init__(self,name,fOn=True,fRestart=False):
@@ -29,38 +26,108 @@ class KernelWidget(QtGui.QWidget):
         self.name = name
         self.aflag = True if fOn else False
         self.bflag = True if fRestart else False
+        self.ckeys = []
+        self.clabels = dict()
+        self.cwidgets = dict()
+        self.pkeys = []
         self.plabels = dict()
         self.pwidgets = dict()
         self.lbwidgets = dict()
         self.ubwidgets = dict()
 
-        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-
-    def addParameter(self,widget,label=None,lbwidget=None,ubwidget=None):
+    def addConstant(self,key,widget,label=None):
         if isinstance(widget,QtGui.QLineEdit):
-            self.pwidgets.append(widget)
+            self.ckeys.append(key)
+            self.cwidgets[key] = widget
             if isinstance(label,QtGui.QLabel):
-                self.plabels.append(label)
+                self.clabels[key] = label
             elif label is None:
-                self.plabels.append(None)
+                self.clabels[key] = None
+            else:
+                raise TypeError("Invalid input type for constant label")
+        else:
+            raise TypeError("Input constant to KernelWidget must be a QtGui.QLineEdit widget")
+
+    def addParameter(self,key,widget,label=None,lbwidget=None,ubwidget=None):
+        if isinstance(widget,QtGui.QLineEdit):
+            self.pkeys.append(key)
+            self.pwidgets[key] = widget
+            if isinstance(label,QtGui.QLabel):
+                self.plabels[key] = label
+            elif label is None:
+                self.plabels[key] = None
             else:
                 raise TypeError("Invalid input type for parameter label")
             if isinstance(lbwidget,QtGui.QLineEdit) and isinstance(ubwidget,QtGui.QLineEdit):
-                self.lbwidgets.append(lbwidget)
-                self.ubwidgets.append(ubwidget)
+                self.lbwidgets[key] = lbwidget
+                self.ubwidgets[key] = ubwidget
             elif lbwidget is None or ubwidget is None:
-                self.lbwidgets.append(None)
-                self.ubwidgets.append(None)
+                self.lbwidgets[key] = None
+                self.ubwidgets[key] = None
             else:
                 raise TypeError("Invalid input type for lower / upper bound widget")
         else:
             raise TypeError("Input parameter to KernelWidget must be a QtGui.QLineEdit widget")
 
+    def _removeConstant(self,key):
+        if key in self.ckeys:
+            del self.cwidgets[key]
+            del self.clabels[key]
+
+    def _removeParameter(self,key):
+        if key in self.pkeys:
+            del self.pwidgets[key]
+            del self.plabels[key]
+            del self.lbwidgets[key]
+            del self.ubwidgets[key]
+
+    def makeLayout(self):
+        cbox = None
+        pbox = None
+        if len(self.ckeys) > 0:
+            cbox = QtGui.QFormLayout()
+            for ii in np.arange(0,len(self.ckeys)):
+                if isinstance(self.clabels[self.ckeys[ii]],QtGui.QLabel):
+                    cbox.addRow(self.clabels[self.ckeys[ii]],self.cwidgets[self.ckeys[ii]])
+                else:
+                    cbox.addRow(self.ckeys[ii],self.cwidgets[self.ckeys[ii]])
+
+        if len(self.pkeys) > 0:
+            self.InitGuessLabel = QtGui.QLabel("Initial Guess")
+            self.InitGuessLabel.setEnabled(self.aflag)
+            self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
+            self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
+            self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
+            self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+
+            pbox = QtGui.QGridLayout()
+            pbox.addWidget(self.InitGuessLabel,0,1)
+            pbox.addWidget(self.LowerBoundLabel,0,2)
+            pbox.addWidget(self.UpperBoundLabel,0,3)
+            for ii in np.arange(0,len(self.pkeys)):
+                if self.plabels[self.pkeys[ii]] is not None:
+                    pbox.addWidget(self.plabels[self.pkeys[ii]],ii+1,0)
+                if self.pwidgets[self.pkeys[ii]] is not None:
+                    pbox.addWidget(self.pwidgets[self.pkeys[ii]],ii+1,1)
+                if self.lbwidgets[self.pkeys[ii]] is not None:
+                    pbox.addWidget(self.lbwidgets[self.pkeys[ii]],ii+1,2)
+                if self.ubwidgets[self.pkeys[ii]] is not None:
+                    pbox.addWidget(self.ubwidgets[self.pkeys[ii]],ii+1,3)
+
+        layoutBox = None
+        if cbox is not None and pbox is not None:
+            layoutBox = QtGui.QVBoxLayout()
+            layoutBox.addLayout(cbox)
+            layoutBox.addLayout(pbox)
+        elif cbox is not None:
+            layoutBox = cbox
+        elif pbox is not None:
+            layoutBox = pbox
+        else:
+            print("No parameters added to KernelWidget, layout cannot be made")
+
+        return layoutBox
+
     def toggle_bounds(self,tRestart=None):
         if tRestart is None:
             self.bflag = (not self.bflag)
@@ -68,29 +135,34 @@ class KernelWidget(QtGui.QWidget):
             self.bflag = True if tRestart else False
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        for ii in np.arange(0,len(self.lbwidgets)):
-            if isinstance(self.lbwidgets[ii],QtGui.QWidget):
-                self.lbwidgets[ii].setEnabled(self.aflag and self.bflag)
-            if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QWidget):
-                self.ubwidgets[ii].setEnabled(self.aflag and self.bflag)
+        for ii in np.arange(0,len(self.pkeys)):
+            if isinstance(self.lbwidgets[self.pkeys[ii]],QtGui.QWidget):
+                self.lbwidgets[self.pkeys[ii]].setEnabled(self.aflag and self.bflag)
+            if isinstance(self.ubwidgets[self.pkeys[ii]],QtGui.QWidget):
+                self.ubwidgets[self.pkeys[ii]].setEnabled(self.aflag and self.bflag)
 
     def toggle_all(self,tOn=None):
         if tOn is None:
             self.aflag = (not self.aflag)
         else:
             self.aflag = True if tOn else False
+        for ii in np.arange(0,len(self.ckeys)):
+            if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.QWidget):
+                self.cwidgets[self.ckeys[ii]].setEnabled(self.aflag)
+            if isinstance(self.clabels[self.ckeys[ii]],QtGui.QWidget):
+                self.clabels[self.ckeys[ii]].setEnabled(self.aflag)
         self.InitGuessLabel.setEnabled(self.aflag)
         self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
         self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        for ii in np.arange(0,len(self.pwidgets)):
-            if isinstance(self.pwidgets[ii],QtGui.QWidget):
-                self.pwidgets[ii].setEnabled(self.aflag)
-            if ii < len(self.plabels) and isinstance(self.plabels[ii],QtGui.QWidget):
-                self.plabels[ii].setEnabled(self.aflag)
-            if ii < len(self.lbwidgets) and isinstance(self.lbwidgets[ii],QtGui.QWidget):
-                self.lbwidgets[ii].setEnabled(self.aflag and self.bflag)
-            if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QWidget):
-                self.ubwidgets[ii].setEnabled(self.aflag and self.bflag)
+        for ii in np.arange(0,len(self.pkeys)):
+            if isinstance(self.pwidgets[self.pkeys[ii]],QtGui.QWidget):
+                self.pwidgets[self.pkeys[ii]].setEnabled(self.aflag)
+            if isinstance(self.plabels[self.pkeys[ii]],QtGui.QWidget):
+                self.plabels[self.pkeys[ii]].setEnabled(self.aflag)
+            if isinstance(self.lbwidgets[self.pkeys[ii]],QtGui.QWidget):
+                self.lbwidgets[self.pkeys[ii]].setEnabled(self.aflag and self.bflag)
+            if isinstance(self.ubwidgets[self.pkeys[ii]],QtGui.QWidget):
+                self.ubwidgets[self.pkeys[ii]].setEnabled(self.aflag and self.bflag)
 
     def get_name(self):
         name = self.name if self.aflag else None
@@ -100,14 +172,14 @@ class KernelWidget(QtGui.QWidget):
         hyps = None
         csts = None
         if self.aflag:
-            hyps = []
             csts = []
-            for ii in np.arange(0,len(self.pwidgets)):
-                if isinstance(self.pwidgets[ii],QtGui.QLineEdit):
-                    if ii < len(self.lbwidgets) and isinstance(self.lbwidgets[ii],QtGui.QLineEdit):
-                        hyps.append(float(self.pwidgets[ii].text()))
-                    else:
-                        csts.append(float(self.pwidgets[ii].text()))
+            for ii in np.arange(0,len(self.ckeys)):
+                if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.LineEdit):
+                    csts.append(float(self.cwidgets[self.ckeys[ii]].text()))
+            hyps = []
+            for ii in np.arange(0,len(self.pkeys)):
+                if isinstance(self.pwidgets[self.pkeys[ii]],QtGui.QLineEdit):
+                    hyps.append(float(self.pwidgets[self.pkeys[ii]].text()))
             hyps = np.array(hyps).flatten()
             csts = np.array(csts).flatten()
         return (hyps,csts)
@@ -116,433 +188,178 @@ class KernelWidget(QtGui.QWidget):
         bounds = None
         if self.aflag and self.bflag:
             bounds = []
-            for ii in np.arange(0,len(self.lbwidgets)):
-                if isinstance(self.lbwidgets[ii],QtGui.QLineEdit):
-                    if ii < len(self.ubwidgets) and isinstance(self.ubwidgets[ii],QtGui.QLineEdit):
-                        bounds.append([float(self.lbwidgets[ii].text()),float(self.ubwidgets[ii].text())])
+            for ii in np.arange(0,len(self.pkeys)):
+                if isinstance(self.lbwidgets[self.pkeys[ii]],QtGui.QLineEdit) and isinstance(self.ubwidgets[self.pkeys[ii]],QtGui.QLineEdit):
+                    bounds.append([float(self.lbwidgets[self.pkeys[ii]].text()),float(self.ubwidgets[self.pkeys[ii]].text())])
             bounds = np.atleast_2d(bounds)
         return bounds
 
 
-class SEKernelWidget(QtGui.QWidget):
+class SEKernelWidget(KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
-        super(SEKernelWidget, self).__init__()
-        self.name = "SE"
-        self.aflag = True if fOn else False
-        self.bflag = True if fRestart else False
+        super(SEKernelWidget, self).__init__("SE",fOn,fRestart)
         self.SEKernelUI()
 
     def SEKernelUI(self):
 
-        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        SigmaHypLabel = QtGui.QLabel("Amplitude:")
+        SigmaHypLabel.setEnabled(self.aflag)
+        SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        SigmaHypEntry = QtGui.QLineEdit("1.0e0")
+        SigmaHypEntry.setEnabled(self.aflag)
+        SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaLBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaUBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('sigma',SigmaHypEntry,label=SigmaHypLabel,lbwidget=SigmaLBEntry,ubwidget=SigmaUBEntry)
 
-        self.SigmaHypLabel = QtGui.QLabel("Amplitude:")
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthHypLabel = QtGui.QLabel("Length:")
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.LengthHypEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthLBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthUBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthHypLabel = QtGui.QLabel("Length:")
+        LengthHypLabel.setEnabled(self.aflag)
+        LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        LengthHypEntry = QtGui.QLineEdit("1.0e0")
+        LengthHypEntry.setEnabled(self.aflag)
+        LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthLBEntry = QtGui.QLineEdit("1.0e0")
+        LengthLBEntry.setEnabled(self.aflag and self.bflag)
+        LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthUBEntry = QtGui.QLineEdit("1.0e0")
+        LengthUBEntry.setEnabled(self.aflag and self.bflag)
+        LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('length',LengthHypEntry,label=LengthHypLabel,lbwidget=LengthLBEntry,ubwidget=LengthUBEntry)
 
-        gbox = QtGui.QGridLayout()
-        gbox.addWidget(self.InitGuessLabel,0,1)
-        gbox.addWidget(self.LowerBoundLabel,0,2)
-        gbox.addWidget(self.UpperBoundLabel,0,3)
-        gbox.addWidget(self.SigmaHypLabel,1,0)
-        gbox.addWidget(self.SigmaHypEntry,1,1)
-        gbox.addWidget(self.SigmaLBEntry,1,2)
-        gbox.addWidget(self.SigmaUBEntry,1,3)
-        gbox.addWidget(self.LengthHypLabel,2,0)
-        gbox.addWidget(self.LengthHypEntry,2,1)
-        gbox.addWidget(self.LengthLBEntry,2,2)
-        gbox.addWidget(self.LengthUBEntry,2,3)
-
-        self.setLayout(gbox)
-
-    def toggle_bounds(self,tRestart=None):
-        if tRestart is None:
-            self.bflag = (not self.bflag)
-        else:
-            self.bflag = True if tRestart else False
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def toggle_all(self,tOn=None):
-        if tOn is None:
-            self.aflag = (not self.aflag)
-        else:
-            self.aflag = True if tOn else False
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def get_name(self):
-        name = self.name if self.aflag else None
-        return name
-
-    def get_initial_guess(self):
-        hyps = None
-        csts = None
-        if self.aflag:
-            hyps = []
-            hyps.append(float(self.SigmaHypEntry.text()))
-            hyps.append(float(self.LengthHypEntry.text()))
-            hyps = np.array(hyps).flatten()
-            csts = []
-            csts = np.array(csts).flatten()
-        return (hyps,csts)
-
-    def get_bounds(self):
-        bounds = None
-        if self.aflag and self.bflag:
-            bounds = []
-            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
-            bounds.append([float(self.LengthLBEntry.text()),float(self.LengthUBEntry.text())])
-            bounds = np.atleast_2d(bounds)
-        return bounds
+        kbox = super(SEKernelWidget, self).makeLayout()
+        self.setLayout(kbox)
 
 
-class RQKernelWidget(QtGui.QWidget):
+class RQKernelWidget(KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
-        super(RQKernelWidget, self).__init__()
-        self.name = "RQ"
-        self.aflag = True if fOn else False
-        self.bflag = True if fRestart else False
+        super(RQKernelWidget, self).__init__("RQ",fOn,fRestart)
         self.RQKernelUI()
 
     def RQKernelUI(self):
 
-        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        SigmaHypLabel = QtGui.QLabel("Amplitude:")
+        SigmaHypLabel.setEnabled(self.aflag)
+        SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        SigmaHypEntry = QtGui.QLineEdit("1.0e0")
+        SigmaHypEntry.setEnabled(self.aflag)
+        SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaLBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaUBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('sigma',SigmaHypEntry,label=SigmaHypLabel,lbwidget=SigmaLBEntry,ubwidget=SigmaUBEntry)
 
-        self.SigmaHypLabel = QtGui.QLabel("Amplitude:")
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthHypLabel = QtGui.QLabel("Length:")
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.LengthHypEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthLBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthUBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.AlphaHypLabel = QtGui.QLabel("Exponent:")
-        self.AlphaHypLabel.setEnabled(self.aflag)
-        self.AlphaHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.AlphaHypEntry = QtGui.QLineEdit("1.0e0")
-        self.AlphaHypEntry.setEnabled(self.aflag)
-        self.AlphaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.AlphaLBEntry = QtGui.QLineEdit("1.0e0")
-        self.AlphaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.AlphaUBEntry = QtGui.QLineEdit("1.0e0")
-        self.AlphaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthHypLabel = QtGui.QLabel("Length:")
+        LengthHypLabel.setEnabled(self.aflag)
+        LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        LengthHypEntry = QtGui.QLineEdit("1.0e0")
+        LengthHypEntry.setEnabled(self.aflag)
+        LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthLBEntry = QtGui.QLineEdit("1.0e0")
+        LengthLBEntry.setEnabled(self.aflag and self.bflag)
+        LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthUBEntry = QtGui.QLineEdit("1.0e0")
+        LengthUBEntry.setEnabled(self.aflag and self.bflag)
+        LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('length',LengthHypEntry,label=LengthHypLabel,lbwidget=LengthLBEntry,ubwidget=LengthUBEntry)
 
-        gbox = QtGui.QGridLayout()
-        gbox.addWidget(self.InitGuessLabel,0,1)
-        gbox.addWidget(self.LowerBoundLabel,0,2)
-        gbox.addWidget(self.UpperBoundLabel,0,3)
-        gbox.addWidget(self.SigmaHypLabel,1,0)
-        gbox.addWidget(self.SigmaHypEntry,1,1)
-        gbox.addWidget(self.SigmaLBEntry,1,2)
-        gbox.addWidget(self.SigmaUBEntry,1,3)
-        gbox.addWidget(self.LengthHypLabel,2,0)
-        gbox.addWidget(self.LengthHypEntry,2,1)
-        gbox.addWidget(self.LengthLBEntry,2,2)
-        gbox.addWidget(self.LengthUBEntry,2,3)
-        gbox.addWidget(self.AlphaHypLabel,3,0)
-        gbox.addWidget(self.AlphaHypEntry,3,1)
-        gbox.addWidget(self.AlphaLBEntry,3,2)
-        gbox.addWidget(self.AlphaUBEntry,3,3)
+        AlphaHypLabel = QtGui.QLabel("Exponent:")
+        AlphaHypLabel.setEnabled(self.aflag)
+        AlphaHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        AlphaHypEntry = QtGui.QLineEdit("1.0e0")
+        AlphaHypEntry.setEnabled(self.aflag)
+        AlphaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        AlphaLBEntry = QtGui.QLineEdit("1.0e0")
+        AlphaLBEntry.setEnabled(self.aflag and self.bflag)
+        AlphaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        AlphaUBEntry = QtGui.QLineEdit("1.0e0")
+        AlphaUBEntry.setEnabled(self.aflag and self.bflag)
+        AlphaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('alpha',AlphaHypEntry,label=AlphaHypLabel,lbwidget=AlphaLBEntry,ubwidget=AlphaUBEntry)
 
-        self.setLayout(gbox)
-
-    def toggle_bounds(self,tRestart=None):
-        if tRestart is None:
-            self.bflag = (not self.bflag)
-        else:
-            self.bflag = True if tRestart else False
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def toggle_all(self,tOn=None):
-        if tOn is None:
-            self.aflag = (not self.aflag)
-        else:
-            self.aflag = True if tOn else False
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaHypLabel.setEnabled(self.aflag)
-        self.AlphaHypEntry.setEnabled(self.aflag)
-        self.AlphaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.AlphaUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def get_name(self):
-        name = self.name if self.aflag else None
-        return name
-
-    def get_initial_guess(self):
-        hyps = None
-        csts = None
-        if self.aflag:
-            hyps = []
-            hyps.append(float(self.SigmaHypEntry.text()))
-            hyps.append(float(self.LengthHypEntry.text()))
-            hyps.append(float(self.AlphaHypEntry.text()))
-            hyps = np.array(hyps).flatten()
-            csts = []
-            csts = np.array(csts).flatten()
-        return (hyps,csts)
-
-    def get_bounds(self):
-        bounds = None
-        if self.aflag and self.bflag:
-            bounds = []
-            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
-            bounds.append([float(self.LengthLBEntry.text()),float(self.LengthUBEntry.text())])
-            bounds.append([float(self.AlphaLBEntry.text()),float(self.AlphaUBEntry.text())])
-            bounds = np.atleast_2d(bounds)
-        return bounds
+        kbox = super(RQKernelWidget, self).makeLayout()
+        self.setLayout(kbox)
 
 
-class MHKernelWidget(QtGui.QWidget):
+class MHKernelWidget(KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
-        super(MHKernelWidget, self).__init__()
-        self.name = "MH"
-        self.aflag = True if fOn else False
-        self.bflag = True if fRestart else False
+        super(MHKernelWidget, self).__init__("MH",fOn,fRestart)
         self.MHKernelUI()
 
     def MHKernelUI(self):
 
-        self.NuParLabel = QtGui.QLabel("Integer:")
-        self.NuParLabel.setEnabled(self.aflag)
-        self.NuParLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.NuParEntry = QtGui.QLineEdit("2")
-        self.NuParEntry.setEnabled(self.aflag)
-        self.NuParEntry.setValidator(QtGui.QIntValidator(0,100,None))
+        NuParLabel = QtGui.QLabel("Integer:")
+        NuParLabel.setEnabled(self.aflag)
+        NuParLabel.setAlignment(QtCore.Qt.AlignRight)
+        NuParEntry = QtGui.QLineEdit("2")
+        NuParEntry.setEnabled(self.aflag)
+        NuParEntry.setValidator(QtGui.QIntValidator(0,100,None))
+        self.addConstant('nu',NuParEntry,label=NuParLabel)
 
-        pbox = QtGui.QHBoxLayout()
-        pbox.addWidget(self.NuParLabel)
-        pbox.addWidget(self.NuParEntry)
+        SigmaHypLabel = QtGui.QLabel("Amplitude:")
+        SigmaHypLabel.setEnabled(self.aflag)
+        SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        SigmaHypEntry = QtGui.QLineEdit("1.0e0")
+        SigmaHypEntry.setEnabled(self.aflag)
+        SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaLBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaUBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('sigma',SigmaHypEntry,label=SigmaHypLabel,lbwidget=SigmaLBEntry,ubwidget=SigmaUBEntry)
 
-        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
+        LengthHypLabel = QtGui.QLabel("Length:")
+        LengthHypLabel.setEnabled(self.aflag)
+        LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        LengthHypEntry = QtGui.QLineEdit("1.0e0")
+        LengthHypEntry.setEnabled(self.aflag)
+        LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthLBEntry = QtGui.QLineEdit("1.0e0")
+        LengthLBEntry.setEnabled(self.aflag and self.bflag)
+        LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        LengthUBEntry = QtGui.QLineEdit("1.0e0")
+        LengthUBEntry.setEnabled(self.aflag and self.bflag)
+        LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('length',LengthHypEntry,label=LengthHypLabel,lbwidget=LengthLBEntry,ubwidget=LengthUBEntry)
 
-        self.SigmaHypLabel = QtGui.QLabel("Amplitude:")
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthHypLabel = QtGui.QLabel("Length:")
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.LengthHypEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthLBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.LengthUBEntry = QtGui.QLineEdit("1.0e0")
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-
-        gbox = QtGui.QGridLayout()
-        gbox.addWidget(self.InitGuessLabel,0,1)
-        gbox.addWidget(self.LowerBoundLabel,0,2)
-        gbox.addWidget(self.UpperBoundLabel,0,3)
-        gbox.addWidget(self.SigmaHypLabel,1,0)
-        gbox.addWidget(self.SigmaHypEntry,1,1)
-        gbox.addWidget(self.SigmaLBEntry,1,2)
-        gbox.addWidget(self.SigmaUBEntry,1,3)
-        gbox.addWidget(self.LengthHypLabel,2,0)
-        gbox.addWidget(self.LengthHypEntry,2,1)
-        gbox.addWidget(self.LengthLBEntry,2,2)
-        gbox.addWidget(self.LengthUBEntry,2,3)
-
-        tbox = QtGui.QVBoxLayout()
-        tbox.addLayout(pbox)
-        tbox.addLayout(gbox)
-
-        self.setLayout(tbox)
-
-    def toggle_bounds(self,tRestart=None):
-        if tRestart is None:
-            self.bflag = (not self.bflag)
-        else:
-            self.bflag = True if tRestart else False
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def toggle_all(self,tOn=None):
-        if tOn is None:
-            self.aflag = (not self.aflag)
-        else:
-            self.aflag = True if tOn else False
-        self.NuParLabel.setEnabled(self.aflag)
-        self.NuParEntry.setEnabled(self.aflag)
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthHypLabel.setEnabled(self.aflag)
-        self.LengthHypEntry.setEnabled(self.aflag)
-        self.LengthLBEntry.setEnabled(self.aflag and self.bflag)
-        self.LengthUBEntry.setEnabled(self.aflag and self.bflag)
-
-    def get_name(self):
-        name = self.name if self.aflag else None
-        return name
-
-    def get_initial_guess(self):
-        hyps = None
-        csts = None
-        if self.aflag:
-            hyps = []
-            hyps.append(float(self.SigmaHypEntry.text()))
-            hyps.append(float(self.LengthHypEntry.text()))
-            hyps = np.array(hyps).flatten()
-            csts = []
-            csts.append(float(self.NuParEntry.text()))
-            csts = np.array(csts).flatten()
-        return (hyps,csts)
-
-    def get_bounds(self):
-        bounds = None
-        if self.aflag and self.bflag:
-            bounds = []
-            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
-            bounds.append([float(self.LengthLBEntry.text()),float(self.LengthUBEntry.text())])
-            bounds = np.atleast_2d(bounds)
-        return bounds
+        kbox = super(MHKernelWidget, self).makeLayout()
+        self.setLayout(kbox)
 
 
-class GibbsKernelWidget(QtGui.QWidget):
+class GibbsKernelWidget(KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
-        super(GibbsKernelWidget, self).__init__()
-        self.name = "Gw"
-        self.aflag = True if fOn else False
-        self.bflag = True if fRestart else False
+        super(GibbsKernelWidget, self).__init__("Gw",fOn,fRestart)
         self.GibbsKernelUI()
 
     def GibbsKernelUI(self):
 
-        self.InitGuessLabel = QtGui.QLabel("Initial Guess")
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel = QtGui.QLabel("Lower Bound")
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel = QtGui.QLabel("Upper Bound")
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel = QtGui.QLabel("Amplitude:")
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.SigmaHypEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaLBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
-        self.SigmaUBEntry = QtGui.QLineEdit("1.0e0")
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaHypLabel = QtGui.QLabel("Amplitude:")
+        SigmaHypLabel.setEnabled(self.aflag)
+        SigmaHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        SigmaHypEntry = QtGui.QLineEdit("1.0e0")
+        SigmaHypEntry.setEnabled(self.aflag)
+        SigmaHypEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaLBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaLBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaLBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        SigmaUBEntry = QtGui.QLineEdit("1.0e0")
+        SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        SigmaUBEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
+        self.addParameter('gsigma',SigmaHypEntry,label=SigmaHypLabel,lbwidget=SigmaLBEntry,ubwidget=SigmaUBEntry)
 
-        gbox = QtGui.QGridLayout()
-        gbox.addWidget(self.InitGuessLabel,0,1)
-        gbox.addWidget(self.LowerBoundLabel,0,2)
-        gbox.addWidget(self.UpperBoundLabel,0,3)
-        gbox.addWidget(self.SigmaHypLabel,1,0)
-        gbox.addWidget(self.SigmaHypEntry,1,1)
-        gbox.addWidget(self.SigmaLBEntry,1,2)
-        gbox.addWidget(self.SigmaUBEntry,1,3)
+        kbox = super(GibbsKernelWidget, self).makeLayout()
 
         self.WarpFuncSelectionLabel = QtGui.QLabel("Warping Function:")
         self.WarpFuncSelectionList = QtGui.QComboBox()
@@ -563,7 +380,7 @@ class GibbsKernelWidget(QtGui.QWidget):
         self.WarpFuncSettings.setCurrentIndex(1)
 
         tbox = QtGui.QVBoxLayout()
-        tbox.addLayout(gbox)
+        tbox.addLayout(kbox)
         tbox.addLayout(fbox)
         tbox.addLayout(self.WarpFuncSettings)
 
@@ -573,53 +390,30 @@ class GibbsKernelWidget(QtGui.QWidget):
         self.WarpFuncSettings.setCurrentIndex(self.WarpFuncSelectionList.currentIndex())
 
     def toggle_bounds(self,tRestart=None):
-        if tRestart is None:
-            self.bflag = (not self.bflag)
-        else:
-            self.bflag = True if tRestart else False
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        super(GibbsKernelWidget, self).toggle_bounds(tRestart)
         for ii in np.arange(0,self.WarpFuncSettings.count()):
             self.WarpFuncSettings.widget(ii).toggle_bounds(self.bflag)
 
     def toggle_all(self,tOn=None):
-        if tOn is None:
-            self.aflag = (not self.aflag)
-        else:
-            self.aflag = True if tOn else False
-        self.InitGuessLabel.setEnabled(self.aflag)
-        self.LowerBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.UpperBoundLabel.setEnabled(self.aflag and self.bflag)
-        self.SigmaHypLabel.setEnabled(self.aflag)
-        self.SigmaHypEntry.setEnabled(self.aflag)
-        self.SigmaLBEntry.setEnabled(self.aflag and self.bflag)
-        self.SigmaUBEntry.setEnabled(self.aflag and self.bflag)
+        super(GibbsKernelWidget, self).toggle_all(tOn)
         self.WarpFuncSelectionLabel.setEnabled(self.aflag)
         self.WarpFuncSelectionList.setEnabled(self.aflag)
         for ii in np.arange(0,self.WarpFuncSettings.count()):
             self.WarpFuncSettings.widget(ii).toggle_all(self.aflag)
 
     def get_name(self):
-        name = None
-        if self.aflag:
+        name = super(GibbsKernelWidget, self).get_name()
+        if name is not None:
             idx = self.WarpFuncSettings.currentIndex()
             wname = self.WarpFuncSettings.widget(idx).get_name()
-            name = self.name + wname
+            name = name + wname
         return name
 
     def get_initial_guess(self):
-        hyps = None
-        csts = None
-        if self.aflag:
+        (hyps,csts) = super(GibbsKernelWidget, self).get_initial_guess()
+        if hyps is not None and csts is not None:
             idx = self.WarpFuncSettings.currentIndex()
             (whyps,wcsts) = self.WarpFuncSettings.widget(idx).get_initial_guess()
-            hyps = []
-            hyps.append(float(self.SigmaHypEntry.text()))
-            hyps = np.array(hyps).flatten()
-            csts = []
-            csts = np.array(csts).flatten()
             if whyps is not None:
                 hyps = np.hstack((hyps,whyps))
             if wcsts is not None:
@@ -627,13 +421,10 @@ class GibbsKernelWidget(QtGui.QWidget):
         return (hyps,csts)
 
     def get_bounds(self):
-        bounds = None
-        if self.aflag and self.bflag:
+        bounds = super(GibbsKernelWidget, self).get_bounds()
+        if bounds is not None:
             idx = self.WarpFuncSettings.currentIndex()
             wbounds = self.WarpFuncSettings.widget(idx).get_bounds()
-            bounds = []
-            bounds.append([float(self.SigmaLBEntry.text()),float(self.SigmaUBEntry.text())])
-            bounds = np.atleast_2d(bounds)
             if wbounds is not None:
                 bounds = np.vstack((bounds,wbounds))
         return bounds
