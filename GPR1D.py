@@ -11,7 +11,7 @@ import scipy.special as spsp
 import scipy.linalg as spla
 from operator import itemgetter
 
-class Kernel():
+class Kernel(object):
     """
     Base class   *** to be inherited by ALL kernel implementations in order for type checks to succeed ***
         Type checking done with:     isinstance(<obj>,<this_module>.Kernel)
@@ -434,7 +434,7 @@ class OperatorKernel(Kernel):
 
 
 
-class WarpingFunction():
+class WarpingFunction(object):
     """
     Base class   *** to be inherited by ALL warping function implementations in order for type checks to succeed ***
         Type checking done with:     isinstance(<obj>,<this_module>.WarpingFunction)
@@ -701,9 +701,9 @@ class Sum_Kernel(OperatorKernel):
         return covm
 
 
-    def __init__(self,*args,klist=None):
+    def __init__(self,*args,**kwargs):
         """
-        Initializes the Sum_Kernel object.
+        Initializes the Sum_Kernel object. Adapted to be Python 2.x compatible.
 
         :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
 
@@ -712,6 +712,7 @@ class Sum_Kernel(OperatorKernel):
         :returns: none.
         """
 
+        klist = kwargs.get("klist")
         uklist = []
         name = "None"
         if len(args) >= 2 and isinstance(args[0],Kernel) and isinstance(args[1],Kernel):
@@ -799,9 +800,9 @@ class Product_Kernel(OperatorKernel):
         return covm
 
 
-    def __init__(self,*args,klist=None):
+    def __init__(self,*args,**kwargs):
         """
-        Initializes the Product_Kernel object.
+        Initializes the Product_Kernel object. Adapted to be Python 2.x compatible.
 
         :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
 
@@ -810,6 +811,7 @@ class Product_Kernel(OperatorKernel):
         :returns: none.
         """
 
+        klist = kwargs.get("klist")
         uklist = []
         name = "None"
         if len(args) >= 2 and isinstance(args[0],Kernel) and isinstance(args[1],Kernel):
@@ -881,9 +883,9 @@ class Symmetric_Kernel(OperatorKernel):
         return covm
 
 
-    def __init__(self,*args,klist=None):
+    def __init__(self,*args,**kwargs):
         """
-        Initializes the Symmetric_Kernel object.
+        Initializes the Symmetric_Kernel object. Adapted to be Python 2.x compatible.
 
         :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
 
@@ -892,6 +894,7 @@ class Symmetric_Kernel(OperatorKernel):
         :returns: none.
         """
 
+        klist = kwargs.get("klist")
         uklist = []
         name = "None"
         if len(args) >= 1 and isinstance(args[0],Kernel):
@@ -2376,7 +2379,7 @@ def KernelReconstructor(name,pars=None,log=False):
     return kernel
 
 
-class GPR1D():
+class GPR1D(object):
     """
     Class containing variable containers, get/set functions, and fitting functions required to perform a 1-dimensional GPR fit.
     User note: This implementation requires the specific implementation of the Kernel class, provided in the same file!
