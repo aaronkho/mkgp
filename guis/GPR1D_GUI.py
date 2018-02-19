@@ -1760,7 +1760,7 @@ class GPR1D_GUI(QtGui.QWidget):
             yopm = self.YOptimizerSettings.widget(self.YOptimizerSelectionList.currentIndex()).get_name()
             yopp = self.YOptimizerSettings.widget(self.YOptimizerSelectionList.currentIndex()).get_parameters()
             if self.YAddNoiseBox.isChecked():
-                ykname = 'Sum_' + ykname + '-n'
+                ykname = 'Sum(' + ykname + '-n)'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
                 ykbounds = np.vstack((ykbounds,np.atleast_2d([float(self.YNoiseLBEntry.text()),float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
@@ -1781,7 +1781,7 @@ class GPR1D_GUI(QtGui.QWidget):
                 eopm = self.EOptimizerSettings.widget(self.EOptimizerSelectionList.currentIndex()).get_name()
                 eopp = self.EOptimizerSettings.widget(self.EOptimizerSelectionList.currentIndex()).get_parameters()
                 if self.EAddNoiseBox.isChecked():
-                    ekname = 'Sum_' + ekname + '-n'
+                    ekname = 'Sum(' + ekname + '-n)'
                     ekhyps = np.hstack((ekhyps,float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None

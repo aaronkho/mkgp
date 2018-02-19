@@ -3484,7 +3484,7 @@ class GPR1D(object):
         if newkk.is_hderiv_implemented():
             # Hyperparameter derivatives computed in linear space
             gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
-            gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
+            gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_base)
         else:
             gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
         theta_step = eta * gradlml
