@@ -188,7 +188,7 @@ class KernelWidget(QtGui.QWidget):
         if self.aflag:
             csts = []
             for ii in np.arange(0,len(self.ckeys)):
-                if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.LineEdit):
+                if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.QLineEdit):
                     csts.append(float(self.cwidgets[self.ckeys[ii]].text()))
             hyps = []
             for ii in np.arange(0,len(self.hkeys)):
@@ -375,7 +375,7 @@ class WarpFunctionWidget(QtGui.QWidget):
         if self.aflag:
             csts = []
             for ii in np.arange(0,len(self.ckeys)):
-                if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.LineEdit):
+                if isinstance(self.cwidgets[self.ckeys[ii]],QtGui.QLineEdit):
                     csts.append(float(self.cwidgets[self.ckeys[ii]].text()))
             hyps = []
             for ii in np.arange(0,len(self.hkeys)):
