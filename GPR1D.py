@@ -4540,7 +4540,7 @@ class GPR1D(object):
             self._dvarF = dvarF.copy() if dvarF is not None else None
 #            self._dvarN = dvarF + np.diag(np.power(dbarE,2.0)) if dvarF is not None and dbarE is not None else None
 #            ddfac = np.sqrt(np.mean(np.power(ddbarE,2.0))) if ddbarE is not None else 0.0
-            ddfac = np.abs(ddbarE)
+            ddfac = np.abs(ddbarE) if ddbarE is not None else 0.0
             self._dvarN = np.diag(2.0 * (np.power(dbarE,2.0) + np.abs(barE * ddfac))) if barE is not None and dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')

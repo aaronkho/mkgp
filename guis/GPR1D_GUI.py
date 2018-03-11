@@ -1849,9 +1849,9 @@ class GPR1D_GUI(QtGui.QWidget):
                 yeraw = np.hstack((yeraw,float(self.DataTable.item(ii,2).text())))
                 xeraw = np.hstack((xeraw,float(self.DataTable.item(ii,3).text())))
             if self.UseXErrorsBox.isChecked():
-                ax.errorbar(xraw,yraw,xerr=xeraw,yerr=yeraw,ls='',color='k')
+                ax.errorbar(xraw,yraw,xerr=xeraw,yerr=yeraw,ls='',marker='x',color='k')
             else:
-                ax.errorbar(xraw,yraw,yerr=yeraw,ls='',color='k')
+                ax.errorbar(xraw,yraw,yerr=yeraw,ls='',marker='x',color='k')
             xfit = self.gpr.get_gp_x()
             yfit = None
             yefit = None
