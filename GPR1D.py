@@ -2390,31 +2390,31 @@ class GPR1D(object):
         Defines the input and output containers used within the class, still requires instantiation.
         """
 
-        self.kk = None
-        self.kb = None
-        self.lp = 1.0
-        self.xx = None
-        self.xe = None
-        self.yy = None
-        self.ye = None
-        self.dxx = None
-        self.dyy = None
-        self.dye = None
-        self.eps = None
-        self.opm = 'grad'
-        self.opp = np.array([1.0e-5])
-        self.dh = 1.0e-2
-        self.lb = None
-        self.ub = None
-        self.cn = None
-        self.ekk = None
-        self.ekb = None
-        self.elp = 6.0
-        self.enr = None
-        self.eeps = None
-        self.eopm = 'grad'
-        self.eopp = np.array([1.0e-5])
-        self.edh = 1.0e-2
+        self._kk = None
+        self._kb = None
+        self._lp = 1.0
+        self._xx = None
+        self._xe = None
+        self._yy = None
+        self._ye = None
+        self._dxx = None
+        self._dyy = None
+        self._dye = None
+        self._eps = None
+        self._opm = 'grad'
+        self._opp = np.array([1.0e-5])
+        self._dh = 1.0e-2
+        self._lb = None
+        self._ub = None
+        self._cn = None
+        self._ekk = None
+        self._ekb = None
+        self._elp = 6.0
+        self._enr = None
+        self._eeps = None
+        self._eopm = 'grad'
+        self._eopp = np.array([1.0e-5])
+        self._edh = 1.0e-2
         self._ikk = None
         self._xF = None
         self._barF = None
@@ -2443,10 +2443,10 @@ class GPR1D(object):
         """
 
         if isinstance(kernel,Kernel):
-            self.kk = copy.copy(kernel)
-            self._ikk = copy.copy(self.kk)
-        if isinstance(self.kk,Kernel):
-            kh = self.kk.get_hyperparameters(log=True)
+            self._kk = copy.copy(kernel)
+            self._ikk = copy.copy(self._kk)
+        if isinstance(self._kk,Kernel):
+            kh = self._kk.get_hyperparameters(log=True)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
@@ -2457,9 +2457,9 @@ class GPR1D(object):
                     kb = np.log10(kb) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
-                self.kb = kb
+                self._kb = kb
         if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
-            self.lp = float(regpar)
+            self._lp = float(regpar)
 
 
     def set_raw_data(self,xdata=None,ydata=None,xerr=None,yerr=None,dxdata=None,dydata=None,dyerr=None):
@@ -2485,57 +2485,57 @@ class GPR1D(object):
         """
 
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
-            self.xx = np.array(xdata).flatten()
+            self._xx = np.array(xdata).flatten()
             self._eflag = False
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
-            self.xx = xdata.flatten()
+            self._xx = xdata.flatten()
             self._eflag = False
         if isinstance(xerr,(list,tuple)) and len(xerr) > 0:
-            self.xe = np.array(xerr).flatten()
+            self._xe = np.array(xerr).flatten()
         elif isinstance(xerr,np.ndarray) and xerr.size > 0:
-            self.xe = xerr.flatten()
+            self._xe = xerr.flatten()
         elif isinstance(xerr,str):
-            self.xe = None
+            self._xe = None
         if isinstance(ydata,(list,tuple)) and len(ydata) > 0:
-            self.yy = np.array(ydata).flatten()
+            self._yy = np.array(ydata).flatten()
         elif isinstance(ydata,np.ndarray) and ydata.size > 0:
-            self.yy = ydata.flatten()
+            self._yy = ydata.flatten()
         if isinstance(yerr,(list,tuple)) and len(yerr) > 0:
-            self.ye = np.array(yerr).flatten()
+            self._ye = np.array(yerr).flatten()
             self._eflag = False
         elif isinstance(yerr,np.ndarray) and yerr.size > 0:
-            self.ye = yerr.flatten()
+            self._ye = yerr.flatten()
             self._eflag = False
         elif isinstance(yerr,str):
-            self.ye = None
+            self._ye = None
             self._eflag = False
         if isinstance(dxdata,(list,tuple)) and len(dxdata) > 0:
             temp = np.array([])
             for item in dxdata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
-            self.dxx = temp.flatten()
+            self._dxx = temp.flatten()
         elif isinstance(dxdata,np.ndarray) and dxdata.size > 0:
-            self.dxx = dxdata.flatten()
+            self._dxx = dxdata.flatten()
         elif isinstance(dxdata,str):
-            self.dxx = None
+            self._dxx = None
         if isinstance(dydata,(list,tuple)) and len(dydata) > 0:
             temp = np.array([])
             for item in dydata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
-            self.dyy = temp.flatten()
+            self._dyy = temp.flatten()
         elif isinstance(dydata,np.ndarray) and dydata.size > 0:
-            self.dyy = dydata.flatten()
+            self._dyy = dydata.flatten()
         elif isinstance(dydata,str):
-            self.dyy = None
+            self._dyy = None
         if isinstance(dyerr,(list,tuple)) and len(dyerr) > 0:
             temp = np.array([])
             for item in dyerr:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
-            self.dye = temp.flatten()
+            self._dye = temp.flatten()
         elif isinstance(dyerr,np.ndarray) and dyerr.size > 0:
-            self.dye = dyerr.flatten()
+            self._dye = dyerr.flatten()
         elif isinstance(dyerr,str):
-            self.dye = None
+            self._dye = None
 
 
     def set_conditioner(self,condnum=None,lbound=None,ubound=None):
@@ -2553,19 +2553,19 @@ class GPR1D(object):
         """
 
         if isinstance(condnum,(float,int)) and float(condnum) > 0.0:
-            self.cn = float(condnum)
+            self._cn = float(condnum)
         elif isinstance(condnum,(float,int)) and float(condnum) <= 0.0:
-            self.cn = None
+            self._cn = None
         elif isinstance(condnum,str):
-            self.cn = None
+            self._cn = None
         if isinstance(lbound,(float,int)):
-            self.lb = float(lbound)
+            self._lb = float(lbound)
         elif isinstance(lbound,str):
-            self.lb = None
+            self._lb = None
         if isinstance(ubound,(float,int)):
-            self.ub = float(ubound)
+            self._ub = float(ubound)
         elif isinstance(ubound,str):
-            self.ub = None
+            self._ub = None
 
 
     def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None):
@@ -2585,10 +2585,10 @@ class GPR1D(object):
         """
 
         if isinstance(kernel,Kernel):
-            self.ekk = copy.copy(kernel)
+            self._ekk = copy.copy(kernel)
             self._eflag = False
-        if isinstance(self.ekk,Kernel):
-            kh = self.ekk.get_hyperparameters(log=True)
+        if isinstance(self._ekk,Kernel):
+            kh = self._ekk.get_hyperparameters(log=True)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
@@ -2599,13 +2599,13 @@ class GPR1D(object):
                     kb = np.log10(kb) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
-                self.ekb = kb
+                self._ekb = kb
                 self._eflag = False
         if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
-            self.elp = float(regpar)
+            self._elp = float(regpar)
             self._eflag = False
         if isinstance(nrestarts,(float,int)):
-            self.enr = int(nrestarts) if int(nrestarts) > 0 else 0
+            self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
 
 
     def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
@@ -2624,136 +2624,86 @@ class GPR1D(object):
         :returns: none.
         """
 
+        midx = 0
         if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
-            self.eps = float(epsilon)
+            self._eps = float(epsilon)
         elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
-            self.eps = None
+            self._eps = None
         elif isinstance(epsilon,str):
-            self.eps = None
+            self._eps = None
         if isinstance(method,str):
-            if re.match('^mom$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^nag$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^adagrad$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[3]
-                opp = np.array([1.0e-2]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^adadelta$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[4]
-                opp = np.array([1.0e-2,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^adam$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[5]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^adamax$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[6]
-                opp = np.array([2.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif re.match('^nadam$',method,flags=re.IGNORECASE):
-                self.opm = self._opopts[7]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            else:
-                self.opm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-        elif isinstance(method,(float,int)):
-            if int(method) == 1:
-                self.opm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 2:
-                self.opm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 3:
-                self.opm = self._opopts[3]
-                opp = np.array([1.0e-2]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 4:
-                self.opm = self._opopts[4]
-                opp = np.array([1.0e-2,0.9]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 5:
-                self.opm = self._opopts[5]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 6:
-                self.opm = self._opopts[6]
-                opp = np.array([2.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            elif int(method) == 7:
-                self.opm = self._opopts[7]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
-            else:
-                self.opm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,self.opp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.opp[ii]
-                self.opp = opp.copy()
+            mstr = method.lower()
+            for mm in np.arange(0,len(self._opopts)):
+                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
+                    midx = mm
+        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
+            midx = int(method)
+        if midx == 1:
+            self._opm = self._opopts[1]
+            opp = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 2:
+            self._opm = self._opopts[2]
+            opp = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 3:
+            self._opm = self._opopts[3]
+            opp = np.array([1.0e-2]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 4:
+            self._opm = self._opopts[4]
+            opp = np.array([1.0e-2,0.9]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 5:
+            self._opm = self._opopts[5]
+            opp = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 6:
+            self._opm = self._opopts[6]
+            opp = np.array([2.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        elif midx == 7:
+            self._opm = self._opopts[7]
+            opp = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
+        else:
+            self._opm = self._opopts[0]
+            opp = np.array([1.0e-5]).flatten()
+            for ii in np.arange(0,self._opp.size):
+                if ii < opp.size:
+                    opp[ii] = self._opp[ii]
+            self._opp = opp.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
-                if ii < self.opp.size and isinstance(spars[ii],(float,int)):
-                    self.opp[ii] = float(spars[ii])
+                if ii < self._opp.size and isinstance(spars[ii],(float,int)):
+                    self._opp[ii] = float(spars[ii])
         elif isinstance(spars,np.ndarray):
             for ii in np.arange(0,spars.size):
-                if ii < self.opp.size and isinstance(spars[ii],(float,int)):
-                    self.opp[ii] = float(spars[ii])
+                if ii < self._opp.size and isinstance(spars[ii],(float,int)):
+                    self._opp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
-            self.dh = float(sdiff)
+            self._dh = float(sdiff)
 
 
     def set_error_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
@@ -2773,51 +2723,84 @@ class GPR1D(object):
         """
 
         if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
-            self.eeps = float(epsilon)
+            self._eeps = float(epsilon)
         elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
-            self.eeps = None
+            self._eeps = None
         elif isinstance(epsilon,str):
-            self.eeps = None
+            self._eeps = None
         if isinstance(method,str):
-            if re.match('^adam$',method,flags=re.IGNORECASE):
-                self.eopm = self._opopts[1]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.eopp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.eopp[ii]
-                self.eopp = opp.copy()
-            else:
-                self.eopm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,self.eopp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.eopp[ii]
-                self.eopp = opp.copy()
-        elif isinstance(method,(float,int)):
-            if int(method) == 1:
-                self.eopm = self._opopts[1]
-                opp = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,self.eopp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.eopp[ii]
-                self.eopp = opp.copy()
-            else:
-                self.eopm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,self.eopp.size):
-                    if ii < opp.size:
-                        opp[ii] = self.eopp[ii]
-                self.eopp = opp.copy()
+            mstr = method.lower()
+            for mm in np.arange(0,len(self._opopts)):
+                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
+                    midx = mm
+        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
+            midx = int(method)
+        if midx == 1:
+            self._eopm = self._opopts[1]
+            opp = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 2:
+            self._eopm = self._opopts[2]
+            opp = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 3:
+            self._eopm = self._opopts[3]
+            opp = np.array([1.0e-2]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 4:
+            self._eopm = self._opopts[4]
+            opp = np.array([1.0e-2,0.9]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 5:
+            self._eopm = self._opopts[5]
+            opp = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 6:
+            self._eopm = self._opopts[6]
+            opp = np.array([2.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        elif midx == 7:
+            self._eopm = self._opopts[7]
+            opp = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
+        else:
+            self._eopm = self._opopts[0]
+            opp = np.array([1.0e-5]).flatten()
+            for ii in np.arange(0,self._eopp.size):
+                if ii < opp.size:
+                    opp[ii] = self._eopp[ii]
+            self._eopp = opp.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
-                if ii < self.eopp.size and isinstance(spars[ii],(float,int)):
-                    self.eopp[ii] = float(spars[ii])
+                if ii < self._eopp.size and isinstance(spars[ii],(float,int)):
+                    self._eopp[ii] = float(spars[ii])
         elif isinstance(spars,np.ndarray):
             for ii in np.arange(0,spars.size):
-                if ii < self.eopp.size and isinstance(spars[ii],(float,int)):
-                    self.eopp[ii] = float(spars[ii])
+                if ii < self._eopp.size and isinstance(spars[ii],(float,int)):
+                    self._eopp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
-            self.edh = float(sdiff)
+            self._edh = float(sdiff)
 
 
     def get_raw_data(self,conditioned=False):
@@ -2832,17 +2815,17 @@ class GPR1D(object):
             Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        cxx = self.xx
-        cyy = self.yy
-        cxe = self.xe
-        cye = self.ye
-        dxx = self.dxx
-        dyy = self.dyy
-        dye = self.dye
+        cxx = self._xx
+        cyy = self._yy
+        cxe = self._xe
+        cye = self._ye
+        dxx = self._dxx
+        dyy = self._dyy
+        dye = self._dye
         if conditioned:
-            lb = -1.0e50 if self.lb is None else self.lb
-            ub = 1.0e50 if self.ub is None else self.ub
-            cn = 5.0e-3 if self.cn is None else self.cn
+            lb = -1.0e50 if self._lb is None else self._lb
+            ub = 1.0e50 if self._ub is None else self._ub
+            cn = 5.0e-3 if self._cn is None else self._cn
             (cxx,cyy,cxe,cye,nn) = self._condition_data(cxx,cyy,cxe,cye,lb,ub,cn)
         return (cxx,cyy,cxe,cye,dxx,dyy,dye)
 
@@ -2991,23 +2974,25 @@ class GPR1D(object):
         :returns: obj. The Kernel object from the latest GPRFit() call, including optimized hyperparameters if performed.
         """
 
-        return self.kk
+        return self._kk
 
 
     def get_gp_kernel_details(self):
         """
         Returns the data needed to save the optimized kernel determined in the latest GPRFit() call.
 
-        :returns: (str, array).
-            The Kernel object codename, vector of kernel hyperparameters and constants.
+        :returns: (str, array, float).
+            The Kernel object codename, vector of kernel hyperparameters and constants, regularization parameter.
         """
 
         kname = None
         kpars = None
-        if isinstance(self.kk,Kernel):
-            kname = self.kk.get_name()
-            kpars = np.hstack((self.kk.get_hyperparameters(log=False),self.kk.get_constants()))
-        return (kname,kpars)
+        krpar = None
+        if isinstance(self._kk,Kernel):
+            kname = self._kk.get_name()
+            kpars = np.hstack((self._kk.get_hyperparameters(log=False),self._kk.get_constants()))
+            krpar = self._lp
+        return (kname,kpars,krpar)
 
 
     def get_error_kernel(self):
@@ -3017,7 +3002,7 @@ class GPR1D(object):
         :returns: obj. The error Kernel object from the latest GPRFit() call, including optimized hyperparameters if performed.
         """
 
-        return self.ekk
+        return self._ekk
 
 
     def get_gp_error_kernel_details(self):
@@ -3025,15 +3010,17 @@ class GPR1D(object):
         Returns the data needed to save the optimized error kernel determined in the latest GPRFit() call.
 
         :returns: (str, array).
-            The error Kernel object codename, vector of kernel hyperparameters and constants.
+            The error Kernel object codename, vector of kernel hyperparameters and constants, regularization parameter.
         """
 
         kname = None
         kpars = None
-        if isinstance(self.ekk,Kernel):
-            kname = self.ekk.get_name()
-            kpars = np.hstack((self.ekk.get_hyperparameters(log=False),self.ekk.get_constants()))
-        return (kname,kpars)
+        krpar = None
+        if isinstance(self._ekk,Kernel):
+            kname = self._ekk.get_name()
+            kpars = np.hstack((self._ekk.get_hyperparameters(log=False),self._ekk.get_constants()))
+            krpar = self._elp
+        return (kname,kpars,krpar)
 
 
     def get_error_function(self,xnew):
@@ -3051,10 +3038,10 @@ class GPR1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        ye = self.ye if self._nye is None else self._nye
+        ye = self._ye if self._nye is None else self._nye
         barE = None
         if xn is not None and ye is not None and self._eflag:
-            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
+            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
         return barE
 
 
@@ -3995,21 +3982,22 @@ class GPR1D(object):
         """
 
         xn = None
-        kk = self.kk
-        lp = self.lp
-        xx = self.xx
-        yy = self.yy
-        ye = self.ye if self._nye is None else self._nye
-        dxx = self.dxx
-        dyy = self.dyy
-        dye = self.dye
-        eps = self.eps
-        opm = self.opm
-        opp = self.opp
-        dh = self.dh
-        lb = -1.0e50 if self.lb is None else self.lb
-        ub = 1.0e50 if self.ub is None else self.ub
-        cn = 5.0e-3 if self.cn is None else self.cn
+        kk = self._kk
+        lp = self._lp
+        xx = self._xx
+        yy = self._yy
+        ye = self._ye if self._nye is None else self._nye
+        dxx = self._dxx
+        dyy = self._dyy
+        dye = self._dye
+        eps = self._eps
+        opm = self._opm
+        opp = self._opp
+        dh = self._dh
+        lb = -1.0e50 if self._lb is None else self._lb
+        ub = 1.0e50 if self._ub is None else self._ub
+        cn = 5.0e-3 if self._cn is None else self._cn
+        midx = 0
         if isinstance(xnew,(list,tuple)) and len(xnew) > 0:
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
@@ -4017,7 +4005,7 @@ class GPR1D(object):
         if isinstance(kernel,Kernel):
             kk = copy.copy(kernel)
         if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
-            self.lp = float(regpar)
+            self._lp = float(regpar)
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
@@ -4066,119 +4054,68 @@ class GPR1D(object):
         elif isinstance(epsilon,str):
             eps = None
         if isinstance(method,str):
-            if re.match('^mom$',method,flags=re.IGNORECASE):
-                opm = self._opopts[1]
-                oppt = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^nag$',method,flags=re.IGNORECASE):
-                opm = self._opopts[2]
-                oppt = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^adagrad$',method,flags=re.IGNORECASE):
-                opm = self._opopts[3]
-                oppt = np.array([1.0e-2]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^adadelta$',method,flags=re.IGNORECASE):
-                opm = self._opopts[4]
-                oppt = np.array([1.0e-2,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^adam$',method,flags=re.IGNORECASE):
-                opm = self._opopts[5]
-                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^adamax$',method,flags=re.IGNORECASE):
-                opm = self._opopts[6]
-                oppt = np.array([2.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif re.match('^nadam$',method,flags=re.IGNORECASE):
-                opm = self._opopts[7]
-                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            else:
-                opm = self._opopts[0]
-                oppt = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-        elif isinstance(method,(float,int)):
-            if int(method) == 1:
-                opm = self._opopts[1]
-                oppt = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 2:
-                opm = self._opopts[2]
-                oppt = np.array([1.0e-5,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 3:
-                opm = self._opopts[3]
-                oppt = np.array([1.0e-2]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 4:
-                opm = self._opopts[4]
-                oppt = np.array([1.0e-2,0.9]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 5:
-                opm = self._opopts[5]
-                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 6:
-                opm = self._opopts[6]
-                oppt = np.array([2.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            elif int(method) == 7:
-                opm = self._opopts[7]
-                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
-            else:
-                opm = self._opopts[0]
-                oppt = np.array([1.0e-5]).flatten()
-                for ii in np.arange(0,opp.size):
-                    if ii < oppt.size:
-                        oppt[ii] = opp[ii]
-                opp = oppt.copy()
+            mstr = method.lower()
+            for mm in np.arange(0,len(self._opopts)):
+                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
+                    midx = mm
+        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
+            midx = int(method)
+        if midx == 1:
+            opm = self._opopts[1]
+            oppt = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 2:
+            opm = self._opopts[2]
+            oppt = np.array([1.0e-5,0.9]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 3:
+            opm = self._opopts[3]
+            oppt = np.array([1.0e-2]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 4:
+            opm = self._opopts[4]
+            oppt = np.array([1.0e-2,0.9]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 5:
+            opm = self._opopts[5]
+            oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 6:
+            opm = self._opopts[6]
+            oppt = np.array([2.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        elif midx == 7:
+            opm = self._opopts[7]
+            oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
+        else:
+            opm = self._opopts[0]
+            oppt = np.array([1.0e-5]).flatten()
+            for ii in np.arange(0,opp.size):
+                if ii < oppt.size:
+                    oppt[ii] = opp[ii]
+            opp = oppt.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
                 if ii < opp.size and isinstance(spars[ii],(float,int)):
@@ -4271,14 +4208,14 @@ class GPR1D(object):
         """
 
         xn = None
-        kk = self.kk
-        lp = self.lp
-        xx = self.xx
-        yy = self.yy
-        ye = self.ye if self._nye is None else self._nye
-        lb = -1.0e50 if self.lb is None else self.lb
-        ub = 1.0e50 if self.ub is None else self.ub
-        cn = 5.0e-3 if self.cn is None else self.cn
+        kk = self._kk
+        lp = self._lp
+        xx = self._xx
+        yy = self._yy
+        ye = self._ye if self._nye is None else self._nye
+        lb = -1.0e50 if self._lb is None else self._lb
+        ub = 1.0e50 if self._ub is None else self._ub
+        cn = 5.0e-3 if self._cn is None else self._cn
         if isinstance(xnew,(list,tuple)) and len(xnew) > 0:
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
@@ -4345,11 +4282,11 @@ class GPR1D(object):
         if isinstance(nrestarts,(float,int)) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
-        if self.kk is not None and self.xe is not None and self.xx.size == self.xe.size:
+        if self._kk is not None and self._xe is not None and self._xx.size == self._xe.size:
             barF = None
             nkk = None
             xntest = np.array([0.0])
-            if self.kb is not None and nr > 0:
+            if self._kb is not None and nr > 0:
                 kkvec = []
                 lmlvec = []
                 tkk = copy.copy(self.kk)
@@ -4361,7 +4298,7 @@ class GPR1D(object):
                     kkvec.append(None)
                     lmlvec.append(np.NaN)
                 for ii in np.arange(0,nr):
-                    theta = np.abs(self.kb[:,1] - self.kb[:,0]).flatten() * np.random.random_sample((self.kb.shape[0],)) + np.nanmin(self.kb,axis=1).flatten()
+                    theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
                     tkk.set_hyperparameters(theta,log=True)
                     try:
                         (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
@@ -4375,12 +4312,12 @@ class GPR1D(object):
             else:
                 (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest))
             if barF is not None and isinstance(nkk,Kernel):
-                xntest = self.xx.copy() + 1.0e-8
+                xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
-                nfilt = np.any([np.isnan(self.xe),np.isnan(self.ye)],axis=0)
-                cxe = self.xe
+                nfilt = np.any([np.isnan(self._xe),np.isnan(self._ye)],axis=0)
+                cxe = self._xe
                 cxe[nfilt] = 0.0
-                cye = self.ye
+                cye = self._ye
                 cye[nfilt] = 0.0
                 self._nye = np.sqrt(cye**2.0 + cxe * dbarF**2.0)
         else:
@@ -4427,13 +4364,13 @@ class GPR1D(object):
         self._nye = None
         if nigp_flag:
             self.make_NIGP_errors(nr)
-        hscflag = True if self.ye is not None else False
+        hscflag = True if self._ye is not None else False
 
-        if self.kk is not None and self.kb is not None and nr > 0:
+        if self._kk is not None and self._kb is not None and nr > 0:
             xntest = np.array([0.0])
             kkvec = []
             lmlvec = []
-            tkk = copy.copy(self.kk)
+            tkk = copy.copy(self._kk)
             try:
                 (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
                 kkvec.append(copy.copy(tkk))
@@ -4442,7 +4379,7 @@ class GPR1D(object):
                 kkvec.append(None)
                 lmlvec.append(np.NaN)
             for ii in np.arange(0,nr):
-                theta = np.abs(self.kb[:,1] - self.kb[:,0]).flatten() * np.random.random_sample((self.kb.shape[0],)) + np.nanmin(self.kb,axis=1).flatten()
+                theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
                 tkk.set_hyperparameters(theta,log=True)
                 try:
                     (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
@@ -4466,24 +4403,24 @@ class GPR1D(object):
             ddbarE = None
             if hscflag:
                 xntest = np.array([0.0])
-                ye = self.ye if self._nye is None else self._nye
-                if isinstance(self.ekk,Kernel) and self.ekb is not None and not self._eflag and self.eeps is not None:
-                    elp = self.elp
-                    ekk = copy.copy(self.ekk)
+                ye = self._ye if self._nye is None else self._nye
+                if isinstance(self._ekk,Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
+                    elp = self._elp
+                    ekk = copy.copy(self._ekk)
                     ekkvec = []
                     elmlvec = []
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
                         ekkvec.append(None)
                         elmlvec.append(np.NaN)
-                    for jj in np.arange(0,self.enr):
-                        etheta = np.abs(self.ekb[:,1] - self.ekb[:,0]).flatten() * np.random.random_sample((self.ekb.shape[0],)) + np.nanmin(self.ekb,axis=1).flatten()
+                    for jj in np.arange(0,self._enr):
+                        etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
                         ekk.set_hyperparameters(etheta,log=True)
                         try:
-                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
+                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                             ekkvec.append(copy.copy(ekk))
                             elmlvec.append(elml)
                         except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4492,24 +4429,24 @@ class GPR1D(object):
                     eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
                     if len(eimaxv) > 0:
                         eimax = eimaxv[0]
-                        self.ekk = copy.copy(ekkvec[eimax])
+                        self._ekk = copy.copy(ekkvec[eimax])
                         self._eflag = True
                     else:
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-                elif not self._eflag and self.eeps is not None:
+                elif not self._eflag and self._eeps is not None:
                     ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self.eeps,method=self.eopm,spars=self.eopp,sdiff=self.edh))
-                    self.ekk = copy.copy(ekk)
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                    self._ekk = copy.copy(ekk)
                     self._eflag = True
-                barE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
                 if barE is not None:
-                    dbarE = itemgetter(0)(self.__basic_fit(xn,kernel=self.ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True))
+                    dbarE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True))
                     nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
                     ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
                     xnl = nxn - 0.5 * ddx
                     xnu = nxn + 0.5 * ddx
-                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
-                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self.ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
+                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
+                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
                     ddbarEt = np.abs(dbarEu - dbarEl) / ddx
                     nsum = 50
                     ddbarE = np.zeros(xn.shape)
@@ -4611,9 +4548,9 @@ class GPR1D(object):
         ssigM = None
         sdbarM = None
         sdsigM = None
-        if isinstance(self.kk,Kernel) and ns > 0:
+        if isinstance(self._kk,Kernel) and ns > 0:
             olml = self._lml
-            otheta = self.kk.get_hyperparameters(log=True)
+            otheta = self._kk.get_hyperparameters(log=True)
             tlml = olml
             theta = otheta.copy()
             step = np.ones(theta.shape)
@@ -4622,7 +4559,7 @@ class GPR1D(object):
                 xntest = np.array([0.0])
                 iflag = flagvec[ihyp]
                 while iflag:
-                    tkk = copy.copy(self.kk)
+                    tkk = copy.copy(self._kk)
                     theta_step = np.zeros(theta.shape)
                     theta_step[ihyp] = step[ihyp]
                     theta_new = theta + theta_step
@@ -4644,7 +4581,7 @@ class GPR1D(object):
                     else:
                         step[ihyp] = 0.5 * step[ihyp]
                 flagvec[ihyp] = iflag
-            nkk = copy.copy(self.kk)
+            nkk = copy.copy(self._kk)
             for ii in np.arange(0,ns):
                 theta_prop = theta.copy()
                 accept = False
