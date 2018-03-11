@@ -4223,7 +4223,7 @@ class GPR1D(object):
         if isinstance(kernel,Kernel):
             kk = copy.copy(kernel)
         if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
-            self.lp = float(regpar)
+            self._lp = float(regpar)
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
@@ -4289,7 +4289,7 @@ class GPR1D(object):
             if self._kb is not None and nr > 0:
                 kkvec = []
                 lmlvec = []
-                tkk = copy.copy(self.kk)
+                tkk = copy.copy(self._kk)
                 try:
                     (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
                     kkvec.append(copy.copy(tkk))
@@ -4471,7 +4471,7 @@ class GPR1D(object):
             self._varF = varF.copy() if varF is not None else None
             self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
             self._lml = lml
-            self.kk = copy.copy(nkk) if isinstance(nkk,Kernel) else None
+            self._kk = copy.copy(nkk) if isinstance(nkk,Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = dbarF.copy() if dbarF is not None else None
             self._dvarF = dvarF.copy() if dvarF is not None else None
