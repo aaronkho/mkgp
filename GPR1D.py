@@ -11,6 +11,11 @@ import scipy.special as spsp
 import scipy.linalg as spla
 from operator import itemgetter
 
+np_itypes = (np.int8,np.int16,np.int32,np.int64)
+np_utypes = (np.uint8,np.uint16,np.uint32,np.uint64)
+np_ftypes = (np.float16,np.float32,np.float64)
+
+
 class Kernel(object):
     """
     Base class   *** to be inherited by ALL kernel implementations in order for type checks to succeed ***
@@ -974,7 +979,7 @@ class Constant_Kernel(Kernel):
         """
 
         csts = np.zeros((1,))
-        if isinstance(cv,(float,int)):
+        if isinstance(cv,(float,int,np_itypes,np_utypes,np_ftypes)):
             csts[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
@@ -1051,7 +1056,7 @@ class Noise_Kernel(Kernel):
         """
 
         hyps = np.zeros((1,))
-        if isinstance(nv,(float,int)):
+        if isinstance(nv,(float,int,np_itypes,np_utypes,np_ftypes)):
             hyps[0] = float(nv)
         else:
             raise ValueError('Noise hyperparameter must be a real number.')
@@ -1131,7 +1136,7 @@ class Linear_Kernel(Kernel):
         """
 
         hyps = np.zeros((1,))
-        if isinstance(var,(float,int)) and float(var) > 0.0:
+        if isinstance(var,(float,int,np_itypes,np_utypes,np_ftypes)) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be greater than 0.')
@@ -1219,11 +1224,11 @@ class Poly_Order_Kernel(Kernel):
         """
 
         hyps = np.zeros((2,))
-        if isinstance(var,(float,int)) and float(var) > 0.0:
+        if isinstance(var,(float,int,np_itypes,np_utypes,np_ftypes)) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Multiplicative hyperparameter must be greater than 0.')
-        if isinstance(cst,(float,int)) and float(cst) > 0.0:
+        if isinstance(cst,(float,int,np_itypes,np_utypes,np_ftypes)) and float(cst) > 0.0:
             hyps[1] = float(cst)
         else:
             raise ValueError('Additive hyperparameter must be greater than 0.')
@@ -1323,11 +1328,11 @@ class SE_Kernel(Kernel):
         """
 
         hyps = np.zeros((2,))
-        if isinstance(var,(float,int)) and float(var) > 0.0:
+        if isinstance(var,(float,int,np_itypes,np_utypes,np_ftypes)) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be greater than 0.')
-        if isinstance(ls,(float,int)) and float(ls) > 0.0:
+        if isinstance(ls,(float,int,np_itypes,np_utypes,np_ftypes)) and float(ls) > 0.0:
             hyps[1] = float(ls)
         else:
             raise ValueError('Length scale hyperparameter must be greater than 0.')
@@ -1448,15 +1453,15 @@ class RQ_Kernel(Kernel):
         """
 
         hyps = np.zeros((3,))
-        if isinstance(amp,(float,int)) and float(amp) > 0.0:
+        if isinstance(amp,(float,int,np_itypes,np_utypes,np_ftypes)) and float(amp) > 0.0:
             hyps[0] = float(amp)
         else:
             raise ValueError('Rational quadratic amplitude must be greater than 0.')
-        if isinstance(ls,(float,int)) and float(ls) != 0.0:
+        if isinstance(ls,(float,int,np_itypes,np_utypes,np_ftypes)) and float(ls) != 0.0:
             hyps[1] = float(ls)
         else:
             raise ValueError('Rational quadratic hyperparameter cannot equal 0.')
-        if isinstance(alpha,(float,int)) and float(alpha) > 0.0:
+        if isinstance(alpha,(float,int,np_itypes,np_utypes,np_ftypes)) and float(alpha) > 0.0:
             hyps[2] = float(alpha)
         else:
             raise ValueError('Rational quadratic alpha parameter must be greater than 0.')
@@ -1994,7 +1999,7 @@ class Gibbs_Kernel(Kernel):
         wfcsts = self._wfunc.get_constants()
 
         hyps = np.zeros((1,))
-        if isinstance(var,(float,int)):
+        if isinstance(var,(float,int,np_itypes,np_utypes,np_ftypes)):
             hyps[0] = float(var)
         else:
             raise ValueError('Amplitude hyperparameter must be a real number.')
@@ -2105,7 +2110,7 @@ class Constant_WarpingFunction(WarpingFunction):
         """
 
         hyps = np.zeros((1,))
-        if isinstance(cv,(float,int)):
+        if isinstance(cv,(float,int,np_itypes,np_utypes,np_ftypes)):
             hyps[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
@@ -2210,23 +2215,23 @@ class IG_WarpingFunction(WarpingFunction):
 
         hyps = np.zeros((3,))
         csts = np.zeros((2,))
-        if isinstance(lb,(float,int)) and float(lb) > 0.0:
+        if isinstance(lb,(float,int,np_itypes,np_utypes,np_ftypes)) and float(lb) > 0.0:
             hyps[0] = float(lb)
         else:
             raise ValueError('Length scale function base hyperparameter must be greater than 0.')
-        if isinstance(gh,(float,int)) and float(gh) > 0.0:
+        if isinstance(gh,(float,int,np_itypes,np_utypes,np_ftypes)) and float(gh) > 0.0:
             hyps[1] = float(gh)
         else:
             raise ValueError('Length scale function minimum hyperparameter must be greater than 0.')
-        if isinstance(gs,(float,int)) and float(gs) > 0.0:
+        if isinstance(gs,(float,int,np_itypes,np_utypes,np_ftypes)) and float(gs) > 0.0:
             hyps[2] = float(gs)
         else:
             raise ValueError('Length scale function sigma hyperparameter must be greater than 0.')
-        if isinstance(gm,(float,int)):
+        if isinstance(gm,(float,int,np_itypes,np_utypes,np_ftypes)):
             csts[0] = float(gm)
         else:
             raise ValueError('Length scale function mu constant must be a real number.')
-        if isinstance(mf,(float,int)) and float(mf) < 1.0:
+        if isinstance(mf,(float,int,np_itypes,np_utypes,np_ftypes)) and float(mf) < 1.0:
             csts[1] = float(mf)
         else:
             raise ValueError('Length scale function minimum-to-base ratio limit must be less than 1.')
@@ -2458,7 +2463,7 @@ class GPR1D(object):
                 else:
                     kb = None
                 self._kb = kb
-        if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
+        if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._lp = float(regpar)
 
 
@@ -2552,17 +2557,17 @@ class GPR1D(object):
         :returns: none.
         """
 
-        if isinstance(condnum,(float,int)) and float(condnum) > 0.0:
+        if isinstance(condnum,(float,int,np_itypes,np_utypes,np_ftypes)) and float(condnum) > 0.0:
             self._cn = float(condnum)
-        elif isinstance(condnum,(float,int)) and float(condnum) <= 0.0:
+        elif isinstance(condnum,(float,int,np_itypes,np_utypes,np_ftypes)) and float(condnum) <= 0.0:
             self._cn = None
         elif isinstance(condnum,str):
             self._cn = None
-        if isinstance(lbound,(float,int)):
+        if isinstance(lbound,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._lb = float(lbound)
         elif isinstance(lbound,str):
             self._lb = None
-        if isinstance(ubound,(float,int)):
+        if isinstance(ubound,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._ub = float(ubound)
         elif isinstance(ubound,str):
             self._ub = None
@@ -2601,10 +2606,10 @@ class GPR1D(object):
                     kb = None
                 self._ekb = kb
                 self._eflag = False
-        if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
+        if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._elp = float(regpar)
             self._eflag = False
-        if isinstance(nrestarts,(float,int)):
+        if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
 
 
@@ -2624,10 +2629,10 @@ class GPR1D(object):
         :returns: none.
         """
 
-        midx = 0
-        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
+        midx = None
+        if isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) > 0.0:
             self._eps = float(epsilon)
-        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) <= 0.0:
             self._eps = None
         elif isinstance(epsilon,str):
             self._eps = None
@@ -2636,73 +2641,74 @@ class GPR1D(object):
             for mm in np.arange(0,len(self._opopts)):
                 if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
                     midx = mm
-        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
             midx = int(method)
-        if midx == 1:
-            self._opm = self._opopts[1]
-            opp = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 2:
-            self._opm = self._opopts[2]
-            opp = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 3:
-            self._opm = self._opopts[3]
-            opp = np.array([1.0e-2]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 4:
-            self._opm = self._opopts[4]
-            opp = np.array([1.0e-2,0.9]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 5:
-            self._opm = self._opopts[5]
-            opp = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 6:
-            self._opm = self._opopts[6]
-            opp = np.array([2.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        elif midx == 7:
-            self._opm = self._opopts[7]
-            opp = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
-        else:
-            self._opm = self._opopts[0]
-            opp = np.array([1.0e-5]).flatten()
-            for ii in np.arange(0,self._opp.size):
-                if ii < opp.size:
-                    opp[ii] = self._opp[ii]
-            self._opp = opp.copy()
+        if midx is not None:
+            if midx == 1:
+                self._opm = self._opopts[1]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 2:
+                self._opm = self._opopts[2]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 3:
+                self._opm = self._opopts[3]
+                opp = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 4:
+                self._opm = self._opopts[4]
+                opp = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 5:
+                self._opm = self._opopts[5]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 6:
+                self._opm = self._opopts[6]
+                opp = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            elif midx == 7:
+                self._opm = self._opopts[7]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
+            else:
+                self._opm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self._opp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._opp[ii]
+                self._opp = opp.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
-                if ii < self._opp.size and isinstance(spars[ii],(float,int)):
+                if ii < self._opp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     self._opp[ii] = float(spars[ii])
         elif isinstance(spars,np.ndarray):
             for ii in np.arange(0,spars.size):
-                if ii < self._opp.size and isinstance(spars[ii],(float,int)):
+                if ii < self._opp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     self._opp[ii] = float(spars[ii])
-        if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
+        if isinstance(sdiff,(float,int,np_itypes,np_utypes,np_ftypes)) and float(sdiff) > 0.0:
             self._dh = float(sdiff)
 
 
@@ -2722,9 +2728,10 @@ class GPR1D(object):
         :returns: none.
         """
 
-        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
+        emidx = None
+        if isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) > 0.0:
             self._eeps = float(epsilon)
-        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) <= 0.0:
             self._eeps = None
         elif isinstance(epsilon,str):
             self._eeps = None
@@ -2732,74 +2739,75 @@ class GPR1D(object):
             mstr = method.lower()
             for mm in np.arange(0,len(self._opopts)):
                 if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    midx = mm
-        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
-            midx = int(method)
-        if midx == 1:
-            self._eopm = self._opopts[1]
-            opp = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 2:
-            self._eopm = self._opopts[2]
-            opp = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 3:
-            self._eopm = self._opopts[3]
-            opp = np.array([1.0e-2]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 4:
-            self._eopm = self._opopts[4]
-            opp = np.array([1.0e-2,0.9]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 5:
-            self._eopm = self._opopts[5]
-            opp = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 6:
-            self._eopm = self._opopts[6]
-            opp = np.array([2.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        elif midx == 7:
-            self._eopm = self._opopts[7]
-            opp = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
-        else:
-            self._eopm = self._opopts[0]
-            opp = np.array([1.0e-5]).flatten()
-            for ii in np.arange(0,self._eopp.size):
-                if ii < opp.size:
-                    opp[ii] = self._eopp[ii]
-            self._eopp = opp.copy()
+                    emidx = mm
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            emidx = int(method)
+        if emidx is not None:
+            if emidx == 1:
+                self._eopm = self._opopts[1]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 2:
+                self._eopm = self._opopts[2]
+                opp = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 3:
+                self._eopm = self._opopts[3]
+                opp = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 4:
+                self._eopm = self._opopts[4]
+                opp = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 5:
+                self._eopm = self._opopts[5]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 6:
+                self._eopm = self._opopts[6]
+                opp = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            elif emidx == 7:
+                self._eopm = self._opopts[7]
+                opp = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
+            else:
+                self._eopm = self._opopts[0]
+                opp = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,self._eopp.size):
+                    if ii < opp.size:
+                        opp[ii] = self._eopp[ii]
+                self._eopp = opp.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
-                if ii < self._eopp.size and isinstance(spars[ii],(float,int)):
+                if ii < self._eopp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     self._eopp[ii] = float(spars[ii])
         elif isinstance(spars,np.ndarray):
             for ii in np.arange(0,spars.size):
-                if ii < self._eopp.size and isinstance(spars[ii],(float,int)):
+                if ii < self._eopp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     self._eopp[ii] = float(spars[ii])
-        if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
+        if isinstance(sdiff,(float,int,np_itypes,np_utypes,np_ftypes)) and float(sdiff) > 0.0:
             self._edh = float(sdiff)
 
 
@@ -3997,14 +4005,14 @@ class GPR1D(object):
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
         cn = 5.0e-3 if self._cn is None else self._cn
-        midx = 0
+        midx = None
         if isinstance(xnew,(list,tuple)) and len(xnew) > 0:
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
         if isinstance(kernel,Kernel):
             kk = copy.copy(kernel)
-        if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
+        if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._lp = float(regpar)
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
@@ -4047,9 +4055,9 @@ class GPR1D(object):
             dye = dyerr.flatten()
         elif isinstance(dyerr,str):
             dye = None
-        if isinstance(epsilon,(float,int)) and float(epsilon) > 0.0:
+        if isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) > 0.0:
             eps = float(epsilon)
-        elif isinstance(epsilon,(float,int)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) and float(epsilon) <= 0.0:
             eps = None
         elif isinstance(epsilon,str):
             eps = None
@@ -4058,73 +4066,74 @@ class GPR1D(object):
             for mm in np.arange(0,len(self._opopts)):
                 if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
                     midx = mm
-        elif isinstance(method,(float,int)) and int(method) < len(self._opopts):
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
             midx = int(method)
-        if midx == 1:
-            opm = self._opopts[1]
-            oppt = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 2:
-            opm = self._opopts[2]
-            oppt = np.array([1.0e-5,0.9]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 3:
-            opm = self._opopts[3]
-            oppt = np.array([1.0e-2]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 4:
-            opm = self._opopts[4]
-            oppt = np.array([1.0e-2,0.9]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 5:
-            opm = self._opopts[5]
-            oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 6:
-            opm = self._opopts[6]
-            oppt = np.array([2.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        elif midx == 7:
-            opm = self._opopts[7]
-            oppt = np.array([1.0e-3,0.9,0.999]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
-        else:
-            opm = self._opopts[0]
-            oppt = np.array([1.0e-5]).flatten()
-            for ii in np.arange(0,opp.size):
-                if ii < oppt.size:
-                    oppt[ii] = opp[ii]
-            opp = oppt.copy()
+        if midx is not None:
+            if midx == 1:
+                opm = self._opopts[1]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 2:
+                opm = self._opopts[2]
+                oppt = np.array([1.0e-5,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 3:
+                opm = self._opopts[3]
+                oppt = np.array([1.0e-2]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 4:
+                opm = self._opopts[4]
+                oppt = np.array([1.0e-2,0.9]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 5:
+                opm = self._opopts[5]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 6:
+                opm = self._opopts[6]
+                oppt = np.array([2.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            elif midx == 7:
+                opm = self._opopts[7]
+                oppt = np.array([1.0e-3,0.9,0.999]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
+            else:
+                opm = self._opopts[0]
+                oppt = np.array([1.0e-5]).flatten()
+                for ii in np.arange(0,opp.size):
+                    if ii < oppt.size:
+                        oppt[ii] = opp[ii]
+                opp = oppt.copy()
         if isinstance(spars,(list,tuple)):
             for ii in np.arange(0,len(spars)):
-                if ii < opp.size and isinstance(spars[ii],(float,int)):
+                if ii < opp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     opp[ii] = float(spars[ii])
         elif isinstance(spars,np.ndarray):
             for ii in np.arange(0,spars.size):
-                if ii < opp.size and isinstance(spars[ii],(float,int)):
+                if ii < opp.size and isinstance(spars[ii],(float,int,np_itypes,np_utypes,np_ftypes)):
                     opp[ii] = float(spars[ii])
-        if isinstance(sdiff,(float,int)) and float(sdiff) > 0.0:
+        if isinstance(sdiff,(float,int,np_itypes,np_utypes,np_ftypes)) and float(sdiff) > 0.0:
             dh = float(sdiff)
 
         barF = None
