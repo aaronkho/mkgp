@@ -23,10 +23,10 @@ from GPR1D import GPR1D
 ##### Base classes to be inherited by custom implementations - do not modify! #####
 
 
-class KernelWidget(QtGui.QWidget):
+class _KernelWidget(QtGui.QWidget):
 
     def __init__(self,name,fOn=True,fRestart=False):
-        super(KernelWidget, self).__init__()
+        super(_KernelWidget, self).__init__()
         self.name = name
         self.aflag = True if fOn else False
         self.bflag = True if fRestart else False
@@ -209,10 +209,10 @@ class KernelWidget(QtGui.QWidget):
         return bounds
 
 
-class WarpFunctionWidget(QtGui.QWidget):
+class _WarpFunctionWidget(QtGui.QWidget):
 
     def __init__(self,name,fOn=True,fRestart=False):
-        super(WarpFunctionWidget,self).__init__()
+        super(_WarpFunctionWidget,self).__init__()
         self.name = name
         self.aflag = True if fOn else False
         self.bflag = True if fRestart else False
@@ -396,10 +396,10 @@ class WarpFunctionWidget(QtGui.QWidget):
         return bounds
 
 
-class OptimizerWidget(QtGui.QWidget):
+class _OptimizerWidget(QtGui.QWidget):
 
     def __init__(self,name,fOn=True):
-        super(OptimizerWidget,self).__init__()
+        super(_OptimizerWidget,self).__init__()
         self.name = name
         self.aflag = True if fOn else False
         self.pkeys = []
@@ -478,7 +478,7 @@ class OptimizerWidget(QtGui.QWidget):
 ##### Custom implementations to be placed below #####
 
 
-class SEKernelWidget(KernelWidget):
+class SEKernelWidget(_KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(SEKernelWidget,self).__init__("SE",fOn,fRestart)
@@ -518,7 +518,7 @@ class SEKernelWidget(KernelWidget):
         self.setLayout(kbox)
 
 
-class RQKernelWidget(KernelWidget):
+class RQKernelWidget(_KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(RQKernelWidget,self).__init__("RQ",fOn,fRestart)
@@ -572,7 +572,7 @@ class RQKernelWidget(KernelWidget):
         self.setLayout(kbox)
 
 
-class MHKernelWidget(KernelWidget):
+class MHKernelWidget(_KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(MHKernelWidget,self).__init__("MH",fOn,fRestart)
@@ -620,7 +620,7 @@ class MHKernelWidget(KernelWidget):
         self.setLayout(kbox)
 
 
-class GibbsKernelWidget(KernelWidget):
+class GibbsKernelWidget(_KernelWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(GibbsKernelWidget,self).__init__("Gw",fOn,fRestart)
@@ -713,7 +713,7 @@ class GibbsKernelWidget(KernelWidget):
         return bounds
 
 
-class CWarpFunctionWidget(WarpFunctionWidget):
+class CWarpFunctionWidget(_WarpFunctionWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(CWarpFunctionWidget,self).__init__("C",fOn,fRestart)
@@ -739,7 +739,7 @@ class CWarpFunctionWidget(WarpFunctionWidget):
         self.setLayout(wbox)
 
 
-class IGWarpFunctionWidget(WarpFunctionWidget):
+class IGWarpFunctionWidget(_WarpFunctionWidget):
 
     def __init__(self,fOn=True,fRestart=False):
         super(IGWarpFunctionWidget,self).__init__("IG",fOn,fRestart)
@@ -807,7 +807,7 @@ class IGWarpFunctionWidget(WarpFunctionWidget):
         self.setLayout(wbox)
 
 
-class GradAscentOptimizerWidget(OptimizerWidget):
+class GradAscentOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(GradAscentOptimizerWidget,self).__init__('grad',fOn)
@@ -826,7 +826,7 @@ class GradAscentOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class MomentumOptimizerWidget(OptimizerWidget):
+class MomentumOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(MomentumOptimizerWidget,self).__init__('mom',fOn)
@@ -852,7 +852,7 @@ class MomentumOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class NesterovOptimizerWidget(OptimizerWidget):
+class NesterovOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(NesterovOptimizerWidget,self).__init__('nag',fOn)
@@ -878,7 +878,7 @@ class NesterovOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class AdagradOptimizerWidget(OptimizerWidget):
+class AdagradOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(AdagradOptimizerWidget,self).__init__('adagrad',fOn)
@@ -897,7 +897,7 @@ class AdagradOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class AdadeltaOptimizerWidget(OptimizerWidget):
+class AdadeltaOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(AdadeltaOptimizerWidget,self).__init__('adadelta',fOn)
@@ -923,7 +923,7 @@ class AdadeltaOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class AdamOptimizerWidget(OptimizerWidget):
+class AdamOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(AdamOptimizerWidget, self).__init__('adam',fOn)
@@ -956,7 +956,7 @@ class AdamOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class AdamaxOptimizerWidget(OptimizerWidget):
+class AdamaxOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(AdamaxOptimizerWidget,self).__init__('adamax',fOn)
@@ -989,7 +989,7 @@ class AdamaxOptimizerWidget(OptimizerWidget):
         self.setLayout(obox)
 
 
-class NadamOptimizerWidget(OptimizerWidget):
+class NadamOptimizerWidget(_OptimizerWidget):
 
     def __init__(self,fOn=True):
         super(NadamOptimizerWidget,self).__init__('nadam',fOn)
@@ -1041,13 +1041,10 @@ class GPR1D_GUI(QtGui.QWidget):
     def __init__(self):
         super(GPR1D_GUI, self).__init__()
         self.fNewData = False
-        self.gpr = GPR1D.GPR1D()
+        self.gpr = GPR1D.GaussianProcessRegression1D()
         self.initUI()
 
     def initUI(self):
-
-#        pg.setConfigOption('background', 'w')
-#        pg.setConfigOption('foreground', 'k')
 
         self.TabPanel = QtGui.QTabWidget()
 
@@ -1083,13 +1080,13 @@ class GPR1D_GUI(QtGui.QWidget):
         xnbox.addWidget(self.PredictNPointsEntry)
 
         self.FitDataButton = QtGui.QPushButton("Fit Data")
-        self.FitDataButton.clicked.connect(self.fit_data)
+        self.FitDataButton.clicked.connect(self._fit_data)
         self.PlotDataButton = QtGui.QPushButton("Plot Data")
-        self.PlotDataButton.clicked.connect(self.plot_data)
+        self.PlotDataButton.clicked.connect(self._plot_data)
         self.SaveRawDataButton = QtGui.QPushButton("Save Raw Data")
-        self.SaveRawDataButton.clicked.connect(self.save_raw_data)
+        self.SaveRawDataButton.clicked.connect(self._save_raw_data)
         self.SaveFitDataButton = QtGui.QPushButton("Save Fit Data")
-        self.SaveFitDataButton.clicked.connect(self.save_fit_data)
+        self.SaveFitDataButton.clicked.connect(self._save_fit_data)
 
         dobox = QtGui.QHBoxLayout()
         dobox.addWidget(self.FitDataButton)
@@ -1097,7 +1094,6 @@ class GPR1D_GUI(QtGui.QWidget):
         dobox.addWidget(self.SaveRawDataButton)
         dobox.addWidget(self.SaveFitDataButton)
 
-#        self.p1 = pg.PlotWidget()
         fig = matplotlib.figure.Figure()
         ax = fig.add_subplot(111)
         ax.set_xlim([0.0,1.0])
@@ -1125,11 +1121,11 @@ class GPR1D_GUI(QtGui.QWidget):
     def DataEntryUI(self):
 
         self.AddYDataButton = QtGui.QPushButton("Add Y Data")
-        self.AddYDataButton.clicked.connect(self.add_data)
+        self.AddYDataButton.clicked.connect(self._add_data)
         self.AddDDataButton = QtGui.QPushButton("Add dY Data")
-        self.AddDDataButton.clicked.connect(self.add_derivative_data)
+        self.AddDDataButton.clicked.connect(self._add_derivative_data)
         self.LoadDataButton = QtGui.QPushButton("Load Data")
-        self.LoadDataButton.clicked.connect(self.load_data)
+        self.LoadDataButton.clicked.connect(self._load_data)
 
         dabox = QtGui.QHBoxLayout()
         dabox.addWidget(self.AddYDataButton)
@@ -1137,11 +1133,11 @@ class GPR1D_GUI(QtGui.QWidget):
         dabox.addWidget(self.LoadDataButton)
 
         self.SortDataButton = QtGui.QPushButton("Sort Data")
-        self.SortDataButton.clicked.connect(self.sort_data)
+        self.SortDataButton.clicked.connect(self._sort_data)
         self.CleanDataButton = QtGui.QPushButton("Clean Data")
-        self.CleanDataButton.clicked.connect(self.clean_data)
+        self.CleanDataButton.clicked.connect(self._clean_data)
         self.ClearDataButton = QtGui.QPushButton("Clear Data")
-        self.ClearDataButton.clicked.connect(self.clear_data)
+        self.ClearDataButton.clicked.connect(self._clear_data)
 
         dbbox = QtGui.QHBoxLayout()
         dbbox.addWidget(self.SortDataButton)
@@ -1153,20 +1149,20 @@ class GPR1D_GUI(QtGui.QWidget):
         self.DataTable.setHorizontalHeaderLabels("X;Y;Y Err.;X Err.".split(";"))
         self.DataTable.horizontalHeader().hideSection(3)
         self.DataTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
-        self.DataTable.cellChanged.connect(self.flag_new_data)
-        self.DataTable.itemChanged.connect(self.flag_new_data)
+        self.DataTable.cellChanged.connect(self._flag_new_data)
+        self.DataTable.itemChanged.connect(self._flag_new_data)
         self.DerivativeBox = QtGui.QCheckBox("Use derivative constraints")
-        self.DerivativeBox.toggled.connect(self.toggle_derivatives)
+        self.DerivativeBox.toggled.connect(self._toggle_derivatives)
         self.DerivativeTable = QtGui.QTableWidget()
         self.DerivativeTable.setEnabled(False)
         self.DerivativeTable.setColumnCount(4)
         self.DerivativeTable.setHorizontalHeaderLabels("X;dY;dY Err.;X Err.".split(";"))
         self.DerivativeTable.horizontalHeader().hideSection(3)
         self.DerivativeTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
-        self.DerivativeTable.cellChanged.connect(self.flag_new_data)
-        self.DerivativeTable.itemChanged.connect(self.flag_new_data)
+        self.DerivativeTable.cellChanged.connect(self._flag_new_data)
+        self.DerivativeTable.itemChanged.connect(self._flag_new_data)
         self.UseXErrorsBox = QtGui.QCheckBox("Use x-errors")
-        self.UseXErrorsBox.toggled.connect(self.toggle_xerror_display)
+        self.UseXErrorsBox.toggled.connect(self._toggle_xerror_display)
 
         debox = QtGui.QVBoxLayout()
         debox.addLayout(dabox)
@@ -1187,14 +1183,14 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YKernelSelectionList.addItem("Matern Half-Integer")
         self.YKernelSelectionList.addItem("Gibbs Kernel")
         self.YKernelSelectionList.setCurrentIndex(0)
-        self.YKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_y)
+        self.YKernelSelectionList.currentIndexChanged.connect(self._switch_kernel_ui_y)
 
         self.YOptimizeBox = QtGui.QCheckBox("Optimize")
-        self.YOptimizeBox.toggled.connect(self.toggle_optimize_y)
+        self.YOptimizeBox.toggled.connect(self._toggle_optimize_y)
         self.YAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
-        self.YAddNoiseBox.toggled.connect(self.toggle_noise_kernel_y)
+        self.YAddNoiseBox.toggled.connect(self._toggle_noise_kernel_y)
         self.YKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
-        self.YKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_y)
+        self.YKernelRestartBox.toggled.connect(self._toggle_kernel_restarts_y)
 
         self.YRegularizationLabel = QtGui.QLabel("Reg. Parameter:")
         self.YRegularizationEntry = QtGui.QLineEdit("1.0")
@@ -1218,7 +1214,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YOptimizerSelectionList.addItem("Adaptive Moment Estimation with L-Infinity")
         self.YOptimizerSelectionList.addItem("Nesterov-Accelerated Adaptive Moment Estimation")
         self.YOptimizerSelectionList.setCurrentIndex(0)
-        self.YOptimizerSelectionList.currentIndexChanged.connect(self.switch_optimizer_ui_y)
+        self.YOptimizerSelectionList.currentIndexChanged.connect(self._switch_optimizer_ui_y)
 
         self.YNoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
         self.YNoiseInitGuessLabel.setEnabled(self.YAddNoiseBox.isChecked())
@@ -1305,7 +1301,7 @@ class GPR1D_GUI(QtGui.QWidget):
     def EKernelSelectionUI(self):
 
         self.HeteroscedasticBox = QtGui.QCheckBox("Enable Error Kernel")
-        self.HeteroscedasticBox.toggled.connect(self.toggle_error_kernel)
+        self.HeteroscedasticBox.toggled.connect(self._toggle_error_kernel)
 
         self.EKernelSelectionLabel = QtGui.QLabel("Kernel:")
         self.EKernelSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked())
@@ -1316,17 +1312,17 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSelectionList.addItem("Matern Half-Integer")
         self.EKernelSelectionList.addItem("Gibbs Kernel")
         self.EKernelSelectionList.setCurrentIndex(1)
-        self.EKernelSelectionList.currentIndexChanged.connect(self.switch_kernel_ui_e)
+        self.EKernelSelectionList.currentIndexChanged.connect(self._switch_kernel_ui_e)
 
         self.EOptimizeBox = QtGui.QCheckBox("Optimize")
         self.EOptimizeBox.setEnabled(self.HeteroscedasticBox.isChecked())
-        self.EOptimizeBox.toggled.connect(self.toggle_optimize_e)
+        self.EOptimizeBox.toggled.connect(self._toggle_optimize_e)
         self.EAddNoiseBox = QtGui.QCheckBox("Add Noise Kernel")
         self.EAddNoiseBox.setEnabled(self.HeteroscedasticBox.isChecked())
-        self.EAddNoiseBox.toggled.connect(self.toggle_noise_kernel_e)
+        self.EAddNoiseBox.toggled.connect(self._toggle_noise_kernel_e)
         self.EKernelRestartBox = QtGui.QCheckBox("Use Kernel Restarts")
         self.EKernelRestartBox.setEnabled(self.HeteroscedasticBox.isChecked())
-        self.EKernelRestartBox.toggled.connect(self.toggle_kernel_restarts_e)
+        self.EKernelRestartBox.toggled.connect(self._toggle_kernel_restarts_e)
 
         self.ERegularizationLabel = QtGui.QLabel("Reg. Parameter:")
         self.ERegularizationLabel.setEnabled(self.HeteroscedasticBox.isChecked())
@@ -1352,7 +1348,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EOptimizerSelectionList.addItem("Adaptive Moment Estimation with L-Infinity")
         self.EOptimizerSelectionList.addItem("Nesterov-Accelerated Adaptive Moment Estimation")
         self.EOptimizerSelectionList.setCurrentIndex(0)
-        self.EOptimizerSelectionList.currentIndexChanged.connect(self.switch_optimizer_ui_e)
+        self.EOptimizerSelectionList.currentIndexChanged.connect(self._switch_optimizer_ui_e)
 
         self.ENoiseInitGuessLabel = QtGui.QLabel("Initial Guess")
         self.ENoiseInitGuessLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EAddNoiseBox.isChecked())
@@ -1442,20 +1438,20 @@ class GPR1D_GUI(QtGui.QWidget):
         self.EKernelSelectionTab.setLayout(eebox)
 
 
-    def flag_new_data(self):
+    def _flag_new_data(self):
         self.fNewData = True
 
-    def add_data(self):
+    def _add_data(self):
         idx = self.DataTable.rowCount()
         self.DataTable.insertRow(idx)
         self.DataTable.resizeRowsToContents()
 
-    def add_derivative_data(self):
+    def _add_derivative_data(self):
         idx = self.DerivativeTable.rowCount()
         self.DerivativeTable.insertRow(idx)
         self.DerivativeTable.resizeRowsToContents()
 
-    def load_data(self):
+    def _load_data(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '', 'Text files (*.txt);;All files (*)')
         if filename:
             with open(filename,'r') as ff:
@@ -1482,7 +1478,7 @@ class GPR1D_GUI(QtGui.QWidget):
                             self.DataTable.setItem(idx,1,QCustomTableWidgetItem(data[1]))
                             self.DataTable.setItem(idx,2,QCustomTableWidgetItem(data[2]))
                             self.DataTable.setItem(idx,3,QCustomTableWidgetItem(data[3]))
-                            self.flag_new_data()
+                            self._flag_new_data()
                     elif re.search(r'^!+\s+',tline):
                         dline = tline.split()
                         data = []
@@ -1504,15 +1500,15 @@ class GPR1D_GUI(QtGui.QWidget):
                             self.DerivativeTable.setItem(idx,1,QCustomTableWidgetItem(data[1]))
                             self.DerivativeTable.setItem(idx,2,QCustomTableWidgetItem(data[2]))
                             self.DerivativeTable.setItem(idx,3,QCustomTableWidgetItem(data[3]))
-                            self.flag_new_data()
+                            self._flag_new_data()
             self.DataTable.resizeRowsToContents()
             self.DerivativeTable.resizeRowsToContents()
 
-    def sort_data(self):
+    def _sort_data(self):
         self.DataTable.sortItems(0,QtCore.Qt.AscendingOrder)
         self.DerivativeTable.sortItems(0,QtCore.Qt.AscendingOrder)
 
-    def clean_data(self):
+    def _clean_data(self):
         for ii in np.arange(self.DataTable.rowCount()-1,-1,-1):
             gflag = True
             if self.DataTable.item(ii,0):
@@ -1546,17 +1542,17 @@ class GPR1D_GUI(QtGui.QWidget):
                 except:
                     if not self.UseXErrorsBox.isChecked():
                         self.DataTable.item(ii,3).setText("0.0")
-                        self.flag_new_data()
+                        self._flag_new_data()
                     else:
                         gflag = False
             elif not self.UseXErrorsBox.isChecked():
                 self.DataTable.setItem(ii,3,QtGui.QTableWidgetItem("0.0"))
-                self.flag_new_data()
+                self._flag_new_data()
             else:
                 gflag = False
             if not gflag:
                 self.DataTable.removeRow(ii)
-                self.flag_new_data()
+                self._flag_new_data()
         for ii in np.arange(self.DerivativeTable.rowCount()-1,-1,-1):
             gflag = True
             if self.DerivativeTable.item(ii,0):
@@ -1590,19 +1586,19 @@ class GPR1D_GUI(QtGui.QWidget):
                 except:
                     if not self.UseXErrorsBox.isChecked():
                         self.DerivativeTable.item(ii,3).setText("0.0")
-                        self.flag_new_data()
+                        self._flag_new_data()
                     else:
                         gflag = False
             elif not self.UseXErrorsBox.isChecked():
                 self.DerivativeTable.setItem(ii,3,QtGui.QTableWidgetItem("0.0"))
-                self.flag_new_data()
+                self._flag_new_data()
             else:
                 gflag = False
             if not gflag:
                 self.DerivativeTable.removeRow(ii)
-                self.flag_new_data()
+                self._flag_new_data()
 
-    def clear_data(self):
+    def _clear_data(self):
         msg = QtGui.QMessageBox()
         msg.setIcon(QtGui.QMessageBox.Question)
         msg.setWindowTitle("Clear Data")
@@ -1612,13 +1608,13 @@ class GPR1D_GUI(QtGui.QWidget):
         if retval == QtGui.QMessageBox.Yes:
             self.DataTable.clearContents()
             self.DerivativeTable.clearContents()
-            self.clean_data()
-            self.flag_new_data()
+            self._clean_data()
+            self._flag_new_data()
 
-    def toggle_derivatives(self):
+    def _toggle_derivatives(self):
         self.DerivativeTable.setEnabled(self.DerivativeBox.isChecked())
 
-    def toggle_xerror_display(self):
+    def _toggle_xerror_display(self):
         if self.UseXErrorsBox.isChecked():
             self.DataTable.horizontalHeader().showSection(3)
             self.DerivativeTable.horizontalHeader().showSection(3)
@@ -1626,10 +1622,10 @@ class GPR1D_GUI(QtGui.QWidget):
             self.DataTable.horizontalHeader().hideSection(3)
             self.DerivativeTable.horizontalHeader().hideSection(3)
 
-    def switch_kernel_ui_y(self):
+    def _switch_kernel_ui_y(self):
         self.YKernelSettings.setCurrentIndex(self.YKernelSelectionList.currentIndex())
 
-    def toggle_optimize_y(self):
+    def _toggle_optimize_y(self):
         self.YEpsilonLabel.setEnabled(self.YOptimizeBox.isChecked())
         self.YEpsilonEntry.setEnabled(self.YOptimizeBox.isChecked())
         self.YOptimizerSelectionLabel.setEnabled(self.YOptimizeBox.isChecked())
@@ -1638,10 +1634,10 @@ class GPR1D_GUI(QtGui.QWidget):
         for ii in np.arange(0,self.YOptimizerSettings.count()):
             self.YOptimizerSettings.widget(ii).toggle_all(self.YOptimizeBox.isChecked())
 
-    def switch_optimizer_ui_y(self):
+    def _switch_optimizer_ui_y(self):
         self.YOptimizerSettings.setCurrentIndex(self.YOptimizerSelectionList.currentIndex())
 
-    def toggle_noise_kernel_y(self):
+    def _toggle_noise_kernel_y(self):
         self.YNoiseInitGuessLabel.setEnabled(self.YAddNoiseBox.isChecked())
         self.YNoiseLowerBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseUpperBoundLabel.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
@@ -1650,7 +1646,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YNoiseLBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseUBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
 
-    def toggle_kernel_restarts_y(self):
+    def _toggle_kernel_restarts_y(self):
         self.YNRestartsLabel.setEnabled(self.YKernelRestartBox.isChecked())
         self.YNRestartsEntry.setEnabled(self.YKernelRestartBox.isChecked())
         for ii in np.arange(0,self.YKernelSettings.count()):
@@ -1660,7 +1656,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.YNoiseLBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
         self.YNoiseUBEntry.setEnabled(self.YAddNoiseBox.isChecked() and self.YKernelRestartBox.isChecked())
 
-    def toggle_error_kernel(self):
+    def _toggle_error_kernel(self):
         self.EKernelSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSelectionList.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSettings.setEnabled(self.HeteroscedasticBox.isChecked())
@@ -1688,10 +1684,10 @@ class GPR1D_GUI(QtGui.QWidget):
         self.ENRestartsLabel.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
 
-    def switch_kernel_ui_e(self):
+    def _switch_kernel_ui_e(self):
         self.EKernelSettings.setCurrentIndex(self.EKernelSelectionList.currentIndex())
 
-    def toggle_optimize_e(self):
+    def _toggle_optimize_e(self):
         self.EEpsilonLabel.setEnabled(self.EOptimizeBox.isChecked())
         self.EEpsilonEntry.setEnabled(self.EOptimizeBox.isChecked())
         self.EOptimizerSelectionLabel.setEnabled(self.EOptimizeBox.isChecked())
@@ -1700,10 +1696,10 @@ class GPR1D_GUI(QtGui.QWidget):
         for ii in np.arange(0,self.EOptimizerSettings.count()):
             self.EOptimizerSettings.widget(ii).toggle_all(self.EOptimizeBox.isChecked())
 
-    def switch_optimizer_ui_e(self):
+    def _switch_optimizer_ui_e(self):
         self.EOptimizerSettings.setCurrentIndex(self.EOptimizerSelectionList.currentIndex())
 
-    def toggle_noise_kernel_e(self):
+    def _toggle_noise_kernel_e(self):
         self.ENoiseInitGuessLabel.setEnabled(self.EAddNoiseBox.isChecked())
         self.ENoiseLowerBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseUpperBoundLabel.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
@@ -1712,7 +1708,7 @@ class GPR1D_GUI(QtGui.QWidget):
         self.ENoiseLBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseUBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
 
-    def toggle_kernel_restarts_e(self):
+    def _toggle_kernel_restarts_e(self):
         self.ENRestartsLabel.setEnabled(self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setEnabled(self.EKernelRestartBox.isChecked())
         for ii in np.arange(0,self.EKernelSettings.count()):
@@ -1722,8 +1718,8 @@ class GPR1D_GUI(QtGui.QWidget):
         self.ENoiseLBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENoiseUBEntry.setEnabled(self.EAddNoiseBox.isChecked() and self.EKernelRestartBox.isChecked())
 
-    def fit_data(self):
-        self.clean_data()
+    def _fit_data(self):
+        self._clean_data()
         npts = self.DataTable.rowCount()
         if npts > 0:
             xx = np.array([])
@@ -1823,8 +1819,8 @@ class GPR1D_GUI(QtGui.QWidget):
             msg.setText("Raw data table is empty or was improperly filled.")
             msg.exec_()
 
-    def plot_data(self):
-        self.clean_data()
+    def _plot_data(self):
+        self._clean_data()
         retval = QtGui.QMessageBox.Yes
         if self.fNewData and self.gpr.get_gp_x() is not None:
             msg = QtGui.QMessageBox()
@@ -1869,30 +1865,8 @@ class GPR1D_GUI(QtGui.QWidget):
             ax.ticklabel_format(style='sci',axis='both',scilimits=(-2,2))
             self.p1.draw()
 
-## Procedure to use pyqtgraph
-#            self.p1.clear()
-#            rawPen = pg.mkPen(color='k',width=1)
-#            for ii in np.arange(0,self.DataTable.rowCount()):
-#                xraw = float(self.DataTable.item(ii,0).text())
-#                yraw = float(self.DataTable.item(ii,1).text())
-#                yeraw = float(self.DataTable.item(ii,2).text())
-#                xeraw = float(self.DataTable.item(ii,3).text())
-#                self.p1.plot([xraw,xraw],[yraw-sigma*yeraw,yraw+sigma*yeraw],pen=rawPen)
-#                if self.UseXErrorsBox.isChecked():
-#                    self.p1.plot([xraw-sigma*xeraw,xraw+sigma*xeraw],[yraw,yraw],pen=rawPen)
-#            xfit = self.gpr.get_gp_x()
-#            fitPen = pg.mkPen(color='r',width=1)
-#            errPen = pg.mkPen(color='r',width=1,style=QtCore.Qt.DashLine)
-#            if xfit is not None:
-#                yfit = self.gpr.get_gp_mean()
-#                yefit = self.gpr.get_gp_std(noise_flag=True)
-#                self.p1.plot(xfit,yfit,pen=fitPen)
-#                self.p1.plot(xfit,yfit-sigma*yefit,pen=errPen)
-#                self.p1.plot(xfit,yfit+sigma*yefit,pen=errPen)
-
-
-    def save_raw_data(self,sortflag=False):
-        self.clean_data()
+    def _save_raw_data(self,sortflag=False):
+        self._clean_data()
         if self.DataTable.rowCount() > 0:
             filename = QtGui.QFileDialog.getSaveFileName(self, 'Save As...', '', 'Text files (*.txt);;All files (*)')
             if filename:
@@ -1922,7 +1896,7 @@ class GPR1D_GUI(QtGui.QWidget):
             msg.setText("Raw data table is empty or was improperly filled.")
             msg.exec_()
 
-    def save_fit_data(self):
+    def _save_fit_data(self):
         if self.gpr.get_gp_x() is not None:
             filename = QtGui.QFileDialog.getSaveFileName(self, 'Save As...', '', 'Text files (*.txt);;All files (*)')
             if filename:

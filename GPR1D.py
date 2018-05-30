@@ -1,5 +1,13 @@
-# Custom covariance functions / kernels for GPR
-# Developer: Aaron Ho -- 09/01/2017
+"""
+Classes for Gaussian Process Regression fitting of 1D data with errorbars.
+
+These classes were developed by Aaron Ho [1].
+
+[1] A. Ho, J. Citrin, C. Bourdelle, Y. Camenen, F. Felici, M. Maslov, K.L. Van De Plassche, H. Weisen, and JET,
+    in IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis (Boston, MA, 2017),
+    https://nucleus.iaea.org/sites/fusionportal/Shared Documents/Fusion Data Processing 2nd/31.05/Ho.pdf
+
+"""
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
 #    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
 
@@ -15,11 +23,18 @@ np_itypes = (np.int8,np.int16,np.int32,np.int64)
 np_utypes = (np.uint8,np.uint16,np.uint32,np.uint64)
 np_ftypes = (np.float16,np.float32,np.float64)
 
+__all__ = ['Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operator classes
+           'Constant_Kernel', 'Noise_Kernel', 'Linear_Kernel', 'Poly_Order_Kernel', 'SE_Kernel', 'RQ_Kernel',
+           'Matern_HI_Kernel', 'NN_Kernel', 'Gibbs_Kernel',  # Kernel classes
+           'Constant_WarpingFunction', 'IG_WarpingFunction',  # Warping function classes for Gibbs Kernel
+           'KernelConstructor', 'KernelReconstructor',  # Kernel construction functions
+           'GaussianProcessRegression1D']  # Main interpolation class
 
-class Kernel(object):
+
+class _Kernel(object):
     """
     Base class   *** to be inherited by ALL kernel implementations in order for type checks to succeed ***
-        Type checking done with:     isinstance(<obj>,<this_module>.Kernel)
+        Type checking done with:     isinstance(<obj>,<this_module>._Kernel)
     Ideology: fname is a string, designed to provide an easy way to check the kernel object type
               function contains the covariance function, k, along with dk/dx1, dk/dx2, and d^2k/dx1dx2
               hyperparameters contains free variables that vary in logarithmic-space
@@ -247,10 +262,10 @@ class Kernel(object):
 
 
 
-class OperatorKernel(Kernel):
+class _OperatorKernel(_Kernel):
     """
     Base operator class   *** To be inherited by ALL operator kernel implementations for obtain custom get/set functions ***
-        Type checking done with:     isinstance(<obj>,<this_module>.OperatorKernel) if needed
+        Type checking done with:     isinstance(<obj>,<this_module>._OperatorKernel) if needed
     Ideology: kernel_list is a Python list of Kernel objects on which the specified operation will be performed on
     Get/set functions adjusted to call get/set functions of each constituent kernel instead of using its own properties,
     which are mostly left as None.
@@ -269,7 +284,7 @@ class OperatorKernel(Kernel):
 
         :returns: none.
         """
-        super(OperatorKernel,self).__init__(name,func,hderf)
+        super(_OperatorKernel,self).__init__(name,func,hderf)
         self._kernel_list = klist if klist is not None else []
 
 
@@ -439,7 +454,7 @@ class OperatorKernel(Kernel):
 
 
 
-class WarpingFunction(object):
+class _WarpingFunction(object):
     """
     Base class   *** to be inherited by ALL warping function implementations in order for type checks to succeed ***
         Type checking done with:     isinstance(<obj>,<this_module>.WarpingFunction)
@@ -671,7 +686,7 @@ class WarpingFunction(object):
 # ------- Place ALL custom kernel implementations BELOW ----------------------------------------------------------------------------------
 # ****************************************************************************************************************************************
 
-class Sum_Kernel(OperatorKernel):
+class Sum_Kernel(_OperatorKernel):
     """
     Sum Kernel: Implements the sum of two (or more) Kernel objects.
 
@@ -720,16 +735,16 @@ class Sum_Kernel(OperatorKernel):
         klist = kwargs.get("klist")
         uklist = []
         name = "None"
-        if len(args) >= 2 and isinstance(args[0],Kernel) and isinstance(args[1],Kernel):
+        if len(args) >= 2 and isinstance(args[0],_Kernel) and isinstance(args[1],_Kernel):
             name = ""
             for kk in args:
-                if isinstance(kk,Kernel):
+                if isinstance(kk,_Kernel):
                     uklist.append(kk)
                     name = name + "-" + kk.get_name() if name else kk.get_name()
-        elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],Kernel) and isinstance(klist[1],Kernel):
+        elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
             name = ""
             for kk in klist:
-                if isinstance(kk,Kernel):
+                if isinstance(kk,_Kernel):
                     uklist.append(kk)
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
@@ -752,7 +767,7 @@ class Sum_Kernel(OperatorKernel):
 
 
 
-class Product_Kernel(OperatorKernel):
+class Product_Kernel(_OperatorKernel):
     """
     Product Kernel: Implements the product of two (or more) Kernel objects.
 
@@ -819,16 +834,16 @@ class Product_Kernel(OperatorKernel):
         klist = kwargs.get("klist")
         uklist = []
         name = "None"
-        if len(args) >= 2 and isinstance(args[0],Kernel) and isinstance(args[1],Kernel):
+        if len(args) >= 2 and isinstance(args[0],_Kernel) and isinstance(args[1],_Kernel):
             name = ""
             for kk in args:
-                if isinstance(kk,Kernel):
+                if isinstance(kk,_Kernel):
                     uklist.append(kk)
                     name = name + "-" + kk.get_name() if name else kk.get_name()
-        elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],Kernel) and isinstance(klist[1],Kernel):
+        elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
             name = ""
             for kk in klist:
-                if isinstance(kk,Kernel):
+                if isinstance(kk,_Kernel):
                     uklist.append(kk)
                     name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
@@ -851,7 +866,7 @@ class Product_Kernel(OperatorKernel):
 
 
 
-class Symmetric_Kernel(OperatorKernel):
+class Symmetric_Kernel(_OperatorKernel):
     """
     1D Symmetric Kernel: Enforces even symmetry about zero for any given Kernel object (only uses first Kernel argument, though it accepts many).
     This is really only useful if you wish to rigourously infer data on other side of axis of symmetry without assuming the data
@@ -902,14 +917,14 @@ class Symmetric_Kernel(OperatorKernel):
         klist = kwargs.get("klist")
         uklist = []
         name = "None"
-        if len(args) >= 1 and isinstance(args[0],Kernel):
+        if len(args) >= 1 and isinstance(args[0],_Kernel):
             name = ""
             if len(args) >= 2:
                 print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
             kk = args[0]
             uklist.append(kk)
             name = name + kk.get_name()
-        elif isinstance(klist,list) and len(klist) >= 1 and isinstance(klist[0],Kernel):
+        elif isinstance(klist,list) and len(klist) >= 1 and isinstance(klist[0],_Kernel):
             name = ""
             if len(klist) >= 2:
                 print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
@@ -936,7 +951,7 @@ class Symmetric_Kernel(OperatorKernel):
 
 
 
-class Constant_Kernel(Kernel):
+class Constant_Kernel(_Kernel):
     """
     Constant Kernel: always evaluates to a constant value, regardless of x1 and x2.
     Note that this is NOT INHERENTLY A VALID COVARIANCE FUNCTION, as it yields singular covariance matrices!
@@ -999,7 +1014,7 @@ class Constant_Kernel(Kernel):
 
 
 
-class Noise_Kernel(Kernel):
+class Noise_Kernel(_Kernel):
     """
     Noise Kernel: adds a user-defined degree of expected noise in the data / measurement process.
     Note that this is NOT THE SAME as measurement error, which should be applied externally in GP!!!
@@ -1075,7 +1090,7 @@ class Noise_Kernel(Kernel):
 
 
 
-class Linear_Kernel(Kernel):
+class Linear_Kernel(_Kernel):
     """
     Linear Kernel: Applies linear regression ax + b, where b = 0, can be multiplied with itself
     for higher order pure polynomials.
@@ -1156,7 +1171,7 @@ class Linear_Kernel(Kernel):
 
 
 
-class Poly_Order_Kernel(Kernel):
+class Poly_Order_Kernel(_Kernel):
     """
     Polynomial Order Kernel: Applies linear regression ax + b, where b != 0, can be multiplied with
     itself for higher order polynomials.
@@ -1249,7 +1264,7 @@ class Poly_Order_Kernel(Kernel):
 
 
 
-class SE_Kernel(Kernel):
+class SE_Kernel(_Kernel):
     """
     Square Exponential Kernel: Infinitely differentiable (ie. extremely smooth) covariance function.
 
@@ -1353,7 +1368,7 @@ class SE_Kernel(Kernel):
 
 
 
-class RQ_Kernel(Kernel):
+class RQ_Kernel(_Kernel):
     """
     Rational Quadratic Kernel: Also infinitely differentiable, but provides higher tolerance for steep slopes.
     Acts as infinite sum of SE kernels for a_hyp < 20, otherwise effectively identical to SE as a_hyp -> infinity.
@@ -1482,7 +1497,7 @@ class RQ_Kernel(Kernel):
 
 
 
-class Matern_HI_Kernel(Kernel):
+class Matern_HI_Kernel(_Kernel):
     """
     Matern Kernel with Half-Integer nu: Only differentiable in orders less than given nu, allows fit to retain more features at expense of volatility.
     The half-integer implentation allows for use of explicit simplifications of the derivatives, which greatly improves its speed.
@@ -1617,7 +1632,7 @@ class Matern_HI_Kernel(Kernel):
 
 
 
-class NN_Kernel(Kernel):
+class NN_Kernel(_Kernel):
     """
     Neural Network Style Kernel: implements a sigmoid covariance function similar to a perceptron in a neural network, good for strong discontinuities.
     User note: Suffers from high volatility like the Matern kernel, have not figured out how to localize impact of kernel to the features in data.
@@ -1729,7 +1744,7 @@ class NN_Kernel(Kernel):
 
 
 
-class Gibbs_Kernel(Kernel):
+class Gibbs_Kernel(_Kernel):
     """
     Gibbs Kernel: implements a Gibbs covariance function with variable length scale defined by a warping
                   function self._lfunc, which can be any function which produces only positive values
@@ -1990,7 +2005,7 @@ class Gibbs_Kernel(Kernel):
         """
 
         self._wfunc = None
-        if isinstance(wfunc,WarpingFunction):
+        if isinstance(wfunc,_WarpingFunction):
             self._wfunc = copy.copy(wfunc)
         elif wfunc is None:
             self._wfunc = Constant_WarpingFunction(1.0e0)
@@ -2070,7 +2085,7 @@ class Gibbs_Kernel(Kernel):
 
 
 
-class Constant_WarpingFunction(WarpingFunction):
+class Constant_WarpingFunction(_WarpingFunction):
     """
     Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared-exponential kernel.
     
@@ -2130,7 +2145,7 @@ class Constant_WarpingFunction(WarpingFunction):
 
 
 
-class IG_WarpingFunction(WarpingFunction):
+class IG_WarpingFunction(_WarpingFunction):
     """
     Inverse Gaussian Warping Function for Gibbs Kernel: localized variation of length-scale with variation limit.
 
@@ -2293,98 +2308,7 @@ class IG_WarpingFunction(WarpingFunction):
 
 
 
-def KernelConstructor(name):
-    """
-    Function to construct a kernel solely based on the kernel codename.
-    Note: OperatorKernel objects now use encapsulating round brackets to specify their constituents
-
-    :param name: str. The codename of the desired Kernel object.
-    """
-
-    kernel = None
-    if isinstance(name,str):
-        m = re.search(r'^(.*?)\((.*)\)$',name)
-        if m:
-            links = m.group(2).split('-')
-            names = []
-            bflag = False
-            rname = ''
-            for jj in np.arange(0,len(links)):
-                rname = links[jj] if not bflag else rname + '-' + links[jj]
-                if re.search('\(',links[jj]):
-                    bflag = True
-                if re.search('\)',links[jj]):
-                    bflag = False
-                if not bflag:
-                    names.append(rname)
-            kklist = []
-            for ii in np.arange(0,len(names)):
-                kklist.append(KernelConstructor(names[ii]))
-            if re.search('^Sum$',m.group(1)):
-                kernel = Sum_Kernel(klist=kklist)
-            elif re.search('^Prod$',m.group(1)):
-                kernel = Product_Kernel(klist=kklist)
-            elif re.search('^Sym$',m.group(1)):
-                kernel = Symmetric_Kernel(klist=kklist)
-        else:
-            if re.match('^C$',name):
-                kernel = Constant_Kernel()
-            elif re.match('^n$',name):
-                kernel = Noise_Kernel()
-            elif re.match('^L$',name):
-                kernel = Linear_Kernel()
-            elif re.match('^P$',name):
-                kernel = Poly_Order_Kernel()
-            elif re.match('^SE$',name):
-                kernel = SE_Kernel()
-            elif re.match('^RQ$',name):
-                kernel = RQ_Kernel()
-            elif re.match('^MH$',name):
-                kernel = Matern_HI_Kernel()
-            elif re.match('^NN$',name):
-                kernel = NN_Kernel()
-            elif re.match('^Gw',name):
-                wname = re.search('^Gw(.*)$',name).group(1)
-                wfunc = None
-                if re.match('^C$',wname):
-                    wfunc = Constant_WarpingFunction()
-                elif re.match('^IG$',wname):
-                    wfunc = IG_WarpingFunction()
-                kernel = Gibbs_Kernel(wfunc=wfunc)
-    return kernel
-
-
-def KernelReconstructor(name,pars=None,log=False):
-    """
-    Function to reconstruct any kernel from its kernel codename and parameter list,
-    useful for saving only necessary data to represent a GPR1D object.
-
-    :param name: str. The codename of the desired Kernel object.
-
-    :param pars: array. The hyperparameter and constant values to be stored in the Kernel object, order determined by the Kernel.
-
-    :param log: bool. Indicates that pars was passed in as log10(pars).
-    """
-
-    kernel = KernelConstructor(name)
-    pvec = None
-    if isinstance(pars,(list,tuple)):
-        pvec = np.array(pars).flatten()
-    elif isinstance(pars,np.ndarray):
-        pvec = pars.flatten()
-    if isinstance(kernel,Kernel) and pvec is not None:
-        nhyp = kernel.get_hyperparameters().size
-        ncst = kernel.get_constants().size
-        if pvec.size >= nhyp:
-            theta = pvec[:nhyp] if pvec.size > nhyp else pvec.copy()
-            kernel.set_hyperparameters(theta,log=log)
-        if ncst > 0 and pvec.size >= (nhyp + ncst):
-            csts = pvec[nhyp:nhyp+ncst] if pvec.size > (nhyp + ncst) else pvec[nhyp:]
-            kernel.set_constants(csts)
-    return kernel
-
-
-class GPR1D(object):
+class GaussianProcessRegression1D(object):
     """
     Class containing variable containers, get/set functions, and fitting functions required to perform a 1-dimensional GPR fit.
     User note: This implementation requires the specific implementation of the Kernel class, provided in the same file!
@@ -2447,10 +2371,10 @@ class GPR1D(object):
         :returns: none.
         """
 
-        if isinstance(kernel,Kernel):
+        if isinstance(kernel,_Kernel):
             self._kk = copy.copy(kernel)
             self._ikk = copy.copy(self._kk)
-        if isinstance(self._kk,Kernel):
+        if isinstance(self._kk,_Kernel):
             kh = self._kk.get_hyperparameters(log=True)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
@@ -2589,10 +2513,10 @@ class GPR1D(object):
         :returns: none.
         """
 
-        if isinstance(kernel,Kernel):
+        if isinstance(kernel,_Kernel):
             self._ekk = copy.copy(kernel)
             self._eflag = False
-        if isinstance(self._ekk,Kernel):
+        if isinstance(self._ekk,_Kernel):
             kh = self._ekk.get_hyperparameters(log=True)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
@@ -2996,7 +2920,7 @@ class GPR1D(object):
         kname = None
         kpars = None
         krpar = None
-        if isinstance(self._kk,Kernel):
+        if isinstance(self._kk,_Kernel):
             kname = self._kk.get_name()
             kpars = np.hstack((self._kk.get_hyperparameters(log=False),self._kk.get_constants()))
             krpar = self._lp
@@ -3024,7 +2948,7 @@ class GPR1D(object):
         kname = None
         kpars = None
         krpar = None
-        if isinstance(self._ekk,Kernel):
+        if isinstance(self._ekk,_Kernel):
             kname = self._ekk.get_name()
             kpars = np.hstack((self._ekk.get_hyperparameters(log=False),self._ekk.get_constants()))
             krpar = self._elp
@@ -4010,7 +3934,7 @@ class GPR1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        if isinstance(kernel,Kernel):
+        if isinstance(kernel,_Kernel):
             kk = copy.copy(kernel)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._lp = float(regpar)
@@ -4140,7 +4064,7 @@ class GPR1D(object):
         errF = None
         lml = None
         nkk = None
-        if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk,Kernel):
+        if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk,_Kernel):
             # Remove all data and associated data that contain NaNs
             if ye is None:
                 ye = np.array([0.0])
@@ -4229,7 +4153,7 @@ class GPR1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        if isinstance(kernel,Kernel):
+        if isinstance(kernel,_Kernel):
             kk = copy.copy(kernel)
         if isinstance(regpar,(float,int)) and float(regpar) > 0.0:
             self._lp = float(regpar)
@@ -4252,7 +4176,7 @@ class GPR1D(object):
         errF = None
         lml = None
         nkk = None
-        if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk,Kernel):
+        if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk,_Kernel):
             # Remove all data and associated data that conatain NaNs
             if ye is None:
                 ye = np.array([0.0])
@@ -4320,7 +4244,7 @@ class GPR1D(object):
                 (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon=-1.0))
             else:
                 (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest))
-            if barF is not None and isinstance(nkk,Kernel):
+            if barF is not None and isinstance(nkk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
                 nfilt = np.any([np.isnan(self._xe),np.isnan(self._ye)],axis=0)
@@ -4406,14 +4330,14 @@ class GPR1D(object):
         else:
             (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
 
-        if barF is not None and isinstance(nkk,Kernel):
+        if barF is not None and isinstance(nkk,_Kernel):
             barE = None
             dbarE = None
             ddbarE = None
             if hscflag:
                 xntest = np.array([0.0])
                 ye = self._ye if self._nye is None else self._nye
-                if isinstance(self._ekk,Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
+                if isinstance(self._ekk,_Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
                     elp = self._elp
                     ekk = copy.copy(self._ekk)
                     ekkvec = []
@@ -4480,7 +4404,7 @@ class GPR1D(object):
             self._varF = varF.copy() if varF is not None else None
             self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
             self._lml = lml
-            self._kk = copy.copy(nkk) if isinstance(nkk,Kernel) else None
+            self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = dbarF.copy() if dbarF is not None else None
             self._dvarF = dvarF.copy() if dvarF is not None else None
@@ -4531,7 +4455,7 @@ class GPR1D(object):
         return samples
 
 
-    def MCMC_posterior_sampling(self,nsamples):
+    def MCMC_posterior_sampling(self,nsamples):   # NOT RECOMMENDED, not tested
         """
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters, using LML as the likelihood
         User note: This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
@@ -4557,7 +4481,7 @@ class GPR1D(object):
         ssigM = None
         sdbarM = None
         sdsigM = None
-        if isinstance(self._kk,Kernel) and ns > 0:
+        if isinstance(self._kk,_Kernel) and ns > 0:
             olml = self._lml
             otheta = self._kk.get_hyperparameters(log=True)
             tlml = olml
@@ -4632,3 +4556,99 @@ class GPR1D(object):
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
         return (sbarM,ssigM,sdbarM,sdsigM)
+
+
+# ****************************************************************************************************************************************
+# ------- Some helpful functions for reproducability and user-friendliness ---------------------------------------------------------------
+# ****************************************************************************************************************************************
+
+
+def KernelConstructor(name):
+    """
+    Function to construct a kernel solely based on the kernel codename.
+    Note: OperatorKernel objects now use encapsulating round brackets to specify their constituents
+
+    :param name: str. The codename of the desired Kernel object.
+    """
+
+    kernel = None
+    if isinstance(name,str):
+        m = re.search(r'^(.*?)\((.*)\)$',name)
+        if m:
+            links = m.group(2).split('-')
+            names = []
+            bflag = False
+            rname = ''
+            for jj in np.arange(0,len(links)):
+                rname = links[jj] if not bflag else rname + '-' + links[jj]
+                if re.search('\(',links[jj]):
+                    bflag = True
+                if re.search('\)',links[jj]):
+                    bflag = False
+                if not bflag:
+                    names.append(rname)
+            kklist = []
+            for ii in np.arange(0,len(names)):
+                kklist.append(KernelConstructor(names[ii]))
+            if re.search('^Sum$',m.group(1)):
+                kernel = Sum_Kernel(klist=kklist)
+            elif re.search('^Prod$',m.group(1)):
+                kernel = Product_Kernel(klist=kklist)
+            elif re.search('^Sym$',m.group(1)):
+                kernel = Symmetric_Kernel(klist=kklist)
+        else:
+            if re.match('^C$',name):
+                kernel = Constant_Kernel()
+            elif re.match('^n$',name):
+                kernel = Noise_Kernel()
+            elif re.match('^L$',name):
+                kernel = Linear_Kernel()
+            elif re.match('^P$',name):
+                kernel = Poly_Order_Kernel()
+            elif re.match('^SE$',name):
+                kernel = SE_Kernel()
+            elif re.match('^RQ$',name):
+                kernel = RQ_Kernel()
+            elif re.match('^MH$',name):
+                kernel = Matern_HI_Kernel()
+            elif re.match('^NN$',name):
+                kernel = NN_Kernel()
+            elif re.match('^Gw',name):
+                wname = re.search('^Gw(.*)$',name).group(1)
+                wfunc = None
+                if re.match('^C$',wname):
+                    wfunc = Constant_WarpingFunction()
+                elif re.match('^IG$',wname):
+                    wfunc = IG_WarpingFunction()
+                kernel = Gibbs_Kernel(wfunc=wfunc)
+    return kernel
+
+
+def KernelReconstructor(name,pars=None,log=False):
+    """
+    Function to reconstruct any kernel from its kernel codename and parameter list,
+    useful for saving only necessary data to represent a GPR1D object.
+
+    :param name: str. The codename of the desired Kernel object.
+
+    :param pars: array. The hyperparameter and constant values to be stored in the Kernel object, order determined by the Kernel.
+
+    :param log: bool. Indicates that pars was passed in as log10(pars).
+    """
+
+    kernel = KernelConstructor(name)
+    pvec = None
+    if isinstance(pars,(list,tuple)):
+        pvec = np.array(pars).flatten()
+    elif isinstance(pars,np.ndarray):
+        pvec = pars.flatten()
+    if isinstance(kernel,_Kernel) and pvec is not None:
+        nhyp = kernel.get_hyperparameters().size
+        ncst = kernel.get_constants().size
+        if pvec.size >= nhyp:
+            theta = pvec[:nhyp] if pvec.size > nhyp else pvec.copy()
+            kernel.set_hyperparameters(theta,log=log)
+        if ncst > 0 and pvec.size >= (nhyp + ncst):
+            csts = pvec[nhyp:nhyp+ncst] if pvec.size > (nhyp + ncst) else pvec[nhyp:]
+            kernel.set_constants(csts)
+    return kernel

@@ -46,7 +46,7 @@ nkbounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e-1,1.0e-3],[1.0e1,1.0e0,1.0e1,1.0e-
 
 # GPR fit accounting only for y-errors
 # Define fit settings
-GPR = GPR1D.GPR1D()
+GPR = GPR1D.GaussianProcessRegression1D()
 GPR.set_kernel(kernel=kernel,kbounds=kbounds,regpar=1.0)
 GPR.set_error_kernel(kernel=nkernel,kbounds=nkbounds,regpar=10.0)
 GPR.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=[0.0],dydata=[0.0],dyerr=[0.0])
@@ -67,7 +67,7 @@ GPR.GPRFit(xn,nrestarts=5)
 
 # GPR fit accounting for y-errors AND x-errors
 # Define fit settings
-NIGPR = GPR1D.GPR1D()
+NIGPR = GPR1D.GaussianProcessRegression1D()
 NIGPR.set_kernel(kernel=kernel,kbounds=kbounds,regpar=1.0)
 NIGPR.set_error_kernel(kernel=nkernel,kbounds=nkbounds,regpar=10.0)
 NIGPR.set_raw_data(xdata=xx,ydata=yy,yerr=ye,xerr=xe,dxdata=[0.0],dydata=[0.0],dyerr=[0.0])
