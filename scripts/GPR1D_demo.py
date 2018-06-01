@@ -1,4 +1,4 @@
-#!/usr/local/depot/Python-3.5.1/bin/python
+#!/usr/bin/env python
 
 import os
 import sys
@@ -7,7 +7,7 @@ from operator import itemgetter
 import numpy as np
 import matplotlib.pyplot as plt
 
-from GPR1D import GPR1D
+import GPR1D
 
 pdir = './GPPlots/'
 if not os.path.isdir(pdir):

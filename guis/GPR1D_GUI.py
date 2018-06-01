@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Required imports
 import os
 import sys
@@ -17,7 +18,7 @@ from matplotlib.backends import backend_qt4agg as mplqt
 #import pyqtgraph as pg
 #from pyqtgraph import setConfigOption
 
-from GPR1D import GPR1D
+import GPR1D
 
 
 ##### Base classes to be inherited by custom implementations - do not modify! #####
