@@ -48,7 +48,7 @@ setup(
         'License :: MIT',
         'Natural Language :: English',
     ],
-    keywords = 'gaussion processes, fitting, OMFIT',
+    keywords = 'gaussian processes, fitting, OMFIT',
     py_modules = ['GPR1D'],
     scripts = ['scripts/GPR1D_demo.py', 'guis/GPR1D_GUI.py'],
     install_requires = ['numpy', 'scipy'],
