@@ -3,17 +3,21 @@
 Using the GPR1D program
 *Author: Aaron Ho (01/06/2018)*
 
+Installation is **mandatory** for this package!
+
 For first time users, it is strongly recommended to use the GUI
 developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
 by using the following on the command line:
 
-   pip install -e GPR1D[guis]
+   pip install [--user] -e GPR1D[guis]
 
-If you have already cloned the repository, enter the top level
-of the repository directory and use the following instead:
+Use the --user flag if you do not have root access on the system
+that you are working on. If you have already cloned the
+repository, enter the top level of the repository directory and
+use the following instead:
 
-   pip install -e .[guis]
+   pip install [--user] -e .[guis]
 
 Documentation of the equations used in the algorithm, along with
 the available kernels and optimizers, can be found in docs/.

@@ -54,7 +54,7 @@ setup(
     install_requires = ['numpy', 'scipy'],
     extras_require = {
         'scripts': ['matplotlib'],
-        'guis': ['matplotlib', 'PyQt4'],
+        'guis': ['matplotlib', 'PyQt4', 'PyQt5'],
         'test': ['coverage', 'pytest', 'pytest-cov'],
     },
     entry_points = {
