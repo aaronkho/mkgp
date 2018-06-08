@@ -10,9 +10,10 @@ These classes were developed by Aaron Ho [1].
 """
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
 #    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 # Required imports
+import warnings
 import re
 import copy
 import numpy as np
@@ -2356,6 +2357,7 @@ class GaussianProcessRegression1D(object):
         self._varN = None
         self._dvarN = None
         self._nye = None
+        self._fwarn = False
         self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
 
@@ -2734,6 +2736,20 @@ class GaussianProcessRegression1D(object):
                     self._eopp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int,np_itypes,np_utypes,np_ftypes)) and float(sdiff) > 0.0:
             self._edh = float(sdiff)
+
+
+    def set_warning_flag(self,flag=True):
+        """
+        Specify the printing of runtime warnings within the
+        hyperparameter optimization routine. The warnings are
+        disabled by default.
+
+        :kwarg flag: bool. Flag to toggle display of warnings.
+
+        :returns: none.
+        """
+
+        self._fwarn = True if flag else False
 
 
     def get_raw_data(self,conditioned=False):
@@ -4291,6 +4307,9 @@ class GaussianProcessRegression1D(object):
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         barF = None
         varF = None
         lml = None
@@ -4416,6 +4435,9 @@ class GaussianProcessRegression1D(object):
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
 
+        if not self._fwarn:
+            warnings.filterwarnings("default",category=RuntimeWarning)
+
 
     def sample_GP(self,nsamples,noise_flag=False,simple_out=False):
         """
@@ -4456,7 +4478,7 @@ class GaussianProcessRegression1D(object):
         return samples
 
 
-    def MCMC_posterior_sampling(self,nsamples):   # NOT RECOMMENDED, not tested
+    def MCMC_posterior_sampling(self,nsamples):   # NOT RECOMMENDED, not fully tested
         """
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters, using LML as the likelihood
         User note: This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
@@ -4477,7 +4499,10 @@ class GaussianProcessRegression1D(object):
         ns = 0
         if isinstance(nsamples,(float,int)) and int(nsamples) > 0:
             ns = int(nsamples)
-        
+
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         sbarM = None
         ssigM = None
         sdbarM = None
@@ -4556,6 +4581,10 @@ class GaussianProcessRegression1D(object):
                 sdsigM = dsigF.copy() if sdsigM is None else np.vstack((sdsigM,dsigF))
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
+
+        if not self._fwarn:
+            warnings.filterwarnings("default",category=RuntimeWarning)
+
         return (sbarM,ssigM,sdbarM,sdsigM)
 
 

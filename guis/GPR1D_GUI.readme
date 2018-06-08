@@ -4,11 +4,6 @@ Developer: Aaron Ho - a.ho@differ.nl
 Last update: 14/11/2017
 Repository: https://gitlab.com/aaronkho/GPR1D.git
 
-The GitLab repository is currently private, so explicit
-permission is required in order to pull it. For those wishing
-to have access, please email me at the address above!
-
-
 
 This GUI encapsulates most of the GPR1D Python class within a
 user-friendly format. It can be used as follows:

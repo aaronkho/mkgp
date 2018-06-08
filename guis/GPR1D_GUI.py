@@ -48,10 +48,8 @@ if QtWidgets is None:
 fqt5 = distutils.version.LooseVersion(pyqtversion) >= distutils.version.LooseVersion("5.0.0")
 if fqt5:
     matplotlib.use("Qt5Agg")
-    os.environ['QT_API'] = 'pyqt5'
     from matplotlib.backends import backend_qt5agg as mplqt
 else:
-    import matplotlib
     matplotlib.use("Qt4Agg")
     from matplotlib.backends import backend_qt4agg as mplqt
 
