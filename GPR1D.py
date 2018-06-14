@@ -10,7 +10,7 @@ These classes were developed by Aaron Ho [1].
 """
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
 #    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
-__version__ = '1.0.1'
+__version__ = '1.1.0'
 
 # Required imports
 import warnings
@@ -19,6 +19,7 @@ import copy
 import numpy as np
 import scipy.special as spsp
 import scipy.linalg as spla
+import scipy.stats as spst
 from operator import itemgetter
 
 np_itypes = (np.int8,np.int16,np.int32,np.int64)
@@ -2354,6 +2355,10 @@ class GaussianProcessRegression1D(object):
         self._dvarF = None
         self._lml = None
         self._eflag = False
+        self._barE = None
+        self._varE = None
+        self._dbarE = None
+        self._dvarE = None
         self._varN = None
         self._dvarN = None
         self._nye = None
@@ -2853,8 +2858,10 @@ class GaussianProcessRegression1D(object):
         """
 
         dvarF = self._dvarF
+        dvarmod = self.get_gp_variance(noise_flag=noise_flag) / self.get_gp_variance(noise_flag=False)
         if dvarF is not None and self._dvarN is not None and noise_flag:
             dvarF = dvarF + self._dvarN
+        dvarF = dvarF * dvarmod
         return dvarF
 
 
@@ -2970,6 +2977,42 @@ class GaussianProcessRegression1D(object):
             kpars = np.hstack((self._ekk.get_hyperparameters(log=False),self._ekk.get_constants()))
             krpar = self._elp
         return (kname,kpars,krpar)
+
+
+    def get_error_gp_mean(self):
+        """
+        Returns the y-errors computed in the latest GPRFit() call.
+
+        :returns: array. Predicted y-values from fit.
+        """
+
+        return self._barE
+
+
+    def get_error_gp_variance(self):
+        """
+        Returns the full covariance matrix of the y-errors computed in the latest
+        GPRFit() call.
+
+        :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
+        """
+
+        return self._varE
+
+
+    def get_error_gp_std(self):
+        """
+        Returns only the rooted diagonal elements of the covariance matrix of the y-values
+        computed in the latest GPRFit() call, corresponds to 1 sigma error of fit.
+
+        :returns: array. 1D array containing 1 sigma errors of predicted y-values from fit.
+        """
+
+        sigE = None
+        varE = self.get_error_gp_variance()
+        if varE is not None:
+            sigE = np.sqrt(np.diag(varE))
+        return sigE
 
 
     def get_error_function(self,xnew):
@@ -4229,7 +4272,7 @@ class GaussianProcessRegression1D(object):
 
         # Check inputs
         nr = 0
-        if isinstance(nrestarts,(float,int)) and int(nrestarts) > 0:
+        if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
         if self._kk is not None and self._xe is not None and self._xx.size == self._xe.size:
@@ -4302,7 +4345,7 @@ class GaussianProcessRegression1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        if isinstance(nrestarts,(float,int)) and int(nrestarts) > 0:
+        if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nrestarts) > 0:
             nr = int(nrestarts)
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
@@ -4352,7 +4395,9 @@ class GaussianProcessRegression1D(object):
 
         if barF is not None and isinstance(nkk,_Kernel):
             barE = None
+            varE = None
             dbarE = None
+            dvarE = None
             ddbarE = None
             if hscflag:
                 xntest = np.array([0.0])
@@ -4391,9 +4436,9 @@ class GaussianProcessRegression1D(object):
                     (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                     self._ekk = copy.copy(ekk)
                     self._eflag = True
-                barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                (barE,varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
                 if barE is not None:
-                    dbarE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True))
+                    (dbarE,dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
                     nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
                     ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
                     xnl = nxn - 0.5 * ddx
@@ -4422,15 +4467,19 @@ class GaussianProcessRegression1D(object):
             self._xF = xn.copy()
             self._barF = barF.copy()
             self._varF = varF.copy() if varF is not None else None
+            self._barE = barE.copy() if barE is not None else None
+            self._varE = varE.copy() if varE is not None else None
             self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
             self._lml = lml
             self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = dbarF.copy() if dbarF is not None else None
             self._dvarF = dvarF.copy() if dvarF is not None else None
+            self._dbarE = dbarE.copy() if dbarE is not None else None
+            self._dvarE = dvarE.copy() if dvarE is not None else None
 #            self._dvarN = dvarF + np.diag(np.power(dbarE,2.0)) if dvarF is not None and dbarE is not None else None
 #            ddfac = np.sqrt(np.mean(np.power(ddbarE,2.0))) if ddbarE is not None else 0.0
-            ddfac = np.abs(ddbarE) if ddbarE is not None else 0.0
+            ddfac = ddbarE.copy() if ddbarE is not None else 0.0
             self._dvarN = np.diag(2.0 * (np.power(dbarE,2.0) + np.abs(barE * ddfac))) if barE is not None and dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
@@ -4439,18 +4488,19 @@ class GaussianProcessRegression1D(object):
             warnings.filterwarnings("default",category=RuntimeWarning)
 
 
-    def sample_GP(self,nsamples,noise_flag=False,simple_out=False):
+    def sample_GP(self,nsamples,actual_noise=False,simple_out=False):
         """
-        Samples Gaussian process posterior for predictive functions, returns n samples
-        Can be used by user to check validity of mean and variance outputs of GPRFit()
+        Samples Gaussian process posterior on data for predictive functions.
+        Can be used by user to check validity of mean and variance outputs of
+        GPRFit() method.
 
         :arg nsamples: int. Number of samples to perform.
 
-        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
+        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
 
         :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation.
 
-        :returns: array. Rows containing sampled fit evaluated at xnew. If simple_out, row 0 is the mean and row 1 is the 1 sigma error.
+        :returns: array. Rows containing sampled fit evaluated at xnew used in latest GPRFit(). If simple_out, row 0 is the mean and row 1 is the 1 sigma error.
         """
 
         # Check instantiation of output class variables
@@ -4459,16 +4509,68 @@ class GaussianProcessRegression1D(object):
 
         # Check inputs
         ns = 0
-        if isinstance(nsamples,(float,int)) and int(nsamples) > 0:
+        if isinstance(nsamples,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nsamples) > 0:
             ns = int(nsamples)
 
         samples = None
         if ns > 0:
             mu = self.get_gp_mean()
-            var = self.get_gp_variance(noise_flag=noise_flag)
-            for ii in np.arange(0,ns):
-                syy = np.random.multivariate_normal(mu,var)
-                samples = syy.copy() if samples is None else np.vstack((samples,syy))
+            var = self.get_gp_variance(noise_flag=actual_noise)
+            mult_flag = not actual_noise
+            mult = self.get_gp_std(noise_flag=mult_flag) / self.get_gp_std(noise_flag=False)
+            samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
+            samples = mult * (samples - mu) + mu
+#            for ii in np.arange(0,ns):
+#                syy = np.random.multivariate_normal(mu,var)
+#                syy = spst.multivariate_normal.rvs(mean=mu,cov=var,size=1)
+#                sample = mult * (syy - mu) + mu
+#                samples = syy.copy() if samples is None else np.vstack((samples,sample))
+            if samples is not None and simple_out:
+                mean = np.mean(samples,axis=0)
+                std = np.std(samples,axis=0)
+                samples = np.vstack((mean,std))
+        else:
+            raise ValueError('Check inputs to sampler to make sure they are valid.')
+        return samples
+
+
+    def sample_GP_derivative(self,nsamples,actual_noise=False,simple_out=False):
+        """
+        Samples Gaussian process posterior on data for predictive functions.
+        Can be used by user to check validity of mean and variance outputs of
+        GPRFit() method.
+
+        :arg nsamples: int. Number of samples to perform.
+
+        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements.
+
+        :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation.
+
+        :returns: array. Rows containing sampled fit evaluated at xnew used in latest GPRFit(). If simple_out, row 0 is the mean and row 1 is the 1 sigma error.
+        """
+
+        # Check instantiation of output class variables
+        if self._xF is None or self._dbarF is None or self._dvarF is None:
+            raise ValueError('Run GPRFit() before attempting to sample the GP.')
+
+        # Check inputs
+        ns = 0
+        if isinstance(nsamples,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nsamples) > 0:
+            ns = int(nsamples)
+
+        samples = None
+        if ns > 0:
+            mu = self.get_gp_drv_mean()
+            var = self.get_gp_drv_variance(noise_flag=actual_noise)
+            mult_flag = not actual_noise
+            mult = self.get_gp_drv_std(noise_flag=mult_flag) / self.get_gp_drv_std(noise_flag=False)
+            samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
+            samples = mult * (samples - mu) + mu
+#            for ii in np.arange(0,ns):
+#                syy = np.random.multivariate_normal(mu,var)
+#                syy = spst.multivariate_normal.rvs(mean=mu,cov=var,size=1)
+#                sample = mult * (syy - mu) + mu
+#                samples = syy.copy() if samples is None else np.vstack((samples,sample))
             if samples is not None and simple_out:
                 mean = np.mean(samples,axis=0)
                 std = np.std(samples,axis=0)
@@ -4497,7 +4599,7 @@ class GaussianProcessRegression1D(object):
 
         # Check inputs
         ns = 0
-        if isinstance(nsamples,(float,int)) and int(nsamples) > 0:
+        if isinstance(nsamples,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nsamples) > 0:
             ns = int(nsamples)
 
         if not self._fwarn:

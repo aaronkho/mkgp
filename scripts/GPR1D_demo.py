@@ -29,9 +29,10 @@ if not os.path.isdir(plot_save_directory):
 # Make basic function data
 x_spread = 0.01
 y_spread = 0.25
+intercept = 3.0
 slope1 = 1.0
 x_values = np.linspace(0.0,1.0,21)
-y_values = slope1 * x_values + 3.0
+y_values = slope1 * x_values + intercept
 boundary1 = 0.3
 slope2 = 16.0
 boundary1_filter = (x_values >= boundary1)
@@ -45,6 +46,7 @@ raw_x_values = x_values + x_spread * np.random.randn(x_values.size)
 raw_y_values = y_values + y_spread * np.random.randn(y_values.size)
 raw_x_errors = np.full(raw_x_values.shape,x_spread)
 raw_y_errors = np.full(raw_y_values.shape,y_spread)
+raw_intercept = raw_y_values[0]
 
 
 
@@ -62,10 +64,12 @@ kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,5.0e0],[1.0e1,1.0e0,2.0e1]]
 # Define a kernel to fit the given y-errors, needed for rigourous estimation of fit error including data error
 #     Typically a simple rational quadratic kernel is sufficient given a high regularization parameter (specified later)
 #     Here, the RQ kernel is summed with a noise kernel for extra robustness and to demonstrate how to use operator kernels
-error_kernel = GPR1D.Sum_Kernel(GPR1D.RQ_Kernel(1.0e0,1.0e0,1.0e0),GPR1D.Noise_Kernel(1.0e-2))
+error_kernel = GPR1D.RQ_Kernel(1.0e0,1.0e0,1.0e0)
+#error_kernel = GPR1D.Sum_Kernel(GPR1D.RQ_Kernel(1.0e0,1.0e0,1.0e0),GPR1D.Noise_Kernel(1.0e-2))
 
 # Again, this is only necessary if using kernel restart option on the error fitting
-error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e-1,1.0e-3],[1.0e1,1.0e0,1.0e1,1.0e-1]])
+error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e-1,],[1.0e1,1.0e0,1.0e1]])
+#error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e-1,1.0e-3],[1.0e1,1.0e0,1.0e1,1.0e-1]])
 
 
 # GPR fit accounting only for y-errors
@@ -101,6 +105,9 @@ gpr_object.GPRFit(fit_x_values,nrestarts=5)
 #     Grab fit results
 (fit_y_values,fit_y_errors,fit_dydx_values,fit_dydx_errors) = gpr_object.get_gp_results()
 
+#     Grab the log-marginal-likelihood of fit
+fit_lml = gpr_object.get_gp_lml()
+
 
 # GPR fit accounting for y-errors AND x-errors
 #     Procedure is nearly identical to above, except for the addition of an extra option
@@ -123,6 +130,80 @@ nigpr_object.GPRFit(fit_x_values,nigp_flag=True,nrestarts=5)
 (nigp_kernel_name,nigp_kernel_hyppars,nigp_fit_regpar) = nigpr_object.get_gp_kernel_details()
 (nigp_error_kernel_name,nigp_error_kernel_hyppars,nigp_error_fit_regpar) = nigpr_object.get_gp_error_kernel_details()
 (ni_fit_y_values,ni_fit_y_errors,ni_fit_dydx_values,ni_fit_dydx_errors) = nigpr_object.get_gp_results()
+
+#     Grab the log-marginal-likelihood of fit
+ni_fit_lml = nigpr_object.get_gp_lml()
+
+
+### Sampling distribution
+
+num_samples = 10
+
+# Samples the fit distribution - smooth noise representation
+sample_array = gpr_object.sample_GP(num_samples,actual_noise=False)
+
+# Calculates the derivatives of the sampled fit distributions
+dfit_x_values = (fit_x_values[1:] + fit_x_values[:-1]) / 2.0
+deriv_array = (sample_array[:,1:] - sample_array[:,:-1]) / (fit_x_values[1:] - fit_x_values[:-1])
+
+# Samples the derivative distribution - smooth noise representation
+dsample_array = gpr_object.sample_GP_derivative(num_samples,actual_noise=False)
+
+# Calculates the integrals of the sampled derivative distributions
+ifit_x_values = dfit_x_values.copy()
+integ_array = dsample_array[:,1] * (ifit_x_values[0] - fit_x_values[0]) + raw_intercept
+if integ_array.ndim == 1:
+    integ_array = np.transpose(np.atleast_2d(integ_array))
+for jj in np.arange(1,dsample_array.shape[1]-1):
+    integ = integ_array[:,jj-1] + dsample_array[:,jj] * (ifit_x_values[jj] - ifit_x_values[jj-1])
+    if integ.ndim == 1:
+        integ = np.transpose(np.atleast_2d(integ))
+    integ_array = np.hstack((integ_array,integ))
+
+# Samples the fit distribution - true noise representation
+nsample_array = gpr_object.sample_GP(num_samples,actual_noise=True)
+
+# Samples the derivative distribution - true noise representation
+#    Note that true noise is only different from smooth noise if the error kernel contains a noise kernel
+ndsample_array = gpr_object.sample_GP_derivative(num_samples,actual_noise=True)
+
+
+
+### Printing
+
+gp_str = "\n--- GPR Fit ---\n\n"
+gp_str = gp_str + "Kernel name: %30s\n" % (gp_kernel_name)
+gp_str = gp_str + "Regularization parameter: %17.4f\n" % (gp_fit_regpar)
+gp_str = gp_str + "Optimized kernel hyperparameters:\n"
+for hh in np.arange(0,gp_kernel_hyppars.size):
+    gp_str = gp_str + "%15.6e" % (gp_kernel_hyppars[hh])
+gp_str = gp_str + "\n\n"
+gp_str = gp_str + "Error kernel name: %24s\n" % (gp_error_kernel_name)
+gp_str = gp_str + "Regularization parameter: %17.4f\n" % (gp_error_fit_regpar)
+gp_str = gp_str + "Optimized error kernel hyperparameters:\n"
+for hh in np.arange(0,gp_error_kernel_hyppars.size):
+    gp_str = gp_str + "%15.6e" % (gp_error_kernel_hyppars[hh])
+gp_str = gp_str + "\n\n"
+gp_str = gp_str + "Log-marginal-likelihood: %18.6f\n" % (fit_lml)
+
+print(gp_str)
+
+nigp_str = "--- NIGPR Fit ---\n\n"
+nigp_str = nigp_str + "Kernel name: %30s\n" % (nigp_kernel_name)
+nigp_str = nigp_str + "Regularization parameter: %17.4f\n" % (nigp_fit_regpar)
+nigp_str = nigp_str + "Optimized kernel hyperparameters:\n"
+for hh in np.arange(0,nigp_kernel_hyppars.size):
+    nigp_str = nigp_str + "%15.6e" % (nigp_kernel_hyppars[hh])
+nigp_str = nigp_str + "\n\n"
+nigp_str = nigp_str + "Error kernel name: %24s\n" % (nigp_error_kernel_name)
+nigp_str = nigp_str + "Regularization parameter: %17.4f\n" % (nigp_error_fit_regpar)
+nigp_str = nigp_str + "Optimized error kernel hyperparameters:\n"
+for hh in np.arange(0,nigp_error_kernel_hyppars.size):
+    nigp_str = nigp_str + "%15.6e" % (nigp_error_kernel_hyppars[hh])
+nigp_str = nigp_str + "\n\n"
+nigp_str = nigp_str + "Log-marginal-likelihood: %18.6f\n" % (ni_fit_lml)
+
+print(nigp_str)
 
 
 
@@ -180,4 +261,64 @@ plot_ni_fit_dydx_upper = ni_fit_dydx_values + plot_sigma * ni_fit_dydx_errors
 ax.fill_between(fit_x_values,plot_ni_fit_dydx_lower,plot_ni_fit_dydx_upper,facecolor='b',edgecolor='None',alpha=0.2)
 ax.set_xlim(0.0,1.0)
 fig.savefig(plot_save_directory+'nigp_dtest.png')
+plt.close(fig)
+
+# Sampled fit curves (smooth noise) against GPR fit distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_y_lower,plot_fit_y_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(fit_x_values,sample_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_test.png')
+plt.close(fig)
+
+# Derivatives of sampled fit curves against GPR fit derivative distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_dydx_lower,plot_fit_dydx_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(dfit_x_values,deriv_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_drv_test.png')
+plt.close(fig)
+
+# Sampled fit derivative curves (smooth noise) against GPR fit derivative distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_dydx_lower,plot_fit_dydx_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(fit_x_values,dsample_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_dtest.png')
+plt.close(fig)
+
+# Integrals of sampled fit derivative curves against GPR fit distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_y_lower,plot_fit_y_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(ifit_x_values,integ_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_itg_dtest.png')
+plt.close(fig)
+
+# Sampled fit curves (true noise) against GPR fit distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_y_lower,plot_fit_y_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(fit_x_values,nsample_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_noisy_test.png')
+plt.close(fig)
+
+# Sampled fit derivative curves (true noise) against GPR fit derivative distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.fill_between(fit_x_values,plot_fit_dydx_lower,plot_fit_dydx_upper,facecolor='r',edgecolor='None',alpha=0.2)
+for ii in np.arange(0,num_samples):
+    ax.plot(fit_x_values,ndsample_array[ii,:],color='k',alpha=0.5)
+ax.set_xlim(0.0,1.0)
+fig.savefig(plot_save_directory+'sample_gp_noisy_dtest.png')
 plt.close(fig)
