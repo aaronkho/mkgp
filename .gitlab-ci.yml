@@ -2,11 +2,13 @@ image: alpine
 
 pages:
   script:
-  - apk --no-cache add py2-pip python-dev py2-numpy py2-scipy
-  - apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev #Numpy dependencies
+  - apk --no-cache add py2-pip python-dev py2-numpy
+  - echo @v3.8 http://dl-cdn.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repositories
+  - apk update
+  - apk add py2-scipy@v3.8
+  - pip install .
   - pip install sphinx
   - apk --no-cache add make
-  - pip install .
   - make -C docs html
   - mv docs/build/html/ public/
   artifacts:
