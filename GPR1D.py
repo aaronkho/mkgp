@@ -693,7 +693,7 @@ class Sum_Kernel(_OperatorKernel):
     """
     Sum Kernel: Implements the sum of two (or more) Kernel objects.
 
-    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
+    :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
 
     :kwarg klist: list. Kernel objects to be added together, minimum of 2.
     """
@@ -728,7 +728,7 @@ class Sum_Kernel(_OperatorKernel):
         """
         Initializes the Sum_Kernel object. Adapted to be Python 2.x compatible.
 
-        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
+        :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
 
         :kwarg klist: list. Kernel objects to be added together, minimum of 2.
 
@@ -774,7 +774,7 @@ class Product_Kernel(_OperatorKernel):
     """
     Product Kernel: Implements the product of two (or more) Kernel objects.
 
-    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
+    :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
 
     :kwarg klist: list. Kernel objects to be multiplied together, minimum of 2.
     """
@@ -827,7 +827,7 @@ class Product_Kernel(_OperatorKernel):
         """
         Initializes the Product_Kernel object. Adapted to be Python 2.x compatible.
 
-        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
+        :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
 
         :kwarg klist: list. Kernel objects to be multiplied together, minimum of 2.
 
@@ -875,9 +875,9 @@ class Symmetric_Kernel(_OperatorKernel):
     This is really only useful if you wish to rigourously infer data on other side of axis of symmetry without assuming the data
     can just be flipped or if data exists on other side but a symmetric solution is desired. *** NOT FULLY TESTED! ***
 
-    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
+    :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
 
-    :keyword klist: list. Kernel object to be made symmetric, maximum of 1.
+    :kwarg klist: list. Kernel object to be made symmetric, maximum of 1.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
@@ -910,9 +910,9 @@ class Symmetric_Kernel(_OperatorKernel):
         """
         Initializes the Symmetric_Kernel object. Adapted to be Python 2.x compatible.
 
-        :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
+        :arg \*args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
 
-        :keyword klist: list. Kernel object to be made symmetric, maximum of 1.
+        :kwarg klist: list. Kernel object to be made symmetric, maximum of 1.
 
         :returns: none.
         """
@@ -4275,6 +4275,9 @@ class GaussianProcessRegression1D(object):
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         if self._kk is not None and self._xe is not None and self._xx.size == self._xe.size:
             barF = None
             nkk = None
@@ -4308,13 +4311,17 @@ class GaussianProcessRegression1D(object):
                 xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
                 nfilt = np.any([np.isnan(self._xe),np.isnan(self._ye)],axis=0)
-                cxe = self._xe
+                cxe = self._xe.copy()
                 cxe[nfilt] = 0.0
-                cye = self._ye
+                print(dbarF,cxe)
+                cye = self._ye.copy()
                 cye[nfilt] = 0.0
-                self._nye = np.sqrt(cye**2.0 + cxe * dbarF**2.0)
+                self._nye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
+
+        if not self._fwarn:
+            warnings.filterwarnings("default",category=RuntimeWarning)
 
 
     def GPRFit(self,xnew,nigp_flag=False,nrestarts=None):
@@ -4351,9 +4358,6 @@ class GaussianProcessRegression1D(object):
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
 
-        if not self._fwarn:
-            warnings.filterwarnings("ignore",category=RuntimeWarning)
-
         barF = None
         varF = None
         lml = None
@@ -4362,6 +4366,9 @@ class GaussianProcessRegression1D(object):
         if nigp_flag:
             self.make_NIGP_errors(nr)
         hscflag = True if self._ye is not None else False
+
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
 
         if self._kk is not None and self._kb is not None and nr > 0:
             xntest = np.array([0.0])
@@ -4402,7 +4409,7 @@ class GaussianProcessRegression1D(object):
             ddbarE = None
             if hscflag:
                 xntest = np.array([0.0])
-                ye = self._ye if self._nye is None else self._nye
+                ye = self._ye.copy() if self._nye is None else self._nye.copy()
                 if isinstance(self._ekk,_Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
                     elp = self._elp
                     ekk = copy.copy(self._ekk)
@@ -4513,6 +4520,9 @@ class GaussianProcessRegression1D(object):
         if isinstance(nsamples,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nsamples) > 0:
             ns = int(nsamples)
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         samples = None
         if ns > 0:
             mu = self.get_gp_mean()
@@ -4532,6 +4542,10 @@ class GaussianProcessRegression1D(object):
                 samples = np.vstack((mean,std))
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
+
+        if not self._fwarn:
+            warnings.filterwarnings("default",category=RuntimeWarning)
+
         return samples
 
 
@@ -4559,6 +4573,9 @@ class GaussianProcessRegression1D(object):
         if isinstance(nsamples,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nsamples) > 0:
             ns = int(nsamples)
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         samples = None
         if ns > 0:
             mu = self.get_gp_drv_mean()
@@ -4578,6 +4595,10 @@ class GaussianProcessRegression1D(object):
                 samples = np.vstack((mean,std))
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
+
+        if not self._fwarn:
+            warnings.filterwarnings("default",category=RuntimeWarning)
+
         return samples
 
 

@@ -5,3 +5,7 @@ __pycache__/
 # Python egg metadata
 *.egg-info/
 *.egg
+
+# Build directories
+dist/
+build/
