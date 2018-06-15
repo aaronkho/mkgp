@@ -2,7 +2,7 @@ image: alpine
 
 pages:
   script:
-  - apk --no-cache add py2-pip python-dev
+  - apk --no-cache add py2-pip python-dev py2-numpy py2-scipy
   - apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev #Numpy dependencies
   - pip install sphinx
   - apk --no-cache add make
