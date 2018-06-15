@@ -2348,6 +2348,7 @@ class GaussianProcessRegression1D(object):
         self._eopp = np.array([1.0e-5])
         self._edh = 1.0e-2
         self._ikk = None
+        self._imax = 500
         self._xF = None
         self._barF = None
         self._varF = None
@@ -2545,7 +2546,7 @@ class GaussianProcessRegression1D(object):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
 
 
-    def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
+    def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None,maxiter=None):
         """
         Specify the search parameters that the Gaussian process regression will use.
         Performs some consistency checks on input values to ensure validity.
@@ -2557,6 +2558,8 @@ class GaussianProcessRegression1D(object):
         :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method.
 
         :kwarg sdiff: float. Step size for hyperparameter derivative approximations in optimization algorithms, default is 1.0e-2.
+
+        :kwarg maxiter: int. Maximum number of iterations for hyperparameter optimization algorithm, default is 500.
 
         :returns: none.
         """
@@ -2642,6 +2645,8 @@ class GaussianProcessRegression1D(object):
                     self._opp[ii] = float(spars[ii])
         if isinstance(sdiff,(float,int,np_itypes,np_utypes,np_ftypes)) and float(sdiff) > 0.0:
             self._dh = float(sdiff)
+        if isinstance(maxiter,(float,int,np_itypes,np_utypes,np_ftypes)) and int(maxiter) > 0:
+            self._imax = int(maxiter) if int(maxiter) > 50 else 50
 
 
     def set_error_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
@@ -3330,15 +3335,13 @@ class GaussianProcessRegression1D(object):
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
                 gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
-#                gradlml = 1.0e1 * gradlml
             theta_step = eta * gradlml
             theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
             newkk.set_hyperparameters(theta_new,log=True)
@@ -3347,7 +3350,7 @@ class GaussianProcessRegression1D(object):
             theta_old = theta_new.copy()
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on gradient ascent search.')
         return (newkk,lmlnew)
 
@@ -3398,8 +3401,7 @@ class GaussianProcessRegression1D(object):
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
@@ -3414,7 +3416,7 @@ class GaussianProcessRegression1D(object):
             theta_old = theta_new.copy()
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on momentum gradient ascent search.')
         return (newkk,lmlnew)
 
@@ -3473,8 +3475,7 @@ class GaussianProcessRegression1D(object):
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             newkk.set_hyperparameters(theta_new,log=True)
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
@@ -3490,7 +3491,7 @@ class GaussianProcessRegression1D(object):
             theta_old = theta_new.copy()
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on Nesterov-accelerated gradient ascent search.')
         return (newkk,lmlnew)
 
@@ -3541,15 +3542,13 @@ class GaussianProcessRegression1D(object):
         dlml = eps + 1.0
         gold = np.zeros(theta_base.shape)
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
                 gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
-#                gradlml = -gradlml
             gnew = gold + np.power(gradlml,2.0)
             theta_step = eta * gradlml / np.sqrt(gnew + 1.0e-8)
             theta_new = theta_old + theta_step
@@ -3560,7 +3559,7 @@ class GaussianProcessRegression1D(object):
             gold = gnew
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on adaptive gradient ascent search.')
         return (newkk,lmlnew)
 
@@ -3614,15 +3613,13 @@ class GaussianProcessRegression1D(object):
         told = theta_step.copy()
         gold = np.zeros(theta_base.shape)
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
                 gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
-#                gradlml = -gradlml
             gnew = gam * gold + (1.0 - gam) * np.power(gradlml,2.0)
             theta_step = etatemp * gradlml / np.sqrt(gnew + 1.0e-8)
             theta_new = theta_old + theta_step
@@ -3636,7 +3633,7 @@ class GaussianProcessRegression1D(object):
             gold = gnew
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on decaying adaptive gradient ascent search.')
         return (newkk,lmlnew)
 
@@ -3691,8 +3688,7 @@ class GaussianProcessRegression1D(object):
         mold = None
         vold = None
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
@@ -3711,7 +3707,7 @@ class GaussianProcessRegression1D(object):
             vold = vnew
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on adaptive moment estimation search.')
         return (newkk,lmlnew)
 
@@ -3766,8 +3762,7 @@ class GaussianProcessRegression1D(object):
         mold = None
         vold = None
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
@@ -3787,7 +3782,7 @@ class GaussianProcessRegression1D(object):
             vold = vnew
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on adaptive moment estimation search.')
         return (newkk,lmlnew)
 
@@ -3842,8 +3837,7 @@ class GaussianProcessRegression1D(object):
         mold = None
         vold = None
         icount = 0
-        itermax = 500
-        while dlml > eps and icount < itermax:
+        while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
                 gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
@@ -3862,7 +3856,7 @@ class GaussianProcessRegression1D(object):
             vold = vnew
             lmlold = lmlnew
             icount = icount + 1
-        if icount == itermax:
+        if icount == self._imax:
             print('   Maximum number of iterations performed on adaptive moment estimation search.')
         return (newkk,lmlnew)
 
@@ -4177,9 +4171,9 @@ class GaussianProcessRegression1D(object):
         """
         RESTRICTED ACCESS FUNCTION - Can be called externally for testing if user is familiar with algorithm.
 
-        Brute-force numerical GP regression derivative routine, RECOMMENDED to call this instead of bare-bones functions above
+        Brute-force numerical GP regression derivative routine, *recommended* to call this instead of bare-bones functions above
         Kept for ability to convince user of validity of regular GP derivative, but can also be wildly wrong on some data due to numerical errors
-        RECOMMENDED to use derivative flag on __basic_fit() function, as it was tested and seems to be more robust, provided kernels are properly defined
+        *Recommended* to use derivative flag on __basic_fit() function, as it was tested and seems to be more robust, provided kernels are properly defined
 
         :arg xnew: array. x-values at which the predicted fit will be evaluated at.
 
@@ -4713,6 +4707,116 @@ class GaussianProcessRegression1D(object):
             warnings.filterwarnings("default",category=RuntimeWarning)
 
         return (sbarM,ssigM,sdbarM,sdsigM)
+
+
+class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
+    """
+    A simplified version of the main GPR1D class with
+    pre-defined settings, only requiring the bare
+    necessities to use for fitting. Class primarily
+    used as template for implementations meant to
+    simplify the GPR1D experience for the average user.
+
+    Optimization of hyperparameters is only performed ONCE
+    using settings at the time of the *first call*! All
+    subsequent calls use the results of the first
+    optimization.
+    """
+    def __init__(self,kernel,xdata,ydata,yerr,xerr=None,kernel_bounds=None,reg_par=1.0,epsilon=1.0e-2,num_restarts=0,hyp_opt_gain=1.0e-2):
+        """
+        Defines customized GaussianProcessRegression1D instance with
+        a pre-defined common settings for both data fit and error fit.
+        Input parameters reduced only to essentials and most crucial
+        knobs for fine-tuning.
+
+        :arg kernel: Kernel object. Kernel description to be used in the fit procedure.
+
+        :arg xdata: array. Vector of x-values corresponding to data to be fitted.
+
+        :arg ydata: array. Vector of y-values corresponding to data to be fitted.
+
+        :arg yerr: array. Vector of y-errors corresponding to data to be fitted.
+
+        :kwarg xerr: array. Optional vector of x-errors corresponding to data to be fitted.
+
+        :kwarg kernel_bounds: array. 2D array with rows being hyperparameters and columns being [lower,upper] bounds.
+
+        :arg reg_par: float. Parameter adjusting penalty on kernel complexity.
+
+        :kwarg epsilon: float. Convergence criterion on change in log-marginal-likelihood.
+
+        :kwarg num_restarts: int. Number of kernel restarts.
+
+        :kwarg hyp_opt_gain: float. Gain value on the hyperparameter optimizer, expert use only.
+
+        :returns: none.
+        """
+        super(SimplifiedGaussianProcessRegression1D,self).__init__()
+        self._fit_performed = False
+        self._nrestarts = nr
+
+        self.set_raw_data(xdata=xdata,ydata=ydata,yerr=yerr,xerr=xerr)
+
+        eps = 'none' if not isinstance(epsilon,(float,int,np_itypes,np_utypes,np_ftypes)) else epsilon
+        sg = hyp_opt_gain if isinstance(hyp_opt_gain,(float,int,np_itypes,np_utypes,np_ftypes)) else 1.0e-1
+        self.set_kernel(kernel=kernel,kbounds=kernel_bounds,regpar=reg_par)
+        self.set_search_parameters(epsilon=epsilon,method='adam',spars=[sg,0.4,0.8])
+
+        self._perform_heterogp = False if self._ye is None else True
+        self._perform_nigp = False if self._xe is None else True
+
+        if self._perform_heterogp:
+            error_length = 5.0 * (np.nanmax(self._xx) - np.nanmin(self._xx)) / float(self._xx.size) if self._xx is not None else 5.0e-1
+            error_kernel = RQ_Kernel(1.0e0,error_length,2.0e1)
+            error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e1],[1.0e1,1.0e0,3.0e1]])
+            self.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=10.0,nrestarts=0)
+            self.set_error_search_parameters(epsilon=1.0e-1,method='adam',spars=[1.0e-1,0.4,0.8])
+        elif isinstance(yerr,(float,int,np_itypes,np_utypes,np_ftypes)):
+            ye = np.full(self._yy.shape,yerr)
+            self.set_raw_data(yerr=ye)
+
+
+    def __call__(self,x):
+        """
+        Defines a simplified fitting execution, only performs
+        optimization on the *first* call. Subsequent calls
+        merely evaluate the optimized fit at the input x.
+
+        :arg x: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+
+        :returns: tuple.
+                  Mean of GPR predictive distribution, ie. the fit ;
+                  Standard deviation of mean, given as 1 sigma ;
+                  Mean derivative of GPR predictive disstribution, ie. the derivative of the fit ;
+                  Standard deviation of mean derivative, given as 1 sigma.
+        """
+        nrestarts = self._nrestarts
+        if self._fit_performed:
+            nrestarts = None
+            self.set_search_parameters(epsilon='none')
+            self.set_error_search_parameters(epsilon='none')
+        self.GPRFit(x,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
+        self._fit_performed = self.get_gp_x() is not None
+        return self.get_gp_results()
+
+
+    def sample(self,x,derivative=False):
+        """
+        Provides a more intuitive function for sampling the
+        predictive distribution. Only provides one sample
+        per call, unlike the more complex function in the
+        main class.
+
+        :arg x: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+
+        :kwarg derivative: bool. Flag to indicate sampling of fit derivative instead of the fit.
+
+        :returns: array. Vector of y-values corresponding to a random sample of the GPR predictive distribution.
+        """
+        self.__call__(x)
+        output = self.sample_GP(1,actual_noise=False) if not derivative else self.sample_GP_derivative(1,actual_noise=False)
+        return output
+
 
 
 # ****************************************************************************************************************************************

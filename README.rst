@@ -15,7 +15,7 @@ by using the following on the command line:
 
 .. code-block:: console
 
-    pip install [--user] -e GPR1D[guis]
+    pip install [--user] GPR1D[guis]
 
 Use the :code:`--user` flag if you do not have root access on the system
 that you are working on. If you have already cloned the
