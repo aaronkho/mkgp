@@ -7,8 +7,6 @@ from subprocess import call
 
 from setuptools import Command, find_packages, setup
 
-from GPR1D import __version__
-
 
 this_dir = abspath(dirname(__file__))
 with open(join(this_dir, 'README.rst'), encoding='utf-8') as file:
@@ -35,7 +33,7 @@ class RunTests(Command):
 
 setup(
     name = 'GPR1D',
-    version = __version__,
+    version = '1.1.0',
     description = 'Classes for Gaussian Process Regression fitting of 1D data with errorbars.',
     long_description = long_description,
     url = 'https://gitlab.com/aaronkho/GPR1D.git',

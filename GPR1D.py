@@ -11,7 +11,6 @@ IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis (Bosto
 """
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
 #    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
-__version__ = '1.1.0'
 
 # Required imports
 import warnings
