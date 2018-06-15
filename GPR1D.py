@@ -4,8 +4,9 @@ Classes for Gaussian Process Regression fitting of 1D data with errorbars.
 These classes were developed by Aaron Ho [1].
 
 [1] A. Ho, J. Citrin, C. Bourdelle, Y. Camenen, F. Felici, M. Maslov, K.L. Van De Plassche, H. Weisen, and JET,
-    in IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis (Boston, MA, 2017),
-    https://nucleus.iaea.org/sites/fusionportal/Shared Documents/Fusion Data Processing 2nd/31.05/Ho.pdf
+in
+IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis (Boston, MA, 2017),
+`<https://nucleus.iaea.org/sites/fusionportal/Shared Documents/Fusion Data Processing 2nd/31.05/Ho.pdf>`_
 
 """
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
@@ -468,7 +469,7 @@ class _WarpingFunction(object):
               bounds contains the bounds of the free variables to be used in MC hyperparameter searches
     Get/set functions already given, but as always in Python, all functions can be overridden by specific implementation.
     This is strongly NOT recommended unless you are familiar with how these structures work and their interdependencies.
-    User note: the usage of the variable z in the documentation is simply to emphasize the generality of the object.
+    .. note:: The usage of the variable z in the documentation is simply to emphasize the generality of the object.
     """
 
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None):
@@ -693,7 +694,7 @@ class Sum_Kernel(_OperatorKernel):
     """
     Sum Kernel: Implements the sum of two (or more) Kernel objects.
 
-    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
+    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be added together, minimum of 2.
 
     :kwarg klist: list. Kernel objects to be added together, minimum of 2.
     """
@@ -774,7 +775,7 @@ class Product_Kernel(_OperatorKernel):
     """
     Product Kernel: Implements the product of two (or more) Kernel objects.
 
-    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
+    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be multiplied together, minimum of 2.
 
     :kwarg klist: list. Kernel objects to be multiplied together, minimum of 2.
     """
@@ -875,7 +876,7 @@ class Symmetric_Kernel(_OperatorKernel):
     This is really only useful if you wish to rigourously infer data on other side of axis of symmetry without assuming the data
     can just be flipped or if data exists on other side but a symmetric solution is desired. *** NOT FULLY TESTED! ***
 
-    :arg *args: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
+    :arg `*args`: obj. Any number of Kernel objects arguments, separated by commas, representing Kernel objects to be made symmetric, minimum of 2.
 
     :keyword klist: list. Kernel object to be made symmetric, maximum of 1.
     """
@@ -957,7 +958,7 @@ class Symmetric_Kernel(_OperatorKernel):
 class Constant_Kernel(_Kernel):
     """
     Constant Kernel: always evaluates to a constant value, regardless of x1 and x2.
-    Note that this is NOT INHERENTLY A VALID COVARIANCE FUNCTION, as it yields singular covariance matrices!
+    .. warning:: Note that this is NOT INHERENTLY A VALID COVARIANCE FUNCTION, as it yields singular covariance matrices!
     However, it provides a nice way to add bias to any other kernel. (is this even true?!?)
 
     :kwarg cv: float. Constant value which kernel always evaluates to.
@@ -1020,7 +1021,7 @@ class Constant_Kernel(_Kernel):
 class Noise_Kernel(_Kernel):
     """
     Noise Kernel: adds a user-defined degree of expected noise in the data / measurement process.
-    Note that this is NOT THE SAME as measurement error, which should be applied externally in GP!!!
+    .. warning:: Note that this is NOT THE SAME as measurement error, which should be applied externally in GP!!!
 
     :kwarg nv: float. Hyperparameter representing the noise level.
     """
@@ -1638,7 +1639,7 @@ class Matern_HI_Kernel(_Kernel):
 class NN_Kernel(_Kernel):
     """
     Neural Network Style Kernel: implements a sigmoid covariance function similar to a perceptron in a neural network, good for strong discontinuities.
-    User note: Suffers from high volatility like the Matern kernel, have not figured out how to localize impact of kernel to the features in data.
+    .. note:: Suffers from high volatility like the Matern kernel, have not figured out how to localize impact of kernel to the features in data.
 
     :kwarg nna: float. Hyperparameter representing variability of model in y.
 
@@ -2314,7 +2315,7 @@ class IG_WarpingFunction(_WarpingFunction):
 class GaussianProcessRegression1D(object):
     """
     Class containing variable containers, get/set functions, and fitting functions required to perform a 1-dimensional GPR fit.
-    User note: This implementation requires the specific implementation of the Kernel class, provided in the same file!
+    .. note:: This implementation requires the specific implementation of the Kernel class, provided in the same file!
     """
 
     def __init__(self):
@@ -4322,13 +4323,14 @@ class GaussianProcessRegression1D(object):
         Main GP regression fitting routine, RECOMMENDED to call this after using set functions instead of __basic_fit()
         as this adapts the method based on inputs, performs 1st derivative and saves output to class variables
 
-        Includes implementation of Monte Carlo kernel restarts within the user-defined bounds, via nrestarts argument
-        Includes implementation of Heteroscedastic Output Noise, requires setting of error kernel before fitting
+        - Includes implementation of Monte Carlo kernel restarts within the user-defined bounds, via nrestarts argument
+        - Includes implementation of Heteroscedastic Output Noise, requires setting of error kernel before fitting
             For details, see article: K. Kersting, 'Most Likely Heteroscedastic Gaussian Process Regression' (2007)
-        Includes implementation of Noisy-Input Gaussian Process (NIGP) assuming Gaussian x-error, via nigp_flag argument
+        - Includes implementation of Noisy-Input Gaussian Process (NIGP) assuming Gaussian x-error, via nigp_flag argument
             For details, see article: A. McHutchon, C.E. Rasmussen, 'Gaussian Process Training with Input Noise' (2011)
-            Developer note: Should this iterate until predicted derivative is consistent with the one
-                            used to model impact of input noise?
+
+        Developer note: Should this iterate until predicted derivative is consistent with the one
+                        used to model impact of input noise?
 
         :arg xnew: array. x-values at which the predicted fit will be evaluated at.
 
@@ -4583,9 +4585,12 @@ class GaussianProcessRegression1D(object):
     def MCMC_posterior_sampling(self,nsamples):   # NOT RECOMMENDED, not fully tested
         """
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters, using LML as the likelihood
-        User note: This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
-                   acceptance criterion. However, MCMC analysis is only necessary when using non-Gaussian
-                   likelihoods, otherwise the result is equivalent to maximization of LML
+
+        .. warning::
+
+            This function is INCORRECT as coded, should use data likelihood from model instead of LML as the
+            acceptance criterion. However, MCMC analysis is only necessary when using non-Gaussian
+            likelihoods, otherwise the result is equivalent to maximization of LML
 
         :arg nsamples: int. Number of samples to perform.
 
@@ -4698,7 +4703,7 @@ class GaussianProcessRegression1D(object):
 def KernelConstructor(name):
     """
     Function to construct a kernel solely based on the kernel codename.
-    Note: OperatorKernel objects now use encapsulating round brackets to specify their constituents
+    .. note:: OperatorKernel objects now use encapsulating round brackets to specify their constituents
 
     :param name: str. The codename of the desired Kernel object.
     """
