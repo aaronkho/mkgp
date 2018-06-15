@@ -4752,8 +4752,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         :returns: none.
         """
         super(SimplifiedGaussianProcessRegression1D,self).__init__()
-        self._fit_performed = False
-        self._nrestarts = nr
+        self._nrestarts = num_restarts
 
         self.set_raw_data(xdata=xdata,ydata=ydata,yerr=yerr,xerr=xerr)
 
@@ -4776,13 +4775,13 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
             self.set_raw_data(yerr=ye)
 
 
-    def __call__(self,x):
+    def __call__(self,xnew):
         """
         Defines a simplified fitting execution, only performs
         optimization on the *first* call. Subsequent calls
         merely evaluate the optimized fit at the input x.
 
-        :arg x: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+        :arg xnew: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
 
         :returns: tuple.
                   Mean of GPR predictive distribution, ie. the fit ;
@@ -4791,12 +4790,11 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
                   Standard deviation of mean derivative, given as 1 sigma.
         """
         nrestarts = self._nrestarts
-        if self._fit_performed:
+        if self._xF is not None:
             nrestarts = None
             self.set_search_parameters(epsilon='none')
             self.set_error_search_parameters(epsilon='none')
-        self.GPRFit(x,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
-        self._fit_performed = self.get_gp_x() is not None
+        self.GPRFit(xnew,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
         return self.get_gp_results()
 
 
@@ -4807,13 +4805,13 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         per call, unlike the more complex function in the
         main class.
 
-        :arg x: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+        :arg xnew: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
 
         :kwarg derivative: bool. Flag to indicate sampling of fit derivative instead of the fit.
 
         :returns: array. Vector of y-values corresponding to a random sample of the GPR predictive distribution.
         """
-        self.__call__(x)
+        self.__call__(xnew)
         output = self.sample_GP(1,actual_noise=False) if not derivative else self.sample_GP_derivative(1,actual_noise=False)
         return output
 
