@@ -1,6 +1,8 @@
-# GPR1D
+GPR1D
+=====
 
-## Installing the GPR1D program
+Installing the GPR1D program
+----------------------------
 
 *Author: Aaron Ho (01/06/2018)*
 
@@ -11,26 +13,28 @@ developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
 by using the following on the command line:
 
-```
-pip install [--user] -e GPR1D[guis]
-```
+.. code-block:: bash
 
-Use the `--user` flag if you do not have root access on the system
+    pip install [--user] -e GPR1D[guis]
+
+Use the :code:`--user` flag if you do not have root access on the system
 that you are working on. If you have already cloned the
 repository, enter the top level of the repository directory and
 use the following instead:
 
-```
-pip install [--user] -e .[guis]
-```
+.. code-block:: bash
+
+    pip install [--user] -e .[guis]
 
 
-## Documentation
+Documentation
+=============
 
 Documentation of the equations used in the algorithm, along with
 the available kernels and optimizers, can be found in docs/.
 
-## Using the GPR1D program
+Using the GPR1D program
+-----------------------
 
 For those who wish to include the functionality of this package
 into their own Python scripts, a demo script is provided in
@@ -46,11 +50,12 @@ proper channels in the GitLab repository.
 The following runtime warnings are common within this routine,
 but they are filtered out by default:
 
-```
-RuntimeWarning: overflow encountered in double_scalars  
-RuntimeWarning: invalid value encountered in true_divide  
-RuntimeWarning: invalid value encountered in sqrt  
-```
+.. code-block:: bash
+
+    RuntimeWarning: overflow encountered in double_scalars
+    RuntimeWarning: invalid value encountered in true_divide
+    RuntimeWarning: invalid value encountered in sqrt
+
 
 They normally occur when using the kernel restarts option (as
 in the demo) and do not necessarily mean that the resulting
