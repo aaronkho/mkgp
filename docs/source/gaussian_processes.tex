@@ -1,0 +1,887 @@
+\documentclass{article}
+
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{xfrac}
+\usepackage{graphicx}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\usepackage{comment}
+
+\graphicspath{{./Figures/}}
+\DeclareGraphicsExtensions{.jpg,.png,.pdf}
+\bibliography{massbib.bib}
+
+\title{Derivation of Gaussian Process Regression Technique}
+\author{A. Ho}
+
+\begin{document}
+	
+\maketitle
+
+In order to properly discuss the foundations of \emph{Gaussian process regression (GPR)}, it is necessary to split the topic into two separate fields and rejoin them once fully developed. These two topics are: \emph{linear regression theory}, discussed in Section~\ref{sec:RegressionTheory}, and \emph{Bayesian probability theory}, discussed in Section~\ref{sec:ProbabilityTheory}. These are then combined to derive the GPR predictive equations in Section~\ref{sec:GaussianProcessRegression}, with a practical summary given in Section~\ref{subsec:GPRSummary}.
+
+\section{Basic Regression Theory}
+\label{sec:RegressionTheory}
+
+The first topic, regression theory, describes the set of statistical tools required to estimate the relationship of one quantity with respect to another, in order to predict or forecast unknown quantities of a system based on known ones. In order to perform any basic sort of regression, a \emph{model basis} must first be defined which has the potential of describing the observations, such as the following:
+\begin{equation}
+\label{eq:StandardRegressionModel}
+	Y = \mathbf{\Phi}\!\left(X,\beta\right) + \varepsilon
+\end{equation}
+where $\left(X,Y\right)$ represents the set of input data points, $\mathbf{\Phi}$ represents the set of functions used to form the model basis, called \emph{basis functions}, $\beta$ represents the vector of free parameters in the problem and $\varepsilon$ represents the \emph{residuals} of the model, or the difference between the value predicted by the model and the input data point. It should be noted that, for a $d$-dimensional problem space, $X$, $Y$, and $\varepsilon$ are all $n \times d$ vectors, and $\mathbf{\Phi}$ is $n \times m$ matrix, where $m$ is the number of functions in the model basis and $n$ is the number of input data points and $m \le n$ in order for a solution to exist. For reasons of simplicity, this outline will show the case where $d=1$ although the equations are kept as general as possible. Once the basis functions are chosen, the weights can be adjusted until $\varepsilon=0$ to optimize the model such that it best describes the input data.
+
+However, depending on the number and variety of the functions chosen in the model basis, it may be impossible or extremely time-consuming to find $\beta$ such that $\varepsilon=0$. Thus, it is generally advantageous to define a \emph{goodness-of-fit} metric, which allows a solution to be imperfect while simultaneously providing some information on how well the model describes the input data.
+
+\subsection{Least-Squares Regression}
+\label{subsec:LeastSquaresRegression}
+
+The most commonly used form of regression is the \emph{least-squares} regression technique, in which the goodness-of-fit metric is the \emph{sum-squared (SS) error}, calculated from the residuals as follows:
+\begin{equation}
+\label{eq:SumSquaredError}
+	M_{\text{SS}} = \sum_{i}^{n} \varepsilon_i^2
+\end{equation}
+where $i$ denotes the individual elements of the vector, $\varepsilon$, and $n$ denotes the total number of elements in $\varepsilon$. It should be noted that the SS error is related to the more commonly-known \emph{root-mean-squared (RMS) error}, which is calculated as follows:
+\begin{equation}
+\label{eq:RootMeanSquareError}
+	M_{\text{RMS}} = \sqrt{\frac{M_{\text{SS}}}{n}}
+\end{equation}
+
+Using either of these metric definitions, it can be seen that the desired solution is the combination of weights which minimize the metric. For reasons of simplicity, this outline will use the SS error, as given in Equation~\eqref{eq:SumSquaredError}, as the metric. By noting that the derivative of a quantity is zero at its minima or maxima, the desired solution, $\beta_*$, can be mathematically described as the set of parameters which satisfies the following equation:
+\begin{equation}
+\label{eq:MinimizationSolution}
+	\nabla_\beta M_{\text{SS}} = 2 \sum_{i}^{n} \varepsilon_i \frac{\partial \varepsilon_i}{\partial \beta} = 0
+\end{equation}
+where the second form was obtained by substituting of Equation~\eqref{eq:SumSquaredError} into Equation~\eqref{eq:MinimizationSolution}. All least-squares regression methods use the gradients obtained via Equation~\eqref{eq:MinimizationSolution}, but the calculations to translate it into a solution for $\beta$ can vary significantly.
+
+\subsection{Linear Least-Squares (LL) Regression}
+\label{subsec:LinearLeastSquares}
+
+From Equation~\eqref{eq:MinimizationSolution}, if $\mathbf{\Phi}$ is composed such that it is linear in $\beta$, ie. all of the basis functions are modified as multiples of the various elements of $\beta$, then it becomes possible to separate the contributions of $\beta$ from $\mathbf{\Phi}$ in Equation~\eqref{eq:StandardRegressionModel}, as follows:
+\begin{equation}
+\label{eq:LinearRegressionModel}
+	Y = \mathbf{\Phi}\!\left(X\right) \beta + \varepsilon
+\end{equation}
+where $\beta$ becomes a $m \times 1$ vector, with each element corresponding to a single basis function. Then, by substituting Equation~\eqref{eq:LinearRegressionModel} into Equation~\eqref{eq:MinimizationSolution} and reorganizing the terms back into matrix form, the minimization solution can be reformulated as:
+\begin{equation}
+\label{eq:LinearMinimizationSolution}
+	\mathbf{\Phi}^T\!\left(X\right) \left[Y - \mathbf{\Phi}\!\left(X\right) \beta\right] = 0
+\end{equation}
+which can be rearranged to solve for $\beta$, resulting in the \emph{linear least-squares regression} method, mathematically expressed as follows:
+\begin{equation}
+\label{eq:LinearLeastSquaresRegression}
+	\beta_* = \left[\mathbf{\Phi}^T\!\left(X\right) \mathbf{\Phi}\!\left(X\right)\right]^{-1} \mathbf{\Phi}^T\!\left(X\right) Y
+\end{equation}
+
+An important feature of this method is that, computationally, the inversion of $\mathbf{\Phi}^T\mathbf{\Phi}$ is typically the most expensive operation, as it is a complex procedure which depends on the size of the matrix. In this case, the matrix size is $m \times m$, where $m$ is the number of functions in the chosen model basis. It should be noted that actually calculating the inverse of this matrix is unnecessary, and thus not recommended, due to the existence of factorization algorithms. However, the computational time required for factorization is still $\sim\mathcal{O}\!\left(m^3\right)$. This is not normally a problem in most least-squares regression applications, as the number of basis functions is typically $<10$.
+
+\subsection{Weighted Linear Least-Squares (WLL) Regression}
+\label{subsec:WeightedLinearLeastSquares}
+
+It is also common to use a \emph{weight} matrix, denoted by $\mathbf{\Sigma}$, in order to provide additional input regarding data quality, noise levels (as $1/\sigma_n^2$), or any other prior information concerning the system. This matrix, $\mathbf{\Sigma}$, is a $n \times n$ matrix with non-zero entries only on the main diagonal. This information can be incorporated into the regression method by using the \emph{weighted sum-squared (WSS) error} instead of Equation~\eqref{eq:SumSquaredError}, expressed as follows:
+\begin{equation}
+\label{eq:WeightedSumSquaredError}
+	M_{\text{WSS}} = \sum_{i}^{n} \Sigma_{ii} \varepsilon_i^2
+\end{equation}
+By replacing $M_{\text{SS}}$ with $M_{\text{WSS}}$ in Equation~\eqref{eq:MinimizationSolution} and reperforming the algebra using Equation~\eqref{eq:LinearRegressionModel}, the \emph{weighted linear least-squares regression} method can be found, mathematically expressed as follows:
+\begin{equation}
+\label{eq:WeightedLinearLeastSquaresRegression}
+	\beta_* = \left[\mathbf{\Phi}^T\!\left(X\right) \mathbf{\Sigma} \, \mathbf{\Phi}\!\left(X\right)\right]^{-1} \mathbf{\Phi}^T\!\left(X\right) \mathbf{\Sigma} \, Y
+\end{equation}
+
+Similarly to Equation~\eqref{eq:LinearLeastSquaresRegression}, the factorization of $\mathbf{\Phi}^T\mathbf{\Sigma}\mathbf{\Phi}$ is the most computationally expensive component, also scaling as $\sim\mathcal{O}\!\left(m^3\right)$.
+
+\subsection{Non-Linear Least-Squares (NLL) Regression}
+\label{subsec:NonLinearLeastSquares}
+
+However, if $\mathbf{\Phi}$ in Equation~\eqref{eq:MinimizationSolution} is not linear in $\beta$, then $\beta_*$ cannot be explicitly computed as each element of $\partial\varepsilon_i/\partial\beta$ will still depend on $\beta$ itself. In these cases, it becomes necessary to solve the system iteratively by starting with an initial guess, $\beta_0$, and updating it in increments, $\Delta \beta_k$. First, the model basis must be linearized around $\beta_k$ using a \emph{Taylor expansion}, resulting in:
+\begin{equation}
+\label{eq:ModelBasisTaylorExpansion}
+	\mathbf{\Phi}\!\left(X,\beta\right) \approx \mathbf{\Phi}\!\left(X,\beta_k\right) + \sum_{j}^{m} \frac{\partial \mathbf{\Phi}\!\left(X,\beta_k\right)}{\partial \beta_{j,k}} \left(\beta_j - \beta_{j,k}\right)
+\end{equation}
+Then, by substituting Equation~\eqref{eq:ModelBasisTaylorExpansion} into Equation~\eqref{eq:StandardRegressionModel}, the residual of each data point, $i$, can be expressed as:
+\begin{equation}
+\label{eq:NonLinearResiduals}
+	\begin{aligned}
+	\varepsilon_i &= Y_i - \mathbf{\Phi}\!\left(X_i,\beta_k\right) + \sum_{j}^{m} \frac{\partial \mathbf{\Phi}\!\left(X_i,\beta_k\right)}{\partial \beta_{j,k}} \left(\beta_j - \beta_{j,k}\right) \\
+	&= \Delta Y_i + \sum_{j}^{m} J_{i,j} \, \Delta \beta_j
+	\end{aligned}
+\end{equation}
+where $J_{i,j}$ represents the $\left(i,j\right)^{\text{th}}$ element of the \emph{Jacobian} matrix, an $n \times m$ matrix of first-order partial derivatives of the model basis with respect to the parameters, $\beta$, evaluated as the data points, $X$.
+
+Next, by substituting Equation~\eqref{eq:NonLinearResiduals} into Equation~\eqref{eq:MinimizationSolution} and reorganizing the terms back into matrix form, the \emph{non-linear least-squares regression} method is found, expressed as:
+\begin{equation}
+\label{eq:NonLinearLeastSquaresRegression}
+	\Delta \beta_k = \left[\mathbf{J}^T\!\left(X,\beta_k\right) \, \mathbf{J}\!\left(X,\beta_k\right)\right]^{-1} \mathbf{J}^T\!\left(X,\beta_k\right) \, \Delta Y_k
+\end{equation}
+for which all the quantities must be recalculated at each iteration, $k$, until a solution is converged upon.
+
+It is important to note that the inclusion of non-linearity has a computational price, both in the computation of $\mathbf{J}$, $\sim\mathcal{O}\left(mn\right)$, and the factorization of $\mathbf{J}^T\mathbf{J}$, $\sim\mathcal{O}\left(m^3\right)$, per iteration.
+
+\subsection{Weighted Non-Linear Least-Squares (WNLL) Regression}
+\label{subsec:WeightedNonLinearLeastSquares}
+
+Similar to the process discussed in Section~\ref{subsec:WeightedLinearLeastSquares}, a weight matrix, $\mathbf{\Sigma}$, can be added to the residuals to account for any prior information concerning the system. This can be done in a very similar procedure as discussed in Section~\ref{subsec:WeightedLinearLeastSquares}, resulting in the \emph{weighted non-linear least-squares regression} method, expressed as follows:
+\begin{equation}
+\label{eq:WeightedNonLinearLeastSquaresRegression}
+	\Delta \beta_k = \left[\mathbf{J}^T\!\left(X,\beta_k\right) \mathbf{\Sigma} \, \mathbf{J}\!\left(X,\beta_k\right)\right]^{-1} \mathbf{J}^T\!\left(X,\beta_k\right) \mathbf{\Sigma} \, \Delta Y_k
+\end{equation}
+
+Again, similarly to Equation~\eqref{eq:NonLinearLeastSquaresRegression}, the computation of $\mathbf{J}$ scales as $\sim\mathcal{O}\left(mn\right)$ and the factorization of $\mathbf{J}^T\mathbf{J}$, $\sim\mathcal{O}\left(m^3\right)$, which must both be performed per iteration.
+
+\subsection{Disadvantages of Least-Squares Methods}
+\label{eq:LeastSquaresDisadvantages}
+
+Although these solutions have been used extensively for many scientific and engineering applications, they suffer from a lack of generality which limits their use to describe complex systems. Firstly, as the computational time required for the algorithm scales as $\sim\mathcal{O}\!\left(m^3\right)$, where $m$ is the number of functions in the model basis, it becomes necessary to pre-select a smaller number of functions to make the model, typically using some physical understanding of the system. However, this inherently restricts the possible models that can be found by the algorithm, which can be undesired when attempting to model systems with a high degree of complexity.
+
+As an additional restriction, in order to use the LL or WLL regression methods, the model basis must be linear in the parameters, $\beta$. While this is not difficult to do, it means that any non-linear behaviour cannot be modelled unless a large number of basis functions are chosen. Alternatively, the NLL and WNLL methods could also be used, but the computational price and the numerical instabilities of the iterative process usually makes them prohibitive for production purposes.
+
+\section{Basic Probability Theory}
+\label{sec:ProbabilityTheory}
+
+The second topic, probability theory, describes the set of fundamental axioms and statistical tools required to characterize the random behaviour of a system. Then, given a continuous random variable, $z$, the \emph{probability} that it has a specified value, $c$, can be denoted as $p\!\left(z=c\right)$. If there is no particular interest in a specified value, the probability is usually expressed as a \emph{probability density function (PDF)}, $p\!\left(z\right)$.
+
+As probability theory is meant to describe real phenomena, it is useful to provide a translation from the mathematical construction to logical concepts. The most important concept in this discussion is that of conditionality, expressed as the probability of a variable given the quantities of other variables. Within the framework of probabilities, this can be expressed as such:
+\begin{equation}
+\label{eq:ProbabilityConditional}
+	p\!\left(z_a|z_b\right) = \frac{p\!\left(z_a \cap z_b\right)}{p\!\left(z_b\right)} \equiv \frac{p\!\left(z_a,z_b\right)}{p\!\left(z_b\right)}
+\end{equation}
+where $\cap$ is the \emph{set intersection} operator, or the logical ``and" operator. There also exists the \emph{set union} operator, or the logical ``or" operation, expressed as such:
+\begin{equation}
+\label{eq:ProbabilityUnion}
+	p\!\left(z_a \cup z_b\right) = p\!\left(z_a\right) + p\!\left(z_b\right) - p\!\left(z_a \cap z_b\right)
+\end{equation}
+
+It should be noted that if $z_a$ and $z_b$ are \emph{independent} variables, or equivalently interpreted as mutually exclusive sets, then the following relations hold true:
+\begin{equation}
+\label{eq:IndependentProbabilities}
+	\begin{gathered}
+	p\!\left(z_a \cap z_b\right) = p\!\left(z_a\right) p\!\left(z_b\right) \\
+	p\!\left(z_a \cup z_b\right) = p\!\left(z_a\right) + p\!\left(z_b\right)
+	\end{gathered}
+\end{equation}
+which are useful properties in the derivation of the GPR equations.
+
+Additionally, when working with a vector variable, $Z$, with $N$ elements, it may be necessary to express the probability of the entire vector, called the \emph{joint probability}, denoted as follows:
+\begin{equation}
+\label{eq:JointProbability}
+	p\!\left(Z\right) = p\!\left(z_1,z_2,...,z_N\right)
+\end{equation}
+If all $N$ elements are mutually independent, then it is possible to simplify Equation~\eqref{eq:JointProbability} using Equation~\eqref{eq:IndependentProbabilities}, resulting in the following form:
+\begin{equation}
+\label{eq:IndependentJointProbability}
+	p\!\left(Z\right) = \prod_{i}^{N} p\!\left(z_i\right)
+\end{equation}
+
+\subsection{Bayesian Approach to Probability}
+\label{subsec:BayesianProbability}
+
+From the concept of conditional probability comes the field of \emph{Bayesian probability theory}, which was an attempt made by Thomas Bayes to mathematically model the formation and evolution of human belief systems. The result of this attempt is known as \emph{Bayes' theorem}, which is a rearrangement of the axiom provided in Equation~\eqref{eq:ProbabilityConditional}:
+\begin{equation}
+\label{eq:BayesTheorem}
+	p\!\left(A|B\right) = \frac{p\!\left(B|A\right) p\!\left(A\right)}{p\!\left(B\right)}
+\end{equation}
+where $A$ represents a \emph{hypothesis}, or any form of testable belief, and $B$ represents any form of \emph{evidence} provided. Then, Equation~\eqref{eq:BayesTheorem} can be seen as a platform on which the trust in a certain hypothesis, $p\!\left(A\right)$, also known as the \emph{prior}, can be updated in light of new information, $p\!\left(B|A\right)$, also known as the \emph{likelihood}, resulting in a new level of trust, $p\!\left(A|B\right)$, also known as the \emph{posterior}. The denominator, $p\!\left(B\right)$, called the \emph{marginal likelihood}, effectively represents the chance that the provided evidence would exist regardless of which hypothesis is correct, which is mathematically modelled as follows:
+\begin{equation}
+\label{eq:MarginalLikelihood}
+	p\!\left(B\right) = \sum_{A} p\!\left(B|A\right) \quad \text{or} \quad p\!\left(B\right) = \int_{-\infty}^{\infty} p\!\left(B|A\right) p\!\left(A\right) \text{d}A
+\end{equation}
+where the summative form is used for discrete variables and the integral form is used for continuous ones. This term is called the marginal likelihood as it removes the dependence of the likelihood on the hypothesis, $A$, or in other words, it \emph{marginalizes} over $A$. It should be noted that the integral form of Equation~\eqref{eq:MarginalLikelihood} is usually written without the integration limits, but they were included here to enforce the fact that it is not an indefinite integral.
+
+As most applications of GPR work on continuous random variables, the remaining discussion will focus solely on this notation.
+
+\subsection{Gaussian (Normal) Probability Distributions}
+\label{subsec:GaussianPDF}
+
+As one might have expected from the name, the GPR method relies heavily on the properties of the \emph{Gaussian}, or \emph{normal}, PDF. The normalized form of this function, for a random variable, $z$, is given as follows:
+\begin{equation}
+\label{eq:NormalizedGaussianFunction}
+	p\!\left(z\right) = \frac{1}{\sqrt{2 \pi \sigma^2}} \exp\!\left(-\frac{\left(z - \mu\right)^2}{2 \sigma^2}\right) \sim \mathcal{N}\!\left(\mu,\sigma^2\right)
+\end{equation}
+where $\mu$ is the \emph{first moment}, or the \emph{mean}, of the distribution, and $\sigma^2$ is the \emph{second moment}, or the \emph{variance}, of the distribution. If a variable behaves according to Equation~\eqref{eq:NormalizedGaussianFunction}, it is commonly said that it is \emph{Gaussian-distributed} and usually given the short-hand notation expressed in the second form of Equation~\eqref{eq:NormalizedGaussianFunction}.
+
+If there exists $N$ Gaussian-distributed variables grouped together into a vector, $Z$, then their joint distribution can be expressed as follows:
+\begin{equation}
+\label{eq:JointGaussianFunction}
+	\begin{aligned}
+	p\!\left(Z\right) &\sim \mathcal{N}\!\left(M,\Sigma =
+	\begin{bmatrix}
+	\sigma_1^2 & \rho_{1,2} \sigma_1 \sigma_2 & \hdotsfor{1} & \rho_{1,N} \sigma_1 \sigma_N \\
+	\rho_{2,1} \sigma_2 \sigma_1 & \sigma_2^2 & & \\
+	\vdots & & \ddots & \\
+	\rho_{N,1} \sigma_N \sigma_1 & & & \sigma_N^2
+	\end{bmatrix}
+	\right) \\
+	&= \frac{1}{\sqrt{\left|2 \pi \Sigma\right|}} \exp\!\left(-\frac{1}{2} \left(Z - M\right)^T \Sigma^{-1} \left(Z - M\right)\right)
+	\end{aligned}
+\end{equation}
+where $M$ is a $N \times 1$ vector with elements, $\mu_i$, $\Sigma$ is a $N \times N$ diagonal matrix with elements, $\sigma_i^2$, $\left|...\right|$ represents the \emph{determinant} of the enclosed matrix, and $\rho_{i,j}$ represents the correlation factor between variable numbers $i$ and $j$ within the vector, $Z$. It should be noted that $\rho_{i,i} \equiv 1$ and, due to the symmetry of the Gaussian distribution, $\rho_{i,j} = \rho_{j,i}$. However, if all of the variables in $Z$ are independent of each other, then Equation~\eqref{eq:JointGaussianFunction} can be significantly simplified by using Equation~\eqref{eq:IndependentJointProbability}, as $\rho_{i,j}=0$ for all $i \ne j$. This can be done as follows:
+\begin{equation}
+\label{eq:IndependentJointGaussianFunction}
+	\begin{aligned}
+	p\!\left(Z\right) &= \frac{1}{\sqrt{\left|2 \pi \Sigma\right|}} \exp\!\left(-\frac{1}{2} \left(Z - M\right)^T \Sigma^{-1} \left(Z - M\right)\right) \\
+	&= \prod_{i}^{N} \frac{1}{\sqrt{2 \pi \Sigma_{i,i}}} \exp\!\left(-\frac{\left(Z_i - M_i\right)^2}{2 \Sigma_{i,i}}\right) \\
+	&= \frac{1}{\sqrt{\prod_{i}^{N} 2 \pi \sigma_i^2}} \exp\!\left(-\sum_{i}^{N} \frac{\left(z_i - \mu_i\right)^2}{2 \sigma_i^2}\right)
+	\end{aligned}
+\end{equation}
+It should be noted that since $\Sigma$ is a diagonal matrix in the mutually independent scenario, its inverse is also a diagonal matrix but with elements, $\sigma_i^{-2}$. If a vector of variables behaves according to Equation~\eqref{eq:IndependentJointGaussianFunction}, then it is usually given the short-hand notation, $p\!\left(Z\right) \sim \mathcal{N}\!\left(M,\Sigma\right)$.
+
+\section{Gaussian Process Regression}
+\label{sec:GaussianProcessRegression}
+
+With the concepts outlined in Sections~\ref{sec:RegressionTheory} and \ref{sec:ProbabilityTheory}, it is now possible to reconstruct the GPR methodology. As in a typical regression problem, it starts with a set of input data points, $\left(X,Y\right)$, a model basis, $\mathbf{\Phi}\!\left(X,\beta\right)$, and a set of free parameters in the model, $\beta$, as introduced in Section~\ref{sec:RegressionTheory}. Then, by treating the input and output variables as probability distributions instead of as deterministic quantities, Bayes' Theorem, as given in Equation~\eqref{eq:BayesTheorem}, can be applied to this problem as follows:
+\begin{equation}
+\label{eq:RegressionBayesTheorem}
+	p\!\left(\beta|X,Y\right) = \frac{p\!\left(Y|X,\beta\right) p\!\left(\beta\right)}{p\!\left(Y|X\right)}
+\end{equation}
+which states that the probability a model describes the input data, $p\!\left(\beta|X,Y\right)$, can be estimated by knowing the likelihood that this data was generated by a process described by the model, $p\!\left(Y|X,\beta\right)$, and the probability of that model itself, $p\!\left(\beta\right)$. Another way to look at this is noting that the posterior incorporates information about the input data, meaning that the prior probability distributions of the free parameters have been constrained based on the provided evidence or input data. Within the machine learning community, it is common to say that the model has been \emph{trained} using the input data sets.
+
+\subsection{Assumptions}
+\label{subsec:GPRAssumptions}
+
+From here, the first assumption made in this derivation is that the model basis is linear in $\beta$. With this assumption, the likelihood can be found by calculating the probability of $Y$, as described by Equation~\eqref{eq:LinearRegressionModel}, which requires more assumptions in the probability distributions of the variables, $X$, $\beta$, and $\varepsilon$. Due to the decoupling of $\beta$ from $\mathbf{\Phi}$, the following shorthand is used from this point forward to improve the readability of this document:
+\begin{equation}
+\label{eq:ModelBasisShorthand}
+	\mathbf{\Phi} \equiv \mathbf{\Phi}\!\left(X\right)
+\end{equation}
+Note that no distribution is attributed to $\mathbf{\Phi}$ itself, meaning that the model basis must still be pre-selected and fixed for any given application. This turns out to not be as significant of a restriction as for the least-squares regression method, as will be shown later.
+
+Firstly, the joint probability distribution of $\beta$ is assumed to be a collection of independent Gaussian-distributed random variables with zero mean, as characterized by:
+\begin{equation}
+\label{eq:GaussianParameterAssumption}
+	p\!\left(\beta\right) \sim \mathcal{N}\!\left(0,\Sigma_\beta\right) = \frac{1}{\sqrt{\left|2 \pi \Sigma_\beta\right|}} \exp\!\left(-\frac{1}{2} \beta^T \Sigma_\beta^{-1} \beta\right)
+\end{equation}
+It should be noted that this zero-mean Gaussian-distributed assumption implies no loss of generality, as $\beta$ simply represents a collection of free parameters. As these are, by definition, arbitrarily chosen to satisfy some condition on a goodness-of-fit metric and no restriction is applied to $\Sigma_\beta$, this assumption does not restrict the solution space. This does, however, provide an inherent but weak form of \emph{regularization}, as solutions with large $\beta$ values will automatically be considered less likely than solutions with more zeros.
+
+Secondly, the joint probability distribution of $\varepsilon$, or the output noise, is also assumed to be a collection of independent Gaussian-distributed random variables with zero mean, as characterized by:
+\begin{equation}
+\label{eq:GaussianOutputNoiseAssumption}
+	p\!\left(\varepsilon\right) \sim \mathcal{N}\!\left(0,\Sigma_n\right) = \frac{1}{\sqrt{\left|2 \pi \Sigma_n\right|}} \exp\!\left(-\frac{1}{2} \varepsilon^T \Sigma_n^{-1} \varepsilon\right)
+\end{equation}
+By making this assumption, it is implied that the distribution of the noise in $Y$ is Gaussian. As opposed to the assumption made on $\beta$, this assumption imposes a strong restriction concerning the noise sources of the input data, which may not always be true. However, in practice, if sufficient care is taken to transform the variables such that the noise has Gaussian-like statistics and remove the outliers without significantly altering these statistics, the results from this process still yields useful information. For improved rigour and robustness, other processes exist which build on the GPR framework and can account for non-Gaussian noise though they typically are much more intense computationally.
+
+Lastly, the joint probability distribution of $X$, or the \emph{input noise}, is assumed to be a \emph{Dirac delta function}, given as follows:
+\begin{equation}
+\label{eq:DeltaInputNoiseAssumption}
+	p\!\left(X\right) = \delta\!\left(X = X\right)
+\end{equation}
+which essentially means that $X$ is treated as a deterministic variable, with zero probability for $X$ to have any value other than its given value. This is also a strong restriction as it does not allow this process to inherently account for potential errors in the independent or control variable. An improved methodology has been developed for handling input noise, involving the propagation of the input noise through the model, via gradient quantities, and treating them as modifiers to the output noise. This improved GPR is called \emph{noisy-input Gaussian process regression (NIGPR)} and will be expanded on later.
+
+\subsection{Derivation}
+\label{subsec:GPRDerivation}
+
+This section will feature a number of detailed mathematical concepts, due to the combination of matrix algebra and multivariate Gaussian integrals. The results are summarized in Section~\ref{subsec:GPRSummary}.
+
+\subsubsection{The Posterior Distribution}
+\label{subsubsec:GPRPosteriorDerivation}
+
+By combining Equation~\eqref{eq:LinearRegressionModel} and the assumption outlined in Equation~\eqref{eq:GaussianOutputNoiseAssumption}, the likelihood can be calculated as such:
+\begin{equation}
+\label{eq:GPRLikelihood}
+	p\!\left(Y|X,\beta\right) = \frac{1}{\sqrt{\left|2 \pi \Sigma_n\right|}} \exp\!\left(-\frac{1}{2} \left(Y - \mathbf{\Phi} \beta\right)^T \Sigma_n^{-1} \left(Y - \mathbf{\Phi} \beta\right)\right)
+\end{equation}
+where all variables except $\varepsilon$ are treated as deterministic. Then, by substituting Equations~\eqref{eq:GaussianParameterAssumption} and \eqref{eq:GPRLikelihood} into the numerator of Equation~\eqref{eq:BayesTheorem}, the posterior can be expressed as:
+\begin{equation}
+\label{eq:GPRPosteriorProportional}
+	\begin{aligned}
+	p\!\left(\beta|X,Y\right) &= \frac{\exp\!\left(-\frac{1}{2} \left(Y - \mathbf{\Phi} \beta\right)^T \Sigma_n^{-1} \left(Y - \mathbf{\Phi} \beta\right)\right) \exp\!\left(-\frac{1}{2} \beta^T \Sigma_\beta^{-1} \beta\right)}{p\!\left(Y|X\right)} \\
+	&= \frac{\exp\!\left(-\frac{1}{2} \left[\left(Y - \mathbf{\Phi} \beta\right)^T \Sigma_n^{-1} \left(Y - \mathbf{\Phi} \beta\right) + \beta^T \Sigma_\beta^{-1} \beta\right]\right)}{\int_{-\infty}^{\infty} \exp\!\left(-\frac{1}{2} \left[\left(Y - \mathbf{\Phi} \beta\right)^T \Sigma_n^{-1} \left(Y - \mathbf{\Phi} \beta\right) + \beta^T \Sigma_\beta^{-1} \beta\right]\right) \text{d}\beta}
+	\end{aligned}
+\end{equation}
+
+Then, the expression inside the square brackets of Equation~\eqref{eq:GPRPosteriorProportional} can be expanded and simplifed, as follows:
+\begin{equation}
+\label{eq:GPRPosteriorExpansion}
+	\begin{aligned}
+	\left[...\right] &= \left(Y - \mathbf{\Phi} \beta\right)^T \Sigma_n^{-1} \left(Y - \mathbf{\Phi} \beta\right) + \beta^T \Sigma_\beta^{-1} \beta \\
+	&= Y^T \Sigma_n^{-1} Y - Y^T \Sigma_n^{-1} \mathbf{\Phi} \beta - \beta^T \mathbf{\Phi}^T \Sigma_n^{-1} Y + \beta^T \left(\mathbf{\Phi}^T \Sigma_n^{-1} \mathbf{\Phi} + \Sigma_\beta^{-1}\right) \beta \\
+	&= Y^T \Sigma_n^{-1} Y - 2 \beta^T \mathbf{\Phi}^T \Sigma_n^{-1} Y + \beta^T A \beta
+	\end{aligned}
+\end{equation}
+where the following \emph{matrix transpose} relation for a generic matrices, $\mathbf{U}$ and $\mathbf{V}$, is useful:
+\begin{equation}
+\label{eq:MatrixTransposeRelation}
+	\left(\mathbf{U} \mathbf{V}\right)^T = \mathbf{V}^T \mathbf{U}^T
+\end{equation}
+along with the fact that each term in Equation~\eqref{eq:GPRPosteriorExpansion} yields a single-element matrix, i.e. $\left(\beta^T \mathbf{\Phi}^T \Sigma_n^{-1} Y\right)^T = \beta^T \mathbf{\Phi}^T \Sigma_n^{-1} Y$. Then, from Equation~\eqref{eq:GPRPosteriorExpansion}, a term independent of $\beta$ can be added and subtracted in order to express $\beta$ in quadratic form, through a process known as \emph{completing the square}. The procedure to accomplish this from a generalized expanded form, $P\!\left(z,\mathbf{U},V\right)$, where $z$ is the variable to be written in quadratic form, $\mathbf{U}$ is any symmetric positive-definite square matrix and $V$ is any generic vector, is as outlined below:
+\begin{equation}
+\label{eq:GeneralizedSquareCompletion}
+	\begin{aligned}
+	P\!\left(z,\mathbf{U},V\right) &= z^T \mathbf{U} z - 2 z^T V \\
+	&= z^T \mathbf{U} z - 2 z^T \mathbf{U} \mathbf{U}^{-1} V + V^T \mathbf{U}^{-1} V - V^T \mathbf{U}^{-1} V \\
+	&= \left(z - \mathbf{U}^{-1} V\right)^T \mathbf{U} \left(z - \mathbf{U}^{-1} V\right) - V^T \mathbf{U}^{-1} V \\
+	&= Q\!\left(z,\mathbf{U},V\right) - V^T \mathbf{U}^{-1} V
+	\end{aligned}
+\end{equation}
+where $Q\!\left(z,\mathbf{U},V\right)$ is simply a short-hand for the quadratic form of $z$ introduced for improved clarity. Note that the following \emph{matrix inverse} relation, for a generic invertible square matrix, $\mathbf{U}$, is useful in the derivation of Equation~\eqref{eq:GeneralizedSquareCompletion}:
+\begin{equation}
+\label{eq:MatrixInverseRelation}
+	\mathbf{U} \mathbf{U}^{-1} = \mathbf{U}^{-1} \mathbf{U} = \mathbf{I}
+\end{equation}
+where $\mathbf{I}$ is the square identity matrix, which can be multiplied to any appropriate matrix or vector without altering it. Applying the procedure outlined in Equation~\eqref{eq:GeneralizedSquareCompletion} to Equation~\eqref{eq:GPRPosteriorExpansion} yields:
+\begin{equation}
+\label{eq:GPRPosteriorSquareCompletion}
+	\left[...\right] = \left(\beta - A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y\right)^T \! A \left(\beta - A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y\right) + Y^T B Y
+\end{equation}
+where
+\begin{equation}
+\label{eq:ABVariableReplacement}
+	\begin{gathered}
+	A = \mathbf{\Phi}^T \Sigma_n^{-1} \mathbf{\Phi} + \Sigma_\beta^{-1}\\
+	B = \Sigma_n^{-1} - \Sigma_n^{-1} \mathbf{\Phi} A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1}
+	\end{gathered}
+\end{equation}
+It should be noted that since $\Sigma_n$ and $\Sigma_\beta$ are diagonal matrices, $\Sigma_n^T = \Sigma_n$ and $\Sigma_\beta^T = \Sigma_\beta$.
+
+The integral required to determine the normalization factor can also be calculated quickly, shown generally as an extension of the generalized quadratic completion procedure outline in Equation~\eqref{eq:GeneralizedSquareCompletion} as follows:
+\begin{equation}
+\label{eq:GeneralizedGaussianIntegralProcedure}
+	\begin{aligned}
+	I\!\left(z,\mathbf{U},V\right) &= \int_{-\infty}^{\infty} \exp\!\left[-\frac{1}{2} P\!\left(z,\mathbf{U},V\right)\right] \text{d}z \\
+	&= \int_{-\infty}^{\infty} \exp\!\left[-\frac{1}{2} Q\!\left(z,\mathbf{U},V\right) + \frac{1}{2} V^T \mathbf{U}^{-1} V\right] \text{d}z \\
+	&= \exp\!\left(\frac{1}{2} V^T \mathbf{U}^{-1} V\right) \frac{\sqrt{\left|2 \pi \mathbf{U}^{-1}\right|}}{\sqrt{\left|2 \pi \mathbf{U}^{-1}\right|}} \int_{-\infty}^{\infty} \exp\!\left[-\frac{1}{2} Q\!\left(z,\mathbf{U},V\right)\right] \text{d}z \\
+	&= \sqrt{\left|2 \pi \mathbf{U}^{-1}\right|} \exp\!\left(\frac{1}{2} V^T \mathbf{U}^{-1} V\right)
+	\end{aligned}
+\end{equation}
+where the integrand in the second last line, when combined with the square root term in the denominator, forms a normalized Gaussian distribution in $z$, for which the integral with respect to $z$ from $-\infty$ to $\infty$ is unity.
+
+Now, Equation~\eqref{eq:GPRPosteriorSquareCompletion} can be substituted back into Equation~\eqref{eq:GPRPosteriorProportional} and applying the procedure outlined in Equation~\eqref{eq:GeneralizedGaussianIntegralProcedure}, the following result is obtained:
+\begin{equation}
+\label{eq:GPRPosteriorSimplified}
+	\begin{aligned}
+	p\!\left(\beta|X,Y\right) &= \frac{1}{\sqrt{\left|2 \pi A^{-1}\right|}} \exp\!\left(-\frac{1}{2} \left(\beta - \mathbf{\Gamma} Y\right)^T \! A \left(\beta - \mathbf{\Gamma} Y\right)\right) \\
+	&\sim \mathcal{N}\!\left(\mathbf{\Gamma} Y, A^{-1}\right)
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement} and
+\begin{equation}
+\label{eq:GammaVariableReplacement}
+	\mathbf{\Gamma} = A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1}
+\end{equation}
+which is introduced simply for improved readability. It should be noted that $\mathbf{\Gamma}$ is not generally a square matrix, as $\mathbf{\Phi}$ is generally not a square matrix.
+
+It should be noted that the GPR algorithm as given in Equation~\eqref{eq:GPRPosteriorSimplified} yields no actual advantage over the WLLS regression, described in Section~\ref{subsec:WeightedLinearLeastSquares}, as the computation still requires an explicitly defined matrix representing the model basis, $\mathbf{\Phi}$, and by extension, the parameter vector, $\beta$, as well. This implies that there is no computational advantage gained for a large basis function size, $m$.
+
+\subsubsection{The Predictive Distribution}
+\label{subsubsec:GPRPredictiveDerivation}
+
+However, for most applications, knowledge about the posterior probability distributions of the free parameters, $\beta$, are largely unnecessary. It is by far more interesting to know the predictions of the model, $Y_*$, at specified inputs, $X_*$, resulting from these trained free parameter combinations. Following this premise, the probability distributions of the predictive model can be determined as follows:
+\begin{equation}
+\label{eq:GPRPredictiveDistribution}
+	p\!\left(Y_*|X_*,X,Y\right) = \int_{-\infty}^{\infty} p\!\left(Y_*|X_*,\beta\right) p\!\left(\beta|X,Y\right) \text{d}\beta
+\end{equation}
+where $p\!\left(\beta|X,Y\right)$ is given by Equation~\eqref{eq:GPRPosteriorSimplified}. A simple comparison of the components of Equation~\eqref{eq:GPRPredictiveDistribution} reveals that it is the likelihood of a set of predictions, given a model, weighted by the posterior probability of the given model determined from the input data and integrated over all possible models. Then, by substituting Equations~\eqref{eq:GPRLikelihood}, with $X,Y$ replaced by $X_*,Y_*$, and \eqref{eq:GPRPosteriorSimplified} into Equation~\eqref{eq:GPRPredictiveDistribution}, the integrand can be expanded and expressed as:
+\begin{equation}
+\label{eq:GPRPredictiveIntegrand}
+	\exp\!\left(-\frac{1}{2} \left[\left(Y_* - \mathbf{\Phi}_* \beta\right)^T \Sigma_{n*}^{-1} \left(Y_* - \mathbf{\Phi}_* \beta\right) + \left(\beta - \mathbf{\Gamma} Y\right)^T A \left(\beta - \mathbf{\Gamma} Y\right)\right]\right)
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement}, $\mathbf{\Gamma}$ is given by Equation~\eqref{eq:GammaVariableReplacement} and 
+\begin{equation}
+\label{eq:ModelPredictionShorthand}
+	\mathbf{\Phi}_* \equiv \mathbf{\Phi}\!\left(X_*\right)
+\end{equation}
+Due to the quadratic nature of the components of Equation~\eqref{eq:GPRPredictiveIntegrand} resulting from the Gaussian distributions, the procedure outlined in Equations~\eqref{eq:GeneralizedSquareCompletion} can be applied to the expression in the square brackets in order to yield:
+\begin{equation}
+\label{eq:GPRPredictiveExpansion}
+	\begin{aligned}
+	\left[...\right] &= 
+	\begin{split}
+	Y_*^T \Sigma_{n*}^{-1} Y_* - \beta^T \mathbf{\Phi}_*^T &\Sigma_{n*}^{-1} Y_* - Y_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_* \beta + \beta^T \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_* \beta \\
+	&+ \beta^T A \beta - \beta^T A \mathbf{\Gamma} Y - Y^T \mathbf{\Gamma}^T A \beta + Y^T \mathbf{\Gamma}^T A \mathbf{\Gamma} Y
+	\end{split}
+	\\
+	&=
+	\begin{split}
+	Y_*^T \Sigma_{n*}^{-1} Y_* - 2 \beta^T \mathbf{\Phi}_*^T &\Sigma_{n*}^{-1} Y_* + \beta^T \left(A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_*\right) \beta \\
+	& - 2 \beta^T \mathbf{\Phi}^T \Sigma_n^{-1} Y + Y^T \Sigma_n^{-1} \mathbf{\Phi} A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y
+	\end{split}
+	\\
+	&=
+	\begin{split}
+	Y_*^T \Sigma_{n*}^{-1} &Y_* + Y^T \Sigma_n^{-1} \mathbf{\Phi} A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y \\
+	&+ \beta^T \! \left(A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_*\right) \beta - 2 \beta^T \! \left(\mathbf{\Phi}_*^T \Sigma_{n*}^{-1} Y_* + \mathbf{\Phi}^T \Sigma_n^{-1} Y\right)
+	\end{split}
+	\\
+	&= Y_*^T \Sigma_{n*}^{-1} Y_* + Y^T \Sigma_n^{-1} \mathbf{\Phi} A^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y + P\!\left(\beta,G,Z_* + Z\right)
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement}, $\mathbf{\Gamma}$ is given by Equation~\eqref{eq:GammaVariableReplacement}, both substituted in where necessary, and
+\begin{equation}
+\label{eq:IntegralVariableReplacement}
+	G = A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_* \; , \quad Z_* = \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} Y_* \; , \quad Z = \mathbf{\Phi}^T \Sigma_n^{-1} Y
+\end{equation}
+Once Equation~\eqref{eq:GPRPredictiveExpansion} is resubstituted into Equation~\eqref{eq:GPRPredictiveIntegrand} and then into Equation~\eqref{eq:GPRPredictiveDistribution}, the first two terms of the last expression in Equation~\eqref{eq:GPRPredictiveExpansion} can be brought out of the integral as they are independent of $\beta$. The resulting integral, labelled as $J$, can be solved using the procedure outlined in Equation~\eqref{eq:GeneralizedGaussianIntegralProcedure}, resulting in the following:
+\begin{equation}
+\label{eq:GPRPredictiveIntegral}
+	\begin{aligned}
+	J &= \int_{-\infty}^{\infty} \exp\!\left(-\frac{1}{2} \, P\!\left(\beta,G,Z_* + Z\right)\right) \\
+	&= \sqrt{\left|2 \pi G^{-1}\right|} \, \exp\left(\frac{1}{2} \left(Z_* + Z\right)^T G^{-1} \left(Z_* + Z\right)\right)
+	\end{aligned}
+\end{equation}
+where $G$, $Z$ and $Z_*$ are given by Equation~\eqref{eq:IntegralVariableReplacement}.
+
+Then, by recombining the first two terms of the last expression of Equation~\eqref{eq:GPRPredictiveExpansion} and Equation~\eqref{eq:GPRPredictiveIntegral}, the predictive distribution can be written as follows:
+\begin{multline}
+\label{eq:GPRPredictiveIntegrated}
+	p\!\left(Y_*|X_*,X,Y\right) = \sqrt{\frac{\left|2 \pi G^{-1}\right|}{\left|2 \pi \Sigma_{n*}\right| \left|2 \pi A^{-1}\right|}} \, \exp\!\left(-\frac{1}{2} \biggl[Y_*^T \Sigma_{n*}^{-1} Y_*\right. \\
+	\left.+ \, Z^T A^{-1} Z - \left(Z_* + Z\right)^T G^{-1} \left(Z_* + Z\right)\biggr]\right)
+\end{multline}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement} and $G$, $Z$ and $Z_*$ are given by Equation~\eqref{eq:IntegralVariableReplacement}. However, it is much more convenient to rewrite Equation~\eqref{eq:GPRPredictiveIntegrated} as a quadratic in $Y_*$, such that it can be expressed explicitly as a Gaussian distribution itself. This can be done by expanding the expression in the square brackets of Equation~\eqref{eq:GPRPredictiveIntegrated} and applying the square completion procedure, outlined in Equation~\eqref{eq:GeneralizedSquareCompletion}, resulting in the following:
+\begin{equation}
+\label{eq:GPRPredictiveSquareCompletion}
+	\begin{aligned}
+	\left[...\right] &=
+	\begin{split}
+	Y_*^T \Sigma_{n*}^{-1} Y_* + Z^T A^{-1} Z - Y_*^T &\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} Y_* \\
+	&- 2 Y_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z - Z^T G^{-1} Z
+	\end{split}
+	\\
+	&= P\!\left(Y_*,\Xi,\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z\right) + Z^T \! \left(A^{-1} - G^{-1}\right) Z \\
+	&=
+	\begin{split}
+	Q\!&\left(Y_*,\Xi,\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z\right) \\
+	&+ Z^T \! \left(A^{-1} - G^{-1} - G^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \Xi \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1}\right) Z
+	\end{split}
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement}, $G$ and $Z$ are given by Equation~\eqref{eq:IntegralVariableReplacement} and
+\begin{equation}
+\label{eq:XiVariableReplacement}
+	\Xi = \Sigma_{n*}^{-1} - \Sigma_{n*}^{-1} \mathbf{\Phi}_* \left(A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_*\right)^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1}
+\end{equation}
+Finally, by substituting the result of Equation~\eqref{eq:GPRPredictiveSquareCompletion} into Equation~\eqref{eq:GPRPredictiveIntegrated}, the predictive distribution can be expressed as:
+\begin{equation}
+\label{eq:GPRPredictiveFinal}
+	\begin{aligned}
+	p\!\left(Y_*|X_*,X,Y\right) &= D \, \exp\!\left(-\frac{1}{2} \, Q\!\left(Y_*,\Xi,\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z\right)\right) \\
+	&\sim \mathcal{N}\!\left(\Xi^{-1} \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z,\Xi^{-1}\right)
+	\end{aligned}
+\end{equation}
+where $G$ and $Z$ are given by Equation~\eqref{eq:IntegralVariableReplacement}, $\Xi$ is given by Equation~\eqref{eq:XiVariableReplacement} and
+\begin{multline}
+\label{eq:GPRPredictiveNormalization}
+	D = \sqrt{\frac{\left|2 \pi G^{-1}\right|}{\left|2 \pi \Sigma_{n*}\right| \left|2 \pi A^{-1}\right|}} \\
+	\times \exp\!\left(-\frac{1}{2} Z^T \! \left(A^{-1} - G^{-1} - G^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \Xi \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1}\right) Z\right)
+\end{multline}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement}.
+
+However, in the form given by Equation~\eqref{eq:GPRPredictiveFinal}, there is still no computational advantage between the GPR and the WLLS regression technique, due to the explicit presence of the model basis, $\mathbf{\Phi}$. In an attempt to circumvent this restriction, the mean and variance parameters from Equation~\eqref{eq:GPRPredictiveFinal} can be expanded and simplified. However, this simplification involves the inversion of $\mathbf{\Phi}$, which is tricky as it is generally a non-square matrix, meaning it is conventionally non-invertible. Thus, a \emph{pseudoinverse} should be used in place of the inverse operation and one way to mathematically perform this inversion is called the \emph{Moore-Penrose pseudoinverse}, defined as follows:
+\begin{equation}
+\label{eq:MoorePenrosePseudoinverse}
+	\mathbf{\Phi}^{-1} \quad \longrightarrow \quad \mathbf{\Phi}^+ \equiv \left\lbrace
+	\begin{aligned}
+	\left(\mathbf{\Phi}^T \mathbf{\Phi}\right)^{-1} \mathbf{\Phi}^T \quad &\Longrightarrow \quad \mathbf{\Phi}^+ \mathbf{\Phi} = \mathbf{I} \\
+	&\text{or} \\
+	\mathbf{\Phi}^T \left(\mathbf{\Phi} \mathbf{\Phi}^T\right)^{-1} \quad &\Longrightarrow \quad \mathbf{\Phi} \mathbf{\Phi}^+ = \mathbf{I}
+	\end{aligned}
+	\right.
+\end{equation}
+where $\mathbf{I}$ is the identity matrix. This operation takes advantage of the fact that any matrix multiplied by its transpose yields a square invertible matrix. It is assumed that the form of this pseudoinverse taken in the following equations is such that it reduces back to the identity matrix when reversed.
+
+With Equation~\eqref{eq:MoorePenrosePseudoinverse}, it is now possible to simplify the inversion of $\Xi$, given by Equation~\eqref{eq:XiVariableReplacement}, as follows:
+\begin{equation}
+\label{eq:XiInverseSimplification}
+	\begin{aligned}
+	\Xi^{-1} &= \left(\Sigma_{n*}^{-1} - \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1}\right) \\
+	&= \left\lbrace\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} \left[G \mathbf{\Phi}_*^+ - \mathbf{\Phi}_*^T \Sigma_{n*}^{-1}\right]\right\rbrace^{-1} \\
+	&= \left\lbrace\Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} \left[\left(A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_*\right) \mathbf{\Phi}_*^+ - \mathbf{\Phi}_*^T \Sigma_{n*}^{-1}\right]\right\rbrace^{-1} \\
+	&= \left(A \mathbf{\Phi}_*^+ + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} - \mathbf{\Phi}_*^T \Sigma_{n*}^{-1}\right)^{-1} G \mathbf{\Phi}_*^+ \Sigma_{n*} \\
+	&= \mathbf{\Phi}_* A^{-1} G \mathbf{\Phi}_*^+ \Sigma_{n*}
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement} and $G$ is given by Equation~\eqref{eq:IntegralVariableReplacement}. Then, by substituting Equation~\eqref{eq:XiInverseSimplification} into Equation~\eqref{eq:GPRPredictiveFinal}, the mean value of the predictive distribution, denoted as $\mathbb{E}\!\left[Y_*\right]$, can be simplified as follows:
+\begin{equation}
+\label{eq:GPRPredictiveMean}
+	\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= \Xi^{-1} \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z \\
+	&= \mathbf{\Phi}_* A^{-1} G \mathbf{\Phi}_*^+ \Sigma_{n*} \Sigma_{n*}^{-1} \mathbf{\Phi}_* G^{-1} Z \\
+	&= \mathbf{\Phi}_* \left(\mathbf{\Phi}^T \Sigma_n^{-1} \mathbf{\Phi} + \Sigma_\beta^{-1}\right)^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y \\
+	&= \mathbf{\Phi}_* \left[\mathbf{\Phi}^T \Sigma_n^{-1} \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n\right) \left(\Sigma_\beta \mathbf{\Phi}^T\right)^{-1}\right]^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y \\
+	&= \mathbf{\Phi}_* \Sigma_\beta \mathbf{\Phi}^T \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n\right)^{-1} \left(\mathbf{\Phi}^T \Sigma_n^{-1}\right)^{-1} \mathbf{\Phi}^T \Sigma_n^{-1} Y \\
+	&= \mathbf{\Phi}_* \Sigma_\beta \mathbf{\Phi}^T \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n\right)^{-1} Y
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement} and $G$ and $Z$ is given by Equation~\eqref{eq:IntegralVariableReplacement}, all substituted in where necessary. Similarly, the variance of the predictive distribution, denoted as $\mathbb{V}\!\left[Y_*\right] = \Xi^{-1}$, can be expanded and simplified by using the \emph{Woodbury matrix identity}, given as:
+\begin{equation}
+\label{eq:WoodburyMatrixIdentity}
+	\left(V_1 \mathbf{U}_1 V_2 + \mathbf{U}_2\right)^{-1} = \mathbf{U}_2^{-1} - \mathbf{U}_2^{-1} V_1 \left(V_2 \mathbf{U}_2^{-1} V_1 + \mathbf{U}_1^{-1}\right)^{-1} V_2 \mathbf{U}_2^{-1}
+\end{equation}
+which holds true for any invertible square matrices, $\mathbf{U}_1$ and $\mathbf{U}_2$, and any appropriately shaped matrices, $V_1$ and $V_2$, which satisfy the rules of matrix algebra for this equation. Then, by applying Equation~\eqref{eq:WoodburyMatrixIdentity} on $A^{-1}$ inside Equation~\eqref{eq:XiInverseSimplification}, the following result is obtained:
+\begin{equation}
+\label{eq:GPRPredictiveVariance}
+	\begin{aligned}
+	\mathbb{V}\!\left[Y_*\right] &= \mathbf{\Phi}_* A^{-1} \left(A + \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_*\right) \mathbf{\Phi}_*^+ \Sigma_{n*} \\
+	&= \mathbf{\Phi}_* A^{-1} A \mathbf{\Phi}_*^+ \Sigma_{n*} + \mathbf{\Phi}_* A^{-1} \mathbf{\Phi}_*^T \Sigma_{n*}^{-1} \mathbf{\Phi}_* \mathbf{\Phi}_*^+ \Sigma_{n*} \\
+	&= \Sigma_{n*} + \mathbf{\Phi}_* \left(\mathbf{\Phi}^T \Sigma_n^{-1} \mathbf{\Phi} + \Sigma_\beta^{-1}\right)^{-1} \mathbf{\Phi}_*^T \\
+	&= \Sigma_{n*} + \mathbf{\Phi}_* \left[\Sigma_\beta - \Sigma_\beta \mathbf{\Phi}^T \! \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n\right)^{-1} \mathbf{\Phi} \Sigma_\beta\right] \mathbf{\Phi}_*^T \\
+	&= \mathbf{\Phi}_* \Sigma_\beta \mathbf{\Phi}_*^T + \Sigma_{n*} - \mathbf{\Phi}_* \Sigma_\beta \mathbf{\Phi}^T \! \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n\right)^{-1} \mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}_*^T
+	\end{aligned}
+\end{equation}
+where $A$ is given by Equation~\eqref{eq:ABVariableReplacement} and is substituted in where necessary.
+
+\subsubsection{The Kernel Trick}
+\label{subsubsec:GPRKernelDerivation}
+
+In order for this method to provide an improvement over the least-squares methods, the explicit reference to the model basis, $\mathbf{\Phi}$, should be removed from Equations~\eqref{eq:GPRPredictiveMean} and \eqref{eq:GPRPredictiveVariance}. Since the predictive distribution, or the probability distributions of the trained model, is expressed in terms of its mean and variance, it is intuitive to also express the untrained model, denoted with $\widetilde{Y}$, in this format as well in order to gain some insight into the role of the model basis within this Bayesian framework.
+
+Firstly, it is useful to express the probability distribution of the untrained model, as such:
+\begin{equation}
+\label{eq:GPRUntrainedProbability}
+	p\!\left(\widetilde{Y}\right) = p\!\left(\beta \cap \varepsilon\right) = p\!\left(\beta\right) p\!\left(\varepsilon\right)
+\end{equation}
+where the last form comes from using Equation~\eqref{eq:IndependentProbabilities}, taking advantage of the assumption that $\beta$ and $\varepsilon$ are independent random variables. Then, by using Equation~\eqref{eq:LinearRegressionModel} with $Y$ replaced with $\widetilde{Y}$, with the assumed variable distributions given by Equations~\eqref{eq:GaussianParameterAssumption} and \eqref{eq:DeltaInputNoiseAssumption}, the mean of the untrained model can be expressed as follows:
+\begin{equation}
+\label{eq:GPRUntrainedMean}
+	\begin{aligned}
+	\mathbb{E}\!\left[\widetilde{Y}\right] &= \int_{\widetilde{Y}} \widetilde{Y} p\!\left(\widetilde{Y}\right) \text{d}\widetilde{Y} \\
+	&= \int_{\beta} \int_{\varepsilon} \left(\mathbf{\Phi} \beta + \varepsilon\right) \, p\!\left(\beta\right) p\!\left(\varepsilon\right) \text{d}\varepsilon \, \text{d}\beta \\
+	&= \int_{\beta} \mathbf{\Phi} \beta \, p\!\left(\beta\right) \text{d}\beta \int_{\varepsilon} p\!\left(\varepsilon\right) \text{d}\varepsilon + \int_{\varepsilon} \varepsilon \, p\!\left(\varepsilon\right) \text{d}\varepsilon \int_{\beta} p\!\left(\beta\right) \text{d}\beta \\
+	&= \mathbf{\Phi} \int_{\beta} \beta \, p\!\left(\beta\right) \text{d}\beta + \int_{\varepsilon} \varepsilon \, p\!\left(\varepsilon\right) \text{d}\varepsilon \\
+	&= \mathbf{\Phi} \, \mathbb{E}\!\left[\beta\right] + \mathbb{E}\!\left[\varepsilon\right] \\
+	&= 0
+	\end{aligned}
+\end{equation}
+where the integration of the probability distributions on their own is equal to unity, due to the normalization constant. The result of Equation~\eqref{eq:GPRUntrainedMean} is not surprising given the assumptions taken, but it has implications that will be discussed later. Similarly, the variance of the untrained model can be written as follows:
+\begin{equation}
+\label{eq:GPRUntrainedVariance}
+	\begin{aligned}
+	\mathbb{V}\!\left[\widetilde{Y}\right] &= \int_{\widetilde{Y}} \widetilde{Y} \widetilde{Y}^T \, p\!\left(\widetilde{Y}\right) \text{d}\widetilde{Y} \\
+	&= \int_{\beta} \int_{\varepsilon} \left(\mathbf{\Phi} \beta + \varepsilon\right) \left(\mathbf{\Phi} \beta + \varepsilon\right)^T p\!\left(\beta\right) p\!\left(\varepsilon\right) \text{d}\varepsilon \, \text{d}\beta \\
+	&= \int_{\beta} \int_{\varepsilon} \left(\mathbf{\Phi} \beta \beta^T \mathbf{\Phi}^T + \mathbf{\Phi} \beta \varepsilon^T + \varepsilon \beta^T \mathbf{\Phi}^T + \varepsilon \varepsilon^T\right) p\!\left(\beta\right) p\!\left(\varepsilon\right) \text{d}\varepsilon \, \text{d}\beta \\
+	&=
+	\begin{split}
+	 \mathbf{\Phi} &\left[\int_{\beta} \beta \beta^T p\!\left(\beta\right) \text{d}\beta\right] \mathbf{\Phi}^T + \mathbf{\Phi} \left[\int_{\beta} \beta \, p\!\left(\beta\right) \text{d}\beta\right] \left[\int_{\varepsilon} \varepsilon^T p\!\left(\varepsilon\right) \text{d}\varepsilon\right] \\
+	&+ \left[\int_{\varepsilon} \varepsilon \, p\!\left(\varepsilon\right) \text{d}\varepsilon\right] \left[\int_{\beta} \beta^T p\!\left(\beta\right) \text{d}\beta\right] \mathbf{\Phi}^T + \int_{\varepsilon} \varepsilon \varepsilon^T p\!\left(\varepsilon\right) \text{d}\varepsilon
+	\end{split}
+	\\
+	&= \mathbf{\Phi} \, \mathbb{V}\!\left[\beta\right] \mathbf{\Phi}^T + \mathbf{\Phi} \mathbb{E}\!\left[\beta\right] \mathbb{E}\left[\varepsilon^T\right] + \mathbb{E}\left[\varepsilon\right] \mathbb{E}\!\left[\beta^T\right] \mathbf{\Phi}^T + \mathbb{V}\!\left[\varepsilon\right] \\
+	&= \mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + 0 + 0 + \Sigma_n \\
+	&= \mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T + \Sigma_n
+	\end{aligned}
+\end{equation}
+where the integral of only the probability density function is equal to unity, due to the normalization constant, and it is assumed that $\beta$ and $\varepsilon$ are independent random variable.
+
+By examining Equation~\eqref{eq:GPRUntrainedVariance}, it becomes clear that selecting the model basis, $\mathbf{\Phi}$, is equivalent to specifying the \emph{covariance} of the untrained model, $\widetilde{Y}$, making it conceptually possible to replace one with the other. Coincidentally, by comparing the result of Equation~\eqref{eq:GPRUntrainedVariance} to Equations~\eqref{eq:GPRPredictiveMean} and \eqref{eq:GPRPredictiveVariance}, it becomes evident that this replacement can be done mathematically as well. Specifically, a new matrix variable, $K$, known as the \emph{kernel} or \emph{Gram matrix}, is introduced, representing the covariance matrix of the untrained model, and it is defined as such:
+\begin{equation}
+\label{eq:GPRKernel}
+	K\!\left(X_1,X_2\right) = \mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T \equiv \mathbf{\Phi}\!\left(X_1\right) \Sigma_\beta \, \mathbf{\Phi}^T\!\left(X_2\right)
+\end{equation}
+where the subscripts $1$ and $2$ are used merely to emphasize the fact that they can have distinct numerical values but must represent the same conceptual variable. Substituting Equation~\eqref{eq:GPRKernel} into Equations~\eqref{eq:GPRPredictiveMean} and \eqref{eq:GPRPredictiveVariance} yields the following simplified forms for the mean and variance of the predictive distribution:
+\begin{equation}
+\label{eq:GPRPrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= K\!\left(X_*,X\right) \left[K + \Sigma_n\,\right]^{-1} Y \\
+	\mathbb{V}\!\left[Y_*\right] &= K_* + \Sigma_{n*} - K\!\left(X_*,X\right) \left[K + \Sigma_n\,\right]^{-1} K\!\left(X,X_*\right)
+	\end{aligned}
+\end{equation}
+where the short-hand, $K=K\!\left(X,X\right)$ and $K_*=K\!\left(X_*,X_*\right)$, was used for improved readability. From here, the computational advantage of the GPR technique becomes apparent, as the most complex calculation involves the factorization, a process which facilitates the matrix inversion operation, of the kernel, $K$, which is an $n \times n$ matrix, where $n$ is the number of input data points, $\left(X,Y\right)$. This means that the GPR method can essentially use an infinite set of basis functions to fit the data without incurring any significant penalty in computational speed. However, the disadvantage is that the fitted function cannot be expressed in an analytical form, excluding the resulting fits from being subjected to certain types of additional analysis.
+
+One such kernel derived from an infinite set of basis functions is called the \emph{square exponential (SE) kernel}. Specifically, the basis functions are an infinite set of unnormalized Gaussians, with each centered on a different point in the space but all with an identical ``width", denoted with $\sigma_g$, expressed as:
+\begin{equation}
+\label{eq:GaussianBasisFunction}
+	\mathbf{\Phi} = \left\lbrace y_i\!\left(x\right) \right\rbrace \qquad \text{where,} \qquad y_i\!\left(x\right) = \exp\!\left(-\frac{\left(x - \mu_i\right)^2}{2 \sigma_g^2}\right)
+\end{equation}
+where $\mu_i$ represents the center position of the given Gaussian basis function, each given a unique subscript $i$. Then, from Equation~\eqref{eq:GPRKernel}, the kernel element can be evaluated for any pair of input data points as follows:
+\begin{equation}
+\label{eq:SEKernelDerivation}
+	\begin{aligned}
+	K\!\left(X_1,X_2\right) &= \mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T \\
+	&= \lim\limits_{N \rightarrow \infty} \sum_{i}^{N} y_i\!\left(X_1\right) \sigma_\beta^2 \, y_i\!\left(X_2\right) \\
+	&= \sigma_\beta^2 \int_{-\infty}^{\infty} \exp\!\left(-\frac{\left(X_1 - \mu\right)^2}{2 \sigma_g^2}\right) \exp\!\left(-\frac{\left(X_2 - \mu\right)^2}{2 \sigma_g^2}\right) \text{d}\mu \\
+	&= \sigma_\beta^2 \int_{-\infty}^{\infty} \exp\!\left(-\frac{2 \mu^2 - 2 \mu \left(X_1 + X_2\right) + X_1^2 + X_2^2}{2 \sigma_g^2}\right) \text{d}\mu \\
+	&= \sigma_\beta^2 \int_{-\infty}^{\infty} \exp\!\left(-\frac{\left(\mu - \frac{1}{2} \left(X_1 + X_2\right)\right)^2}{2 \left(\sigma_g / \sqrt{2}\right)^2} - \frac{\left(X_1 - X_2\right)^2}{2 \left(\sqrt{2} \sigma_g\right)^2}\right) \text{d}\mu \\
+	&= \sigma_\beta^2 \sqrt{\pi \sigma_g^2} \, \exp\!\left(-\frac{\left(X_1 - X_2\right)^2}{2 \left(\sqrt{2} \sigma_g\right)^2}\right) \\
+	&= \sigma \exp\!\left(-\frac{\left(X_1 - X_2\right)^2}{2 l^2}\right)
+	\end{aligned}
+\end{equation}
+where procedures similar to those outlined in Equations~\eqref{eq:GeneralizedSquareCompletion} and \eqref{eq:GeneralizedGaussianIntegralProcedure} were applied to arrive at the final expression.
+
+In order to actually calculate the predictive distributions given in Equation~\eqref{eq:GPRPrediction} for performing regressions, two things are still required: a selection for the kernel, $K$, and a definition for the variance of the predicted noise, $\Sigma_{n*}$. The first requirement, ie. the kernel, can be arbitrarily chosen but must satisfy the conditions of being \emph{symmetric} and at least \emph{positive semi-definite}, due to the fact that it represents the covariance of the untrained model. The second requirement, ie. the variance of the predicted noise, is unfortunately not so flexible, as it must be done consistently with the variance of the output noise, $\Sigma_n$, in order for the predicted variance to have any meaning. Since the size of $\Sigma_{n*}$ does not generally equal the size of $\Sigma_n$, it is not mathematically sufficient to simply make the two equivalent. In the most basic application of GPR, it is assumed that the variance of the output noise, $\sigma_n^2$, is the same for each individual input data point, allowing for the selection:
+\begin{equation}
+\label{eq:ConstantPredictiveNoise}
+	\sigma_{n*}^2 = \sigma_n^2
+\end{equation}
+This approach is called the \emph{homoscedastic} GPR, as all the random variables are treated as having the same finite variance. It should be noted that this choice does not normally allow the regression technique to account for individual measurement errors, as it replaces this information with a constant noise value. One could pre-treat the measurement error data in order to determine a single constant that captures these errors, but methods of doing this in a self-consistent and statistically rigourous manner will not be discussed in this document.
+
+It should be noted that the GPR technique, as given in Equation~\eqref{eq:GPRPrediction} has been fully derived and can be used in combination with input data, $\left(X,Y\right)$, a noise variance estimation, $\sigma_n^2$, and a kernel, $K\!\left(X_1,X_2\right)$, to produce a model and make predictions from that model. From this point forward, the discussion will switch to methods of improving this methodology.
+
+\subsubsection{The Kernel Function and Application of Derivatives}
+\label{subsubsec:GPRKernelFunction}
+
+From Equation~\eqref{eq:GPRUntrainedVariance}, the elements of the kernel matrix, $K$, can be seen as the covariance of the noise-free untrained model between any two given points in the independent variable space, $X$. Thus, in order to facilitate the interpretation of the results, the kernel matrix is typically calculated from a \emph{kernel function} or \emph{covariance function}, denoted with $k\!\left(x_1,x_2,\theta\right)$, where $x_1$ and $x_2$ denote a continuous independent variable space and $\theta$ represents a set of \emph{hyperparameters}, conceptually replacing the externally-adjustable free parameters, $\beta$. By taking the example shown in Equation~\eqref{eq:SEKernelDerivation}, the SE kernel function can be expressed as:
+\begin{equation}
+\label{eq:SEKernelFunction}
+	k\!\left(x_1,x_2,\theta\right) = \sigma \exp\!\left(-\frac{\left(x_1 - x_2\right)^2}{2 l^2}\right) \qquad \text{where}  \qquad \theta = \left\lbrace \sigma,l \right\rbrace
+\end{equation}
+where the hyperparameters allow for the fine-tuning of the model without worries of overfitting from the infinite set of basis functions. It should be noted that there are many other kernel functions available to be used, with each one having different regression model characteristics. However, these kernel function options will not be discussed in this document.
+
+Given that the chosen kernel function is at least mixed second-order differentiable, meaning that $\partial k / \partial x_1$, $\partial k / \partial x_2$, and $\partial^2 k / \partial x_1 \partial x_2$ exist, derivative information or constraints can be added into the problem by extending the set of input data points to $\left(X',Y'\right)$, with each defined as follows:
+\begin{equation}
+\label{eq:DerivativeConstraintInputExtension}
+	X' =
+	\begin{bmatrix}
+	X \\ X_d
+	\end{bmatrix}
+	\quad, \qquad
+	Y' =
+	\begin{bmatrix}
+	Y \\ \frac{\partial Y}{\partial X_d}
+	\end{bmatrix}
+\end{equation}
+Then, in order to account for the input derivative data in the predictive equations, the appropriate kernel matrix elements must be found. As the kernel effectively represents the covariance between any two input data points, the required kernel matrix elements should also describe the covariance between the input derivative data and any other input data point, including itself.
+
+In order to find the expressions for these covariances, a good starting point is to take the derivative of the untrained model, $\widetilde{Y}$, as follows:
+\begin{equation}
+\label{eq:UntrainedModelDerivative}
+	\frac{\partial \widetilde{Y}}{\partial X} = \frac{\partial \mathbf{\Phi}}{\partial X} \beta + \frac{\partial \varepsilon}{\partial X}
+\end{equation}
+since $\beta$ is independent of $X$, as stated in Section~\ref{subsec:GPRAssumptions}. As it is not generally assumed that the noise is independent of $X$, its derivative is included in the derivative of the untrained model. Then, by employing a similar procedure to that used in Equation~\eqref{eq:GPRUntrainedVariance}, the variance of the derivative of the untrained model can be expressed as follows:
+\begin{equation}
+\label{eq:GPRUntrainedDerivativeVariance}
+	\begin{aligned}
+	\mathbb{V}\!\left[\frac{\partial \widetilde{Y}}{\partial X}\right] &= \int_{\widetilde{Y}} \frac{\partial \widetilde{Y}}{\partial X_1} \frac{\partial \widetilde{Y}}{\partial X_2}^T p\!\left(\widetilde{Y}\right) \text{d}\widetilde{Y} \\
+	&=
+	\begin{split}
+	\frac{\partial \mathbf{\Phi}\!\left(X_1\right)}{\partial X_1} \, \mathbb{V}\!\left[\beta\right] &\frac{\partial \mathbf{\Phi}^T\!\left(X_2\right)}{\partial X_2} + \mathbb{E}\!\left[\frac{\partial \varepsilon}{\partial X_1}\right] \mathbb{E}\!\left[\beta^T\right] \frac{\partial \mathbf{\Phi}^T\!\left(X_2\right)}{\partial X_2} \\
+	&+ \frac{\partial \mathbf{\Phi}\!\left(X_1\right)}{\partial X_1} \mathbb{E}\!\left[\beta\right] \mathbb{E}\!\left[\frac{\partial \varepsilon^T}{\partial X_2}\right] + \mathbb{V}\left[\frac{\partial \varepsilon}{\partial X}\right]
+	\end{split}
+	\\
+	&= \frac{\partial^2}{\partial X_1 \partial X_2} \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T\right) + 0 + 0 + \Sigma_{nd}\\
+	&= \frac{\partial^2 K\!\left(X_1,X_2\right)}{\partial X_1 \partial X_2} + \Sigma_{nd}
+	\end{aligned}
+\end{equation}
+where the derivatives with respect to $X_1$ and $X_2$ can be applied to the entire expression as only $\mathbf{\Phi}$ and $\mathbf{\Phi}^T$, respectively, are dependent on those variables in that expression. The covariance between the model and its derivative can also be found in a similar fashion, as follows:
+\begin{equation}
+\label{eq:GPRUntrainedDerivativeCovarianceX2}
+	\begin{aligned}
+	\mathbb{C}\!\left[\widetilde{Y},\frac{\partial \widetilde{Y}}{\partial X}\right] &= \int_{\widetilde{Y}} \widetilde{Y} \frac{\partial \widetilde{Y}}{\partial X_2}^T p\!\left(\widetilde{Y}\right) \text{d}\widetilde{Y} \\
+	&=
+	\begin{split}
+	\mathbf{\Phi}\!\left(X_1\right) \mathbb{V}\!\left[\beta\right] \, &\frac{\partial \mathbf{\Phi}^T\!\left(X_2\right)}{\partial X_2} + \mathbb{E}\!\left[\varepsilon\right] \mathbb{E}\!\left[\beta^T\right] \frac{\partial \mathbf{\Phi}^T\!\left(X_2\right)}{\partial X_2} \\
+	&+ \mathbf{\Phi}\!\left(X_1\right) \mathbb{E}\!\left(\beta\right) \mathbb{E}\!\left[\frac{\partial \varepsilon^T}{\partial X_2}\right] + \mathbb{C}\!\left[\varepsilon,\frac{\partial \varepsilon}{\partial X}\right]
+	\end{split}
+	\\
+	&= \frac{\partial}{\partial X_2} \left(\mathbf{\Phi} \Sigma_\beta \mathbf{\Phi}^T\right) + 0 + 0 + 0 \\
+	&= \frac{\partial K\!\left(X_1,X_2\right)}{\partial X_2}
+	\end{aligned}
+\end{equation}
+where it is assumed that the covariance between the noise term and its derivative is zero. Through a similar derivation, the covariance with the inputs switched can be expressed as:
+\begin{equation}
+\label{eq:GPRUntrainedDerivativeCovarianceX1}
+	\mathbb{C}\!\left[\frac{\partial \widetilde{Y}}{\partial X},\widetilde{Y}\right] = \frac{\partial K\!\left(X_1,X_2\right)}{\partial X_1}
+\end{equation}
+
+Then, using Equations~\eqref{eq:GPRUntrainedDerivativeVariance}, \eqref{eq:GPRUntrainedDerivativeCovarianceX2} and \eqref{eq:GPRUntrainedDerivativeCovarianceX1}, the kernel matrix and noise matrix can be updated as follows:
+\begin{equation}
+\label{eq:GPRKernelDerivativeInputs}
+	K' \equiv K\!\left(X'_1,X'_2\right) =
+	\begin{bmatrix}
+	K\!\left(X_1,X_2\right) & \frac{\partial K\!\left(X_1,X_{d2}\right)}{\partial X_{d2}} \\
+	\frac{\partial K\!\left(X_{d1},X_2\right)}{\partial X_{d1}} & \frac{\partial^2 K\!\left(X_{d1},X_{d2}\right)}{\partial X_{d1} \partial X_{d2}}
+	\end{bmatrix}
+	\;, \quad
+	\Sigma'_n =
+	\begin{bmatrix}
+	\Sigma_n & 0 \\
+	0 & \Sigma_{nd}
+	\end{bmatrix}
+\end{equation}
+where $\Sigma_{nd} = 0$ in the homoscedastic case, as a flat noise function has a derivative of zero and an associated error of zero. By applying Equation~\eqref{eq:GPRKernelDerivativeInputs} to Equation~\eqref{eq:GPRPrediction}, the homoscedastic predictive equations become:
+\begin{equation}
+\label{eq:GPRPredictionDerivativeInputs}
+	\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= K\!\left(X_*,X'\right) \left[K' + \Sigma'_n\,\right]^{-1} Y' \\
+	\mathbb{V}\!\left[Y_*\right] &= K_* + \Sigma_{n*} - K\!\left(X_*,X'\right) \left[K' + \Sigma'_n\,\right]^{-1} K\!\left(X',X_*\right)
+	\end{aligned}
+\end{equation}
+where Equation~\eqref{eq:ConstantPredictiveNoise} still applies.
+
+Additionally, provided that the chosen kernel function is at least second-order differentiable, the derivatives of the predictive distribution can also be determined. The mean value of the derivative of the GPR prediction in Equation~\eqref{eq:GPRPredictionDerivativeInputs} can be found as follows:
+\begin{equation}
+\label{eq:GPRPredictiveDerivativeMean}
+	\begin{aligned}
+	\mathbb{E}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \int_{Y_*} \frac{\partial Y_*}{\partial X_*} \, p\!\left(Y_*\right) \text{d}Y_* \\
+	&= \frac{\partial}{\partial X_*} \left[\int_{Y_*} Y_* \, p\!\left(Y_*\right) \text{d}Y_*\right] \\
+	&= \frac{\partial \, \mathbb{E}\!\left[Y_*\right]}{\partial X_*} \\
+	&= \frac{\partial K\!\left(X_*,X'\right)}{\partial X_*} \left[K' + \Sigma'_n\right]^{-1} Y'
+	\end{aligned}
+\end{equation}
+where the derivative can be taken out of the integral since the probability density function, $p\!\left(Y_*\right)$, depends only on the value of the variable, $Y_*$, itself. In other words, this operator exchange can be done since the expectation value is a linear operation. Similarly, the variance of the derivative of the GPR prediction in Equation~\eqref{eq:GPRPredictionDerivativeInputs} can be found as follows:
+\begin{equation}
+\label{eq:GPRPredictiveDerivativeVariance}
+	\begin{aligned}
+	\mathbb{V}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \int_{Y_*} \frac{\partial Y_*\!\left(X_{*1}\right)}{\partial X_{*1}} \frac{\partial Y_*\!\left(X_{*2}\right)}{\partial X_{*2}} \, p\!\left(Y_*\right) \text{d}Y_* \\
+	&= \frac{\partial}{\partial X_{*1}} \frac{\partial}{\partial X_{*2}} \left[\int_{Y_*} Y_* \, p\!\left(Y_*\right) \text{d}Y_*\right] \\
+	&= \frac{\partial^2 \, \mathbb{V}\!\left[Y_*\right]}{\partial X_{*1} \partial X_{*2}} \\
+	&= \frac{\partial^2 K_*}{\partial X_{*1} \partial X_{*2}} - \frac{\partial K\!\left(X_{*1},X'\right)}{\partial X_{*1}} \left[K' + \Sigma'_n\,\right]^{-1} \frac{\partial K\!\left(X',X_{*2}\right)}{\partial X_{*2}}
+	\end{aligned}
+\end{equation}
+where $\partial \Sigma_{n*} / \partial X_{*1} \partial X_{*2} = 0$ in the homscedastic case. Thus, as shown in Equations~\eqref{eq:GPRPredictiveDerivativeMean} and \eqref{eq:GPRPredictiveDerivativeVariance}, the GPR method can also provide a prediction of the derivative of the fit and its confidence interval simply by computing the first- and mixed second-order derivatives of the kernel function. The equations for doing so are summarized below:
+\begin{equation}
+\label{eq:GPRDerivativePrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial K\!\left(X_*,X'\right)}{\partial X_*} \left[K' + \Sigma'_n\,\right]^{-1} Y' \\
+	\mathbb{V}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial^2 K_*}{\partial X_* \partial X_*} - \frac{\partial K\!\left(X_*,X'\right)}{\partial X_*} \left[K' + \Sigma'_n\,\right]^{-1} \frac{\partial K\!\left(X',X_*\right)}{\partial X_*}
+	\end{aligned}
+\end{equation}
+where the subscripts 1 and 2 were removed to improve readability.
+
+\subsubsection{The Noise Function and Heteroscedastic GPR}
+\label{subsubsec:GPRNoiseFunction}
+
+In contrast to the homoscedastic GPR given in Equation~\eqref{eq:GPRPrediction}, a \emph{heteroscedastic} GPR would allow each of the random variables to have its own specified variance, thus allowing the accounting of individual measurement errors. As the predicted variance, $\Sigma_{n*}$, in any GPR must defined consistently with the output noise variance, $\Sigma_n$, such a modification would require a way to estimate the predicted variance from the set of measurement errors. One method to achieve this is to apply a separate GPR to the set of measurement errors, $\left(X,\sigma_Y\right)$, themselves. This generates an approximation for the output variance as a function of the independent variable, $r\!\left(x\right)$, expressed as such:
+\begin{equation}
+\label{eq:GPRNoiseFunction}
+	r\!\left(x\right) = \mathbb{E}\!\left[\sigma_y\right] = K_n\!\left(x,X\right) \left[K_n + \Sigma_\sigma\right]^{-1} \sigma_Y
+\end{equation}
+where the \emph{noise kernel}, $K_n$, does not necessarily have to be the same as the predictive GPR kernel, $K$, and it is usually assumed that the variance of the measurement error is zero, ie. $\Sigma_\sigma = 0$. Since Equation~\eqref{eq:GPRPrediction} requires the terms in matrix notation, the \emph{heteroscedastic noise matrix}, $R\!\left(X_1,X_2\right)$, is introduced and is defined as follows:
+\begin{equation}
+\label{eq:GPRHeteroscedasticNoiseMatrix}
+	R\!\left(X_1,X_2\right) = r\!\left(X_1\right) r\!\left(X_2\right) \delta\!\left(X_1 = X_2\right)
+\end{equation}
+where $\delta$ is the Dirac delta function, as introduced in Equation~\eqref{eq:DeltaInputNoiseAssumption}.
+
+Then, by substituting Equation~\eqref{eq:GPRHeteroscedasticNoiseMatrix} into Equation~\eqref{eq:GPRPrediction}, the heteroscedastic predictive distribution can now be expressed as:
+\begin{equation}
+\label{eq:GPRHeteroscedasticPrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= K\!\left(X_*,X\right) \left[K + R\,\right]^{-1} Y \\
+	\mathbb{V}\!\left[Y_*\right] &= K_* + R_* + K\!\left(X_*,X\right) \left[K + R\,\right]^{-1} K\!\left(X,X_*\right)
+	\end{aligned}
+\end{equation}
+where the shorthand notation $K = K\!\left(X,X\right)$, $R = R\!\left(X,X\right)$, $K_* = K\!\left(X_*,X_*\right)$, and $R_* = R\!\left(X_*,X_*\right)$ was used to improve the readability of the equation. Due to the introduced dependence of the predicted noise on $X_*$, the predicted derivatives are also modified, as follows:
+\begin{equation}
+\label{eq:GPRHeteroscedasticDerivativePrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial K\!\left(X_*,X\right)}{\partial X_*} \left[K + R\,\right]^{-1} Y \\
+	\mathbb{V}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial^2 K_*}{\partial X_* \partial X_*} + \frac{\partial^2 R_*}{\partial X_* \partial X_*} + \frac{\partial K\!\left(X_*,X\right)}{\partial X_*} \left[K + R\,\right]^{-1} \frac{\partial K\!\left(X,X_*\right)}{\partial X_*}
+	\end{aligned}
+\end{equation}
+It should be noted that $\partial R_* / \partial X_* \partial X_*$ can result in extremely large derivative variances if the noise function, $r\!\left(x\right)$, behaves erratically. As such, it is advised that the kernels used for the GPR of the measurement errors be selected carefully to avoid this artificial inflation of the error.
+
+Although this is not a typical scenario, this derivative error inflation problem can be circumvented provided that a sufficient number of derivative data points were supplied, each with their own uncertainty information. With this data, another GPR can be performed on their uncertainties to produce an approximative function for the derivative noise, $r_d\!\left(x\right)$. Then, $\partial R_* / \partial X_* \partial X_*$ in Equation~\eqref{eq:GPRHeteroscedasticDerivativePrediction} can simply be replaced with the following expression, evaluated at the points, $X_*$:
+\begin{equation}
+\label{eq:GPRHeteroscedasticDerivativeNoiseMatrix}
+	R_d = r_d\!\left(X_{d1}\right) r_d\!\left(X_{d2}\right) \delta\!\left(X_{d1} = X_{d2}\right)
+\end{equation}
+which is typically exhibits a more stable behaviour, and comes from a similar ideology as in the justification of Equation~\eqref{eq:GPRHeteroscedasticNoiseMatrix}.
+
+\subsubsection{The Log-Marginal-Likelihood and Fit Optimization}
+\label{subsubsec:LMLOptimization}
+
+It should be noted that the GPR technique up until this point merely produces a model with the user-specified hyperparameters, $\theta$, without any metnion of an optimal solution. Thus, in order to draw an analogy to the minimization problem outlined in Section~\ref{subsec:LeastSquaresRegression}, it is important to define a goodness-of-fit metric for this technique. One possible metric is the \emph{log-marginal-likelihood (LML)}, mathematically expressed as follows:
+\begin{equation}
+\label{eq:LogMarginalLikelihood}
+	\log{p\!\left(Y'|X'\right)} = -\frac{1}{2} Y'^T \left[K' + R'\,\right]^{-1} Y' - \frac{1}{2} \log{\left|K' + R'\,\right|} - \frac{1}{2} N \log{2\pi}
+\end{equation}
+where the vertical brackets indicate the determinant of the enclosed matrix and $N$ represents the number of data points, including any input derivative data. A closer examination of this expression reveals that the first term quantifies an actual goodness-of-fit, due to its dependence on $Y'$, the second term penalizes kernel complexity, which reduces the chance of overfitting to the data, and the last term represents a normalization constant to the size of the input data set, $N$.
+
+As the LML represents the probability of the marginal likelihood, or the likelihood of the evidence integrated over all possible models described by this kernel, \emph{maximizing} it selects the hyperparameters that have the highest probability of producing fits that match the input data. It is crucial to note that this goodness-of-fit metric, similar to the SSE given in Equation~\eqref{eq:SumSquaredError}, provides no guarantee that the physical processes behind the data is modelled correctly by the chosen kernel.
+
+The maximization process can be accelerated by employing the derivative of the log-marginal-likelihood with respect the hyperparameters, as such:
+\begin{multline}
+\label{eq:LogMarginalLikelihoodDerivative}
+	\frac{\partial}{\partial \theta_j} \log{p\!\left(Y'|X'\right)} = \frac{1}{2} Y'^T \left[K' + R'\,\right]^{-1} \frac{\partial K'}{\partial \theta_j} \left[K' + R'\,\right]^{-1} Y' \\
+	- \frac{1}{2} \text{tr}\!\left(\left[K' + R'\,\right]^{-1} \frac{\partial K'}{\partial \theta_j}\right)
+\end{multline}
+which requires the derivative of the kernel function with respect to the hyperparameters, $\partial k / \partial \theta_j$. In practical implementations, it has been found that using analytical hyperparameter derivatives have little impact on computational speed of the GPR, as compared to applying numerical approximations for this derivative, when the chosen kernel contains less than 15 hyperparameters. This is likely due to the relative complexity of the analytical expressions of the derivatives as compared to the kernel function itself. However, this fact has not been verified with all kernels.
+
+If these derivatives, or \emph{gradients}, with respect to the hyperparameters are calculated, then the most simple and robust method for performing this maximization is called the \emph{gradient ascent} method. There exists other optimization algorithms which provide additional benefits, but these will not be discussed further in this document.
+
+\subsubsection{Regularization}
+\label{subsubsec:Regularization}
+
+Despite the use of an infinite set of basis functions, the GPR naturally avoids overfitting the data through using the kernel trick. However, this does not mean that the chosen kernel function itself cannot reinstate the danger of overfitting by being containing too many hyperparameters. In order to provide an additional defense against this undesired regression phenomena, an additional parameter called the \emph{regularization parameter}, $\lambda$, can be added to the optimization ``loss" function, represented by the LML described in Equation~\eqref{eq:LogMarginalLikelihood}, as follows:
+\begin{equation}
+\label{eq:LogMarginalLikelihoodRegularized}
+	\log{p\!\left(Y'|X'\right)} = -\frac{1}{2} Y'^T \left[K' + R'\,\right]^{-1} Y' - \frac{\lambda}{2} \log{\left|K' + R'\,\right|} - \frac{1}{2} N \log{2\pi}
+\end{equation}
+Note that since the second term of this equation effectively penalizes the complexity of the kernel, and hence the complexity of the resulting model, a larger value of $\lambda$ increases the favourability of simpler models. Heuristically, for kernels with 5 or less hyperparameters, $\lambda$ can range anywhere between 1 and 10 but typically does not exceed 15.
+
+\subsection{Summary}
+\label{subsec:GPRSummary}
+
+The predictive distribution of the GPR, given a set of input data points, $\left(X,Y\right)$, derivative data points, $\left(X_d,\partial Y/\partial X_d\right)$, can be expressed as:
+\begin{equation}
+\label{eq:GPRPredictionSummary}
+\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= K\!\left(X_*,X'\right) \left[K' + R'\,\right]^{-1} Y' \\
+	\mathbb{V}\!\left[Y_*\right] &= K_* + R_* + K\!\left(X_*,X'\right) \left[K' + R'\,\right]^{-1} K\!\left(X',X_*\right)
+\end{aligned}
+\end{equation}
+where
+\begin{equation}
+\label{eq:GPRDerivativeInputSummary}
+	X' =
+	\begin{bmatrix}
+	X \\ X_d
+	\end{bmatrix}
+	\quad, \qquad
+	Y' =
+	\begin{bmatrix}
+	Y \\ \frac{\partial Y}{\partial X_d}
+	\end{bmatrix} \;,
+\end{equation}
+\begin{equation}
+\label{eq:GPRKernelDerivativeInputSummary}
+	K' \equiv K\!\left(X'_1,X'_2\right) =
+	\begin{bmatrix}
+	K\!\left(X_1,X_2\right) & \frac{\partial K\!\left(X_1,X_{d2}\right)}{\partial X_{d2}} \\
+	\frac{\partial K\!\left(X_{d1},X_2\right)}{\partial X_{d1}} & \frac{\partial^2 K\!\left(X_{d1},X_{d2}\right)}{\partial X_{d1} \partial X_{d2}}
+	\end{bmatrix} \;,
+\end{equation}
+\begin{equation}
+\label{eq:GPRHeteroscedasticNoiseMatrixDerivativeInputSummary}
+	R' \equiv R\!\left(X'_1,X'_2\right) =
+	\begin{bmatrix}
+	R\!\left(X_1,X_2\right) & 0 \\
+	0 & R_d\!\left(X_{d1},X_{d2}\right)
+	\end{bmatrix} \;,
+\end{equation}
+$K$ and $R$ are matrices with size equal to the number of elements in their first argument times the number of elements in their second argument, and $K' + R'$ must be a positive semi-definite square matrix to ensure its invertibility.
+
+Typically, $K$ is referred to as the kernel and is defined via a kernel function, $k\!\left(x_1,x_2,\theta\right)$, as such:
+\begin{equation}
+\label{eq:GPRKernelSummary}
+	K\!\left(X_1,X_2\right) =
+	\begin{bmatrix}
+	k\!\left(x_{11},x_{11},\theta\right) & k\!\left(x_{11},x_{22},\theta\right) & \hdotsfor{1} & k\!\left(x_{11},x_{2m},\theta\right) \\
+	k\!\left(x_{12},x_{21},\theta\right) & k\!\left(x_{12},x_{22},\theta\right) & & \\
+	\vdots & & \ddots & \\
+	k\!\left(x_{1n},x_{21},\theta\right) & & & k\!\left(x_{1n},x_{2m},\theta\right)
+	\end{bmatrix}
+\end{equation}
+where $n$ is the number of elements in vector argument, $X_1$, $m$ is the number of elements in vector argument, $X_2$, and $\theta$ contains a set of externally adjustable hyperparameters in order to fine tune the resulting fit. The kernel function can be chosen by the user to encourage specific behaviours in the learned models, with each kernel function exhibiting different general characteristics.
+
+Similarly, $R$ can be referred to as the noise kernel and is defined via a noise function, $r\!\left(x\right)$, as such:
+\begin{equation}
+\label{eq:GPRNoiseKernelSummary}
+	R\!\left(X_1,X_2\right) =
+	\begin{bmatrix}
+	r\!\left(x_{11}\right) r\!\left(x_{21}\right) & 0 & \hdotsfor{1} & 0 \\
+	0 & r\!\left(x_{12}\right) r\!\left(x_{22}\right) & & \\
+	\vdots & & \ddots & \\
+	0 & & & r\!\left(x_{1n}\right) r\!\left(x_{2n}\right)
+	\end{bmatrix}
+\end{equation}
+where the two arguments must be identical in this function, ie. $X_1 = X_2$. It should be noted that the matrix, $R_d$, is identical to Equation~\eqref{eq:GPRNoiseKernelSummary}, except that the noise function, $r\!\left(x\right)$, is replaced with $r_d\!\left(x\right)$, a function which describes the noise in the derivative observations. Typically, the noise function itself is not known from first principles, but it can be estimated by using a separate GPR with the input set, $\left(X,\sigma_Y\right)$, where $\sigma_Y$ represents the measurement uncertainty of the data set, $Y$. In this error estimation GPR, it is recommended to set $r\!\left(x\right) = \epsilon$, where $\epsilon \ll 1$ is a constant value in $x$, to ensure that the matrix, $K' + R'$, is properly conditioned for numerical inversion operations.
+
+Once the inputs are clearly defined, the resulting fit can be optimized by adjusting the values of the kernel function hyperparameters, $\theta$, such that it maximizes the log-marginal-likelihood, defined as follows:
+\begin{equation}
+\label{eq:LogMarginalLikelihoodSummary}
+	\log{p\!\left(Y'|X'\right)} = -\frac{1}{2} Y'^T \left[K' + R'\,\right]^{-1} Y' - \frac{\lambda}{2} \log{\left|K' + R'\,\right|} - \frac{1}{2} N \log{2\pi}
+\end{equation}
+where $\lambda$ is called the regularization parameter, which can be increased to push the algorithm to select smoother fits, and $N$ is the number of input data points provided to the GPR algorithm. By using this criteria for optimization, the final fit has the highest probability of producing fits which match the input data, but does not provide any guarantee that the fit correctly models the underlying physical processes described by the data.
+
+The predictive distribution of the derivatives of the GPR can also be computed through a similar methodology, provided that the kernel function used is differentiable either numerically or analytically, as follows:
+\begin{equation}
+\label{eq:GPRHeteroscedasticDerivativePredictionSummary}
+	\begin{aligned}
+	\mathbb{E}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial K\!\left(X_*,X'\right)}{\partial X_*} L'^{-1} Y \\
+	\mathbb{V}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial^2 L_*}{\partial X_* \partial X_*} + \frac{\partial K\!\left(X_*,X'\right)}{\partial X_*} L'^{-1} \frac{\partial K\!\left(X',X_*\right)}{\partial X_*}
+	\end{aligned}
+\end{equation}
+where $L \equiv K + R$ was used to improve the readability, which is further extended to provide the definitions, $L_* = K_* + R_*$ and $L' = K' + R'$.
+
+\printbibliography
+
+\end{document}

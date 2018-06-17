@@ -1,0 +1,757 @@
+\documentclass{article}
+
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\usepackage{comment}
+
+\graphicspath{{./Figures/}}
+\DeclareGraphicsExtensions{.jpg,.png,.pdf}
+\bibliography{massbib.bib}
+
+\title{Analytical Derivatives of Kernel Functions}
+\author{A. Ho}
+
+\begin{document}
+	
+\maketitle
+
+\section{Gaussian Processes}
+\label{sec:GPRegression}
+
+Given a one-dimensional set of data, $\left(X,Y\right)$, a kernel function, $k\!\left(x_1,x_2,\theta\right)$, describing the covariance between the data points, and a measurement error function, $r\!\left(x\right)$, a Gaussian process regression attempts to fit the data in a statistically rigourous manner. One advantage of this approach lies in the replacement of pre-defined basis functions with the kernel, which allows for a more generalized fit. However, the disadvantage is that the fitted function cannot be expressed in an analytical form, excluding further analysis of the fits with certain procedures.
+
+A GPR prediction of the fit and its confidence interval, evaluated at the points, $X_*$, can be made using the following set of equations:
+\begin{equation}
+\label{eq:GPRPrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[Y_*\right] &= K\!\left(X_*,X\right) \left[K + R\,\right]^{-1} Y \\
+	\mathbb{V}\!\left[Y_*\right] &= K_* + R_* + K\!\left(X_*,X\right) \left[K + R\,\right]^{-1} K\!\left(X,X_*\right)
+	\end{aligned}
+\end{equation}
+where $K\!\left(X_1,X_2\right) = k\!\left(X_1,X_2,\theta\right)$, $R\!\left(X_1,X_2\right) = r\!\left(X_1\right) r\!\left(X_2\right) \delta_{X_1,X_2}$, and the subscripts 1 and 2 indicate separate instances of the same set of data. Additionally, the shorthand notation $K = K\!\left(X,X\right)$, $R = R\!\left(X,X\right)$, $K_* = K\!\left(X_*,X_*\right)$, and $R_* = R\!\left(X_*,X_*\right)$ was used to improve the readability of the equation.
+
+Within this framework, a prediction of the derivative of the fit and its confidence interval can also be made in a straight-forward manner by using the derivative of the kernel, as such:
+\begin{equation}
+\label{eq:GPRDerivativePrediction}
+	\begin{aligned}
+	\mathbb{E}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial K\!\left(X_*,X\right)}{\partial X_1} \left[K + R\,\right]^{-1} Y \\
+	\mathbb{V}\!\left[\frac{\partial Y_*}{\partial X_*}\right] &= \frac{\partial^2 K_*}{\partial X_1 \partial X_2} + \frac{\partial^2 R_*}{\partial X_1 \partial X_2} + \frac{\partial K\!\left(X_*,X\right)}{\partial X_1} \left[K + R\,\right]^{-1} \frac{\partial K\!\left(X,X_*\right)}{\partial X_2}
+	\end{aligned}
+\end{equation}
+where $X_1,X_2$ refer to the first and second instances, respectively, of the same coordinate system, as described in the kernel function.
+
+The free parameters of this fitting procedure are described by $\theta$, known as the \emph{hyperparameters}, which can then be optimized as desired by the user. One method of optimizing these hyperparameters is by maximizing the \emph{log-marginal-likelihood}, expressed as follows:
+\begin{equation}
+\label{eq:LogMarginalLikelihood}
+	\log{p\!\left(Y|X\right)} = -\frac{1}{2} Y^T \left[K + R\,\right]^{-1} Y - \frac{1}{2} \log{\left|K + R\,\right|} - \frac{1}{2} N \log{2\pi}
+\end{equation}
+where the vertical brackets indicate the determinant of the enclosed matrix and $N$ represents the number of data points. It should be noted that this optimization method selects the hyperparameters such that the fit has the highest probability to match the input data, but provides no guarantee that the physical process behind the data is modelled correctly.
+
+The maximization process can be accelerated by employing the derivative of the log-marginal-likelihood with respect the hyperparameters, as such:
+\begin{multline}
+\label{eq:LogMarginalLikelihoodDerivative}
+	\frac{\partial}{\partial \theta_j} \log{p\!\left(Y|X\right)} = \frac{1}{2} Y^T \left[K + R\,\right]^{-1} \frac{\partial K}{\partial \theta_j} \left[K + R\,\right]^{-1} Y \\
+	- \frac{1}{2} \text{tr}\!\left(\left[K + R\,\right]^{-1} \frac{\partial K}{\partial \theta_j}\right)
+\end{multline}
+which requires the derivative of the kernel function with respect to the hyperparameters.
+
+The following sections describe the kernels programmed within ``GPR1D" and their corresponding derivatives. In order to preserve the functionality of the algorithm, all consecutive derivative order must alternate between the two coordinate variables, $x_1$ and $x_2$, which can be denoted mathematically as follows:
+\begin{equation}
+\label{eq:DerivativeAlternation}
+	\frac{\partial^n k\!\left(x_1,x_2\right)}{\partial x^n} \equiv \frac{\partial^a}{\partial x_1^a} \frac{\partial^b}{\partial x_2^b} \, k\!\left(x_1,x_2\right)
+\end{equation}
+where $a + b = n$ and $a - b \in \left\lbrace-1,0,1\right\rbrace$.
+
+\section{Squared Exponential Kernel}
+\label{sec:SEKernel}
+
+This kernel is mathematically expressed as:
+\begin{equation}
+\label{eq:SEKernel}
+	k\!\left(x_1,x_2\right) = \sigma^2 \exp{\left(-\frac{r^2}{2l^2}\right)}, \qquad r = x_1 - x_2
+\end{equation}
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta = \left\lbrace \sigma,l \right\rbrace$
+\end{center}
+
+\begin{comment}
+\begin{equation}
+\label{eq:SEKernel_d1x}
+	\begin{gathered}
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1} = - \frac{\partial r}{\partial x_1} \frac{\sigma^2 r}{l^2} \exp{\left(-\frac{r^2}{2l^2}\right)} \\
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2} = - \frac{\partial r}{\partial x_2} \frac{\sigma^2 r}{l^2} \exp{\left(-\frac{r^2}{2l^2}\right)}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:SEKernel_d2x}
+	\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2} = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{\sigma^2}{l^2} \left(\frac{r^2}{l^2} - 1\right) \exp{\left(-\frac{r^2}{2l^2}\right)}
+\end{equation}\hspace{8pt}
+\end{comment}
+
+%This can be generalized to the $n^{\text{th}}$-derivative as follows:
+A generalized form of the $n^{\text{th}}$-derivative of this kernel can be expressed as follows:
+\begin{equation}
+\label{eq:SEKernel_dnx}
+	\frac{\partial^n k}{\partial x^n} = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{\sigma^2}{l^n} \exp{\left(-\frac{r^2}{2l^2}\right)} \sum_{i=0}^{n/2} C_{n,i} \left(\frac{r}{l}\right)^{n-2i}
+\end{equation}
+where the upper limit of the sum is always rounded down to the nearest integer,
+\begin{equation}
+\label{eq:drdx}
+	\frac{\partial r}{\partial x_1} = 1, \quad \frac{\partial r}{\partial x_2} = -1,
+\end{equation}
+and
+\begin{equation}
+\label{eq:Coefficient_dnx}
+	C_{n,i} = \left(-1\right)^{n-i} \frac{1}{2^i \, i!} \frac{n!}{\left(n - 2i\right)!}
+\end{equation}
+
+\subsection{Hyperparameter $\sigma$ Derivatives}
+\label{subsec:SEHypDer_s}
+
+The hyperparameter $\sigma$ derivative of Equation~\eqref{eq:SEKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:SEKernel_ds}
+	\frac{\partial}{\partial \sigma} \left[k\!\left(x_1,x_2\right)\right] = 2 \sigma \exp{\left(-\frac{r^2}{2l^2}\right)}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:SEKernel_ds_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{2 \sigma r}{l^2} \exp{\left(-\frac{r^2}{2l^2}\right)} \\
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{2 \sigma r}{l^2} \exp{\left(-\frac{r^2}{2l^2}\right)}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:SEKernel_ds_d2x}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{2 \sigma}{l^2} \left(\frac{r^2}{l^2} - 1\right) \exp{\left(-\frac{r^2}{2l^2}\right)}
+\end{equation}
+\end{comment}
+
+A generalized form of the hyperparameter $\sigma$ derivative of Equation~\eqref{eq:SEKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:SEKernel_ds_dnx}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{2 \sigma}{l^n} \exp{\left(-\frac{r^2}{2l^2}\right)} \sum_{i=0}^{n/2} C_{n,i} \left(\frac{r}{l}\right)^{n-2i}
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsection{Hyperparameter $l$ Derivatives}
+\label{subsec:SEHypDer_l}
+
+The hyperparameter $l$ derivative of Equation~\eqref{eq:SEKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:SEKernel_dl}
+	\frac{\partial}{\partial l} \left[k\!\left(x_1,x_2\right)\right] = \frac{\sigma^2 r^2}{l^3} \exp{\left(-\frac{r^2}{2l^2}\right)}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:SEKernel_dl_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{\sigma^2 r}{l^3} \left(\frac{r^2}{l^2} - 2\right) \exp{\left(-\frac{r^2}{2l^2}\right)} \\
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{\sigma^2 r}{l^3} \left(\frac{r^2}{l^2} - 2\right) \exp{\left(-\frac{r^2}{2l^2}\right)}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:SEKernel_dl_d2x}
+	\frac{\partial}{\partial l} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{\sigma^2}{l^3} \left(\frac{r^4}{l^4} - \frac{5r^2}{l^2} + 3\right) \exp{\left(-\frac{r^2}{2l^2}\right)}
+\end{equation}
+\end{comment}
+
+A generalized form of the hyperparameter $l$ derivative of Equation~\eqref{eq:SEKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:SEKernel_dl_dnx}
+	\frac{\partial}{\partial l} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{\sigma^2}{l^{n+1}} \exp{\left(-\frac{r^2}{2l^2}\right)} \sum_{i=0}^{\left(n+2\right)/2} L_{n,i} \left(\frac{r}{l}\right)^{n+2-2i}
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, the upper limit of the sum is always rounded down to the nearest integer, and
+\begin{equation}
+\label{eq:Coefficient_dl_dnx}
+	L_{n,i} = \left(-1\right)^{n+2-i} \frac{1}{2^i \, i!} \frac{n!}{\left(n + 2 - 2i\right)!} \left[\frac{\left(n + 2\right)!}{n!} - 2i\right],
+\end{equation}
+
+\section{Rational Quadratic Kernel}
+\label{sec:RQKernel}
+
+This kernel is mathematically expressed as:
+\begin{equation}
+\label{eq:RQKernel}
+	k\!\left(x_1,x_2\right) = \sigma^2 Q^{-\alpha}, \qquad r = x_1 - x_2
+\end{equation}
+where
+\begin{equation}
+\label{eq:RQKernel_Q}
+Q = 1 + \frac{r^2}{2 \alpha l^2}
+\end{equation}
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta = \left\lbrace \sigma,l,\alpha \right\rbrace$
+\end{center}
+
+\begin{comment}
+\begin{equation}
+\label{eq:RQKernel_d1x}
+	\begin{gathered}
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1} = - \frac{\partial r}{\partial x_1} \frac{\sigma^2 r}{l^2} \left(1 + \frac{r^2}{2 \alpha l^2}\right)^{-\alpha - 1} \\
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2} = - \frac{\partial r}{\partial x_2} \frac{\sigma^2 r}{l^2} \left(1 + \frac{r^2}{2 \alpha l^2}\right)^{-\alpha - 1}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:RQKernel_d2x}
+	\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2} = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{\sigma^2}{l^2} \left(\frac{r^2}{l^2} \frac{2\alpha + 1}{2\alpha} - 1\right) \left(1 + \frac{r^2}{2 \alpha l^2}\right)^{-\alpha - 2}
+\end{equation}
+\end{comment}
+
+A generalized form of the $n^{\text{th}}$-derivative of this kernel can be expressed as follows:
+\begin{equation}
+\label{eq:RQKernel_dnx}
+	\frac{\partial^n k}{\partial x^n} = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{\sigma^2}{l^n} Q^{-\alpha - n} \sum_{i=0}^{n/2} C_{n,i} \, \frac{\Gamma\!\left(\alpha + n - i\right)}{\alpha^{n-i} \, \Gamma\!\left(\alpha\right)} \left(\frac{r}{l}\right)^{n-2i} Q^i
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx}, the upper limit of the sum is always rounded down to the nearest integer, and $\Gamma\!\left(z\right)$ is the \emph{Gamma function}, defined as such:
+\begin{equation}
+\label{eq:GammaFunction}
+	\Gamma\!\left(z\right) = \int_{0}^{\infty} x^{z-1} \exp{\left(-x\right)} \, dx
+\end{equation}
+which has the following property, exploited within Equation~\eqref{eq:RQKernel_dnx}:
+\begin{equation}
+\label{eq:GammaRecursionProperty}
+	\Gamma\!\left(z + 1\right) = z \, \Gamma\!\left(z\right) \; , \qquad \text{for any} \; z > 0
+\end{equation}
+
+\subsection{Hyperparameter $\sigma$ Derivatives}
+\label{subsec:RQHypDer_s}
+
+The hyperparameter $\sigma$ derivative of Equation~\eqref{eq:RQKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:RQKernel_ds}
+	\frac{\partial}{\partial \sigma} \left[k\!\left(x_1,x_2\right)\right] = 2 \sigma \, Q^{-\alpha}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:RQKernel_ds_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{2 \sigma r}{l^2} z^{-\alpha - 1} \\
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{2 \sigma r}{l^2} z^{-\alpha - 1}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:RQKernel_ds_d2x}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{2 \sigma}{l^2} \left(\frac{r^2}{l^2} \frac{2\alpha + 1}{2\alpha} - 1\right) z^{-\alpha - 2}
+\end{equation}
+\end{comment}
+
+A generalized form of the hyperparameter $\sigma$ derivative of Equation~\eqref{eq:RQKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:RQKernel_ds_dnx}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{2 \sigma}{l^n} Q^{-\alpha - n} \sum_{i=0}^{n/2} C_{n,i} \, \frac{\Gamma\!\left(\alpha + n - i\right)}{\alpha^{n-i} \, \Gamma\!\left(\alpha\right)} \left(\frac{r}{l}\right)^{n-2i} Q^i
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsection{Hyperparameter $l$ Derivatives}
+\label{subsec:RQHypDer_l}
+
+The hyperparameter $l$ derivative of Equation~\eqref{eq:RQKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:RQKernel_dl}
+	\frac{\partial}{\partial l} \left[k\!\left(x_1,x_2\right)\right] = \frac{\sigma^2 r^2}{l^3} \, Q^{-\alpha - 1}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:RQKernel_dl_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{\sigma^2 r}{l^3} \left(\frac{r^2}{l^2} - 2\right) z^{-\alpha - 2} \\
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{\sigma^2 r}{l^3} \left(\frac{r^2}{l^2} - 2\right) z^{-\alpha - 2}
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:RQKernel_dl_d2x}
+	\frac{\partial}{\partial l} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] =  \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{\sigma^2}{l^3} \\
+	\left(\frac{r^4}{l^4} \frac{2\alpha - 1}{2\alpha} - \frac{5r^2}{l^2} \frac{5\alpha - 3}{5\alpha} + 2\right) z^{-\alpha - 3}
+\end{equation}
+\end{comment}
+
+A generalized form of the hyperparameter $l$ derivative of Equation~\eqref{eq:RQKernel_dnx} can be expressed as follows:
+\begin{multline}
+\label{eq:RQKernel_dl_dnx}
+	\frac{\partial}{\partial l} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{\sigma^2}{l^{n+1}} Q^{-\alpha - n} \\
+	\sum_{i=0}^{\left(n+2\right)/2} L_{n,i} \, \frac{\Gamma\!\left(\alpha + n + 1 - i\right)}{\alpha^{n+1-i} \, \Gamma\!\left(\alpha\right)} \left(\frac{r}{l}\right)^{n+2-2i} Q^i
+\end{multline}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $L_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dl_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsection{Hyperparameter $\alpha$ Derivatives}
+\label{subsec:RQHypDer_a}
+
+The hyperparameter $\alpha$ derivative of Equation~\eqref{eq:RQKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:RQKernel_da}
+	\frac{\partial}{\partial \alpha} \left[k\!\left(x_1,x_2\right)\right] = \sigma^2 \left(\frac{r^2}{2 \alpha l^2} - Q \ln{Q}\right) Q^{-\alpha-1}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:RQKernel_da_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial \alpha} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{\sigma^2 r}{l^2} \left(\frac{r^2}{l^2} \frac{\alpha + 1}{\alpha^2 z} - \ln{z}\right) z^{-\alpha - 1} \\
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{\sigma^2 r}{l^2} \left(\frac{r^2}{l^2} \frac{\alpha + 1}{\alpha^2 z} - \ln{z}\right) z^{-\alpha - 1}
+	\end{gathered}
+\end{equation}
+
+\begin{multline}
+\label{eq:RQKernel_da_d2x}
+	\frac{\partial}{\partial l} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] =  \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{\sigma^2}{l^2} \\
+	\left[\left(\frac{r^2}{l^2} \frac{2\alpha + 1}{2\alpha} - 1\right) \left(\frac{r^2}{l^2} \frac{\alpha + 2}{\alpha^2 z} - \ln{z}\right) - \frac{r^2 z}{2 \alpha^2 l^2}\right] z^{-\alpha - 2}
+\end{multline}
+\end{comment}
+
+A generalized form of the hyperparameter $\alpha$ derivative of Equation~\eqref{eq:RQKernel_dnx} can be expressed as follows:
+\begin{multline}
+\label{eq:RQKernel_da_dnx}
+	\frac{\partial}{\partial l} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \frac{\sigma^2}{l^n} Q^{-\alpha - n - 1} \sum_{i=0}^{n/2}  C_{n,i} \, \frac{\Gamma\!\left(\alpha + n - i\right)}{\alpha^{n-i} \, \Gamma\!\left(\alpha\right)} \left(\frac{r}{l}\right)^{n-2i} Q^i \, \times \\
+	\left[\frac{\alpha - 2i}{\alpha} \frac{r^2}{2 \alpha l^2} - \frac{n - i}{\alpha} - Q \left(\ln{Q} + \psi\!\left(\alpha + n - i\right) - \psi\!\left(\alpha\right)\right)\right]
+\end{multline}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\section{Matern Half-Integer Kernel}
+\label{sec:MHKernel}
+
+This kernel is mathematically expressed as:
+\begin{equation}
+\label{eq:MHKernel}
+	\begin{gathered}
+	k\!\left(x_1,x_2\right) = \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \, S_{p,0} \\
+	r = x_1 - x_2, \qquad p \in \mathbb{N}^+, \qquad \nu = p + \frac{1}{2}
+	\end{gathered}
+\end{equation}
+where
+\begin{equation}
+\label{eq:MHKernel_S}
+	S_{p,i} = \left\{
+	\begin{aligned}
+	&\sum_{z=0}^{p-i} \frac{p!}{\left(2p\right)!} \frac{\left(p + z\right)!}{z! \left(p - i - z\right)!} \left(\frac{\sqrt{8 \nu} r}{l}\right)^{p-i-z} , &\qquad \text{for} \; i \le p \\
+	&\; 0 \; , &\text{otherwise}
+	\end{aligned}
+	\right.
+\end{equation}
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta = \left\lbrace \sigma,l,p \right\rbrace$
+\end{center}
+
+\begin{comment}
+\begin{equation}
+\label{eq:MHKernel_d1x}
+	\begin{gathered}
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1} = - \frac{\partial r}{\partial x_1} \frac{\sqrt{2 \nu}}{l} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 2 S_1\right) \\
+	\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2} = - \frac{\partial r}{\partial x_2} \frac{\sqrt{2 \nu}}{l} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 2 S_1\right)
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:MHKernel_d2x}
+	\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2} = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{2 \nu}{l^2} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 4 S_1 + 4 S_2\right)
+\end{equation}
+\end{comment}
+
+A generalized form of the $n^{\text{th}}$-derivative of this kernel can be expressed as follows:
+\begin{equation}
+\label{eq:MHKernel_dnx}
+	\frac{\partial^n k}{\partial x^n} = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \left(\sqrt{2 \nu}\right)^n \frac{\sigma^2}{l^n} \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \sum_{i=0}^{n} M_{n,i} \, S_{p,i}
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $S_{p,i}$ is given by Equation~\eqref{eq:MHKernel_S} and
+\begin{equation}
+\label{eq:MHKernel_M}
+	M_{n,i} = \left(-1\right)^{n-i} \frac{2^i \, n!}{i! \left(n - i\right)!}
+\end{equation}
+
+\subsection{Hyperparameter $\sigma$ Derivatives}
+\label{subsec:MHHypDer_s}
+
+The hyperparameter $\sigma$ derivative of Equation~\eqref{eq:MHKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:MHKernel_ds}
+	\frac{\partial}{\partial \sigma} \left[k\!\left(x_1,x_2\right)\right] = 2 \sigma \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \, S_{p,0}
+\end{equation}
+
+\begin{comment}
+\begin{equation}
+\label{eq:MHKernel_ds_d1x}
+	\begin{gathered}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{\sqrt{2 \nu}}{l} \, 2 \sigma \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 2 S_1\right) \\
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{\sqrt{2 \nu}}{l} \, 2 \sigma \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 2 S_1\right)
+	\end{gathered}
+\end{equation}
+
+\begin{equation}
+\label{eq:MHKernel_ds_d2x}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{2 \nu}{l^2} \, 2 \sigma \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 4 S_1 + 4 S_2\right)
+\end{equation}
+\end{comment}
+
+A generalized form of the hyperparameter $\sigma$ derivative of Equation~\eqref{eq:MHKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:MHKernel_ds_dnx}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \left(\sqrt{2 \nu}\right)^n \frac{2 \sigma}{l^n} \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \sum_{i=0}^{n} M_{n,i} \, S_{p,i}
+\end{equation}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $S_{p,i}$ is given by Equation~\eqref{eq:MHKernel_S} and $M_{n,i}$ is given by Equation~\eqref{eq:MHKernel_M}.
+
+\subsection{Hyperparameter $l$ Derivatives}
+\label{subsec:MHHypDer_l}
+
+The hyperparameter $l$ derivative of Equation~\eqref{eq:MHKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:MHKernel_dl}
+	\frac{\partial}{\partial l} \left[k\!\left(x_1,x_2\right)\right] = \frac{\sqrt{2 \nu} r}{l^2} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \left(S_0 - 2 S_1\right)
+\end{equation}
+
+\begin{comment}
+\begin{multline}
+\label{eq:MHKernel_dl_d1x1}
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_1}\right] = - \frac{\partial r}{\partial x_1} \frac{\sqrt{2 \nu}}{l^2} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \\
+	\left[-\left(S_0 - 2 S_1\right) + \frac{\sqrt{2 \nu} r}{l} \left(S_0 - 4 S_1 + 4 S_2\right)\right]
+\end{multline}
+\begin{multline}
+\label{eq:MHKernel_dl_d1x2}
+	\frac{\partial}{\partial l} \left[\frac{\partial k\!\left(x_1,x_2\right)}{\partial x_2}\right] = - \frac{\partial r}{\partial x_2} \frac{\sqrt{2 \nu}}{l^2} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \\
+	\left[-\left(S_0 - 2 S_1\right) + \frac{\sqrt{2 \nu} r}{l} \left(S_0 - 4 S_1 + 4 S_2\right)\right]
+\end{multline}
+
+\begin{multline}
+\label{eq:MHKernel_dl_d2x}
+	\frac{\partial}{\partial l} \left[\frac{\partial^2 k\!\left(x_1,x_2\right)}{\partial x_1 \partial x_2}\right] = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \frac{2 \nu}{l^3} \, \sigma^2 \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \\
+	\left[-2 \left(S_0 - 4 S_1 + 4 S_2\right) + \frac{\sqrt{2 \nu} r}{l} \left(S_0 - 6 S_1 + 12 S_2 - 8 S_3\right)\right]
+\end{multline}
+\end{comment}
+
+A generalized form of the hyperparameter $l$ derivative of Equation~\eqref{eq:MHKernel_dnx} can be expressed as follows:
+\begin{multline}
+\label{eq:MHKernel_dl_dnx}
+	\frac{\partial}{\partial l} \left[\frac{\partial^n k}{\partial x^n}\right] = \frac{\partial^a r}{\partial x_1^a} \frac{\partial^b r}{\partial x_2^b} \left(\sqrt{2 \nu}\right)^n \frac{\sigma^2}{l^{n+1}} \exp{\left(-\frac{\sqrt{2 \nu} r}{l}\right)} \\
+	\left[-\frac{\sqrt{2 \nu} r}{l} \sum_{i=0}^{n+1} M_{n+1,i} \, S_{p,i} - n \sum_{j=0}^{n} M_{n,j} \, S_{p,j}\right]
+\end{multline}
+where $\partial r/\partial x_{1,2}$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $S_{p,i}$ and $S_{p,j}$ are given by Equation~\eqref{eq:MHKernel_S} and $M_{n,i}$ and $M_{n+1,i}$ are given by Equation~\eqref{eq:MHKernel_M}.
+
+\subsection{Additional Notes}
+\label{subsec:MHNotes}
+
+Due to restrictions of the hyperparameter, $p$, resulting from the differentiability requirements of the kernel, it was decided that it would not be treated as a hyperparameter within the ``GPR1D" implementation. Instead, $p$ is treated as a constant, with a user-specified value, which is not altered during any of the optimization procedures.
+
+\begin{comment}
+\section{Neural Network Kernel}
+\label{sec:NNKernel}
+
+This kernel is mathematically expressed as:
+\begin{equation}
+\label{eq:NNKernel}
+	k\!\left(x_1,x_2\right) = \frac{2}{\pi} \left(-\frac{2 \Sigma p}{2l}\right), \qquad r = x_1 - x_2
+\end{equation}
+\end{comment}
+
+\section{Gibbs Kernel}
+\label{sec:GGKernel}
+
+This kernel is mathematically expressed as:
+\begin{equation}
+\label{eq:GGKernel}
+	\begin{gathered}
+	k\!\left(x_1,x_2\right) = \sigma^2 \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)}, \qquad r = x_1 - x_2
+	\end{gathered}
+\end{equation}
+where
+\begin{equation}
+\label{eq:GGKernel_PS}
+	 P = l\!\left(x_1\right) l\!\left(x_2\right), \quad S = l^2\!\left(x_1\right) + l^2\!\left(x_2\right)
+\end{equation}
+and $l\!\left(z\right)$ can be any sufficiently smooth function describing how the length-scale changes with the independent coordinate, denoted here as $z$ for clarity. This length-scale, or \emph{warping}, function may contain its own set of hyperparameters, denoted as $\theta_l$, but the function itself must be at least first-order differentiable in order to apply an optimization scheme to them. More complex schemes may require higher-order differntiability. Examples of such warping functions, $l\!\left(z\right)$, will be provided later in this section.
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta = \left\lbrace \sigma,\theta_l \right\rbrace$
+\end{center}
+
+A generalized form of the $n^{\text{th}}$-derivative of this kernel can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_dnx}
+	\frac{\partial^n k}{\partial x^n} = \sigma^2 \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)} F^{\left(n\right)}_{1,2}
+\end{equation}
+where $F^{\left(n\right)}_{1,2}$ represents the multiplicative factor resulting from the formulation of the $n^{\text{th}}$-derivative, with the subscript indicating whether the derivative is done with respect to $x_1$ or $x_2$ first. A general form of this factor that is applicable to all possible derivative orders has not yet been determined, but the zeroth-, first- and second-derivative factors are provided in this document.
+
+The zeroth-derivative factor, $F^{\left(0\right)}_{1,2}$, can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_F0}
+	F^{\left(0\right)}_{1,2} = 1
+\end{equation}
+It should be noted that since the derivatives always alternate between being with respect to $x_1$ and $x_2$, all even values of $n$, including $n=0$, yield expressions which are invariant to the subscript of $F^{\left(n\right)}_{1,2}$.
+
+The first-derivative factor, $F^{\left(1\right)}_{1,2}$, can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_F1}
+	F^{\left(1\right)}_{1,2} = -\frac{2r}{S} \frac{\partial r}{\partial x_{1,2}} + \frac{1}{2P} \frac{\partial P}{\partial x_{1,2}} + \left(\frac{r^2}{S^2} - \frac{1}{2S}\right) \frac{\partial S}{\partial x_{1,2}}
+\end{equation}
+where $\partial r/\partial x_{1,2}$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS} and
+\begin{equation}
+\label{eq:GGKernel_d1PS}
+	\frac{\partial P}{\partial x_{1,2}} = l\!\left(x_{2,1}\right) \frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}}, \quad \frac{\partial S}{\partial x_{1,2}} = 2 l\!\left(x_{1,2}\right) \frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}}
+\end{equation}
+
+The second-order factor, $F^{\left(2\right)}_{1,2}$, can be expressed as follows:
+\begin{multline}
+\label{eq:GGKernel_F2}
+	F^{\left(2\right)}_{1,2} = \frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \left(\frac{4r^2}{S^2} - \frac{2}{S}\right) - \frac{A}{S} \left(\frac{4r^2}{S^2} - \frac{6}{S}\right) - \frac{B}{S} \; + \\
+	\frac{\partial^2 P}{\partial x_1 \partial x_2} \left(\frac{4P \, r^4}{S^4} - \frac{12P \, r^2}{S^3} + \frac{3P}{S^2} + \frac{r^2}{SP} - \frac{1}{4P}\right)
+\end{multline}
+where $\partial r/\partial x_1$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS},
+\begin{equation}
+\label{eq:GGKernel_d2PS}
+	\begin{gathered}
+	\frac{\partial^2 P}{\partial x_1 \partial x_2} = \frac{1}{P} \frac{\partial P}{\partial x_1} \frac{\partial P}{\partial x_2} = \frac{1}{4P} \frac{\partial S}{\partial x_1} \frac{\partial S}{\partial x_2} = \frac{\partial l\!\left(x_1\right)}{\partial x_1} \frac{\partial l\!\left(x_2\right)}{\partial x_2} \\
+	\frac{\partial^2 S}{\partial x_1 \partial x_2} = 0
+	\end{gathered}
+\end{equation}
+and
+\begin{equation}
+\label{eq:GGKernel_extras}
+	\begin{gathered}
+	A = \frac{r}{P} \left(\frac{\partial r}{\partial x_1} \frac{\partial P}{\partial x_2} + \frac{\partial r}{\partial x_2} \frac{\partial P}{\partial x_1}\right) \\
+	B = \frac{r}{2} \left(\frac{\partial r}{\partial x_1} \frac{\partial S}{\partial x_2} + \frac{\partial r}{\partial x_2} \frac{\partial S}{\partial x_1}\right)
+	\end{gathered}
+\end{equation}
+where the derivatives of $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_d1PS}.
+
+\subsection{Hyperparameter $\sigma$ Derivatives}
+\label{subsec:GGHypDer_s}
+
+The hyperparameter $\sigma$ derivative of Equation~\eqref{eq:GGKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_ds}
+	\frac{\partial}{\partial \sigma} \left[k\!\left(x_1,x_2\right)\right] = 2 \sigma \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)}
+\end{equation}
+where $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS}.
+
+The hyperparameter $\sigma$ derivative of Equation~\eqref{eq:GGKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_ds_dnx}
+	\frac{\partial}{\partial \sigma} \left[\frac{\partial^n k}{\partial x^n}\right] = 2 \sigma \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)} F^{\left(n\right)}_{1,2}
+\end{equation}
+where $F^{\left(n\right)}_{1,2}$ is given for the zeroth-, first- and second-derivatives by Equations~\eqref{eq:GGKernel_F0}, \eqref{eq:GGKernel_F1} and \eqref{eq:GGKernel_F2}, respectively.
+
+\subsection{General Hyperparameter $\theta_{l,i}$ Derivatives}
+\label{subsec:GGHypDer_theta}
+
+The generalized form of the hyperparameter $\theta_{l,i}$ derivative of Equation~\eqref{eq:GGKernel} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_di}
+	\frac{\partial}{\partial \theta_{l,i}} \left[k\!\left(x_1,x_2\right)\right] = \sigma^2 \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)} \; G
+\end{equation}
+where $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS} and
+\begin{equation}
+\label{eq:GGKernel_di_G}
+	G = \frac{1}{2P} \frac{\partial P}{\partial \theta_{l,i}} + \left(\frac{r^2}{S^2} - \frac{1}{2S}\right) \frac{\partial S}{\partial \theta_{l,i}}
+\end{equation}
+where
+\begin{equation}
+\label{eq:GGKernel_diPS}
+	\begin{gathered}
+	\frac{\partial P}{\partial \theta_{l,i}} = \frac{\partial l\!\left(x_1\right)}{\partial \theta_{l,i}} l\!\left(x_2\right) + l\!\left(x_1\right) \frac{\partial l\!\left(x_2\right)}{\partial \theta_{l,i}} \\
+	\frac{\partial S}{\partial \theta_{l,i}} = 2 l\!\left(x_1\right) \frac{\partial l\!\left(x_1\right)}{\partial \theta_{l,i}} + 2 l\!\left(x_2\right) \frac{\partial l\!\left(x_2\right)}{\partial \theta_{l,i}}
+	\end{gathered}
+\end{equation}
+where the set of all $\partial l\!\left(z\right)/\partial \theta_{l,i}$ are dependent on the details of chosen warping function, $l\!\left(z\right)$.
+
+The generalized form of the hyperparameter $\theta_{l,i}$ derivative of Equation~\eqref{eq:GGKernel_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_di_d1x}
+	\frac{\partial}{\partial \theta_{l,i}} \left[\frac{\partial^n k}{\partial x^n}\right] = \sigma^2 \sqrt{\frac{2P}{S}} \exp{\left(-\frac{r^2}{S}\right)} \left(F^{\left(n\right)}_{1,2} \, G + \frac{\partial F^{\left(n\right)}_{1,2}}{\partial \theta_{l,i}}\right)
+\end{equation}
+where $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS}, $F^{\left(n\right)}_{1,2}$ is given for the zeroth-, first- and second-derivatives by Equations~\eqref{eq:GGKernel_F0}, \eqref{eq:GGKernel_F1} and \eqref{eq:GGKernel_F2}, respectively, and $G$ is given by Equation~\eqref{eq:GGKernel_di_G}. Similar to $F^{\left(n\right)}_{1,2}$, a general formulation for $\partial F^{\left(n\right)}_{1,2}/\partial \theta_{l,i}$ that is applicable to all possible derivative orders has not yet been determined, but the zeroth-, first- and second-derivative factors are provided in this document.
+
+The hyperparameter $\theta_{l,i}$ derivative of the zeroth-derivative factor, $F^{\left(0\right)}_{1,2}$, can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_diF0}
+	\frac{\partial F^{\left(0\right)}_{1,2}}{\partial \theta_{l,i}} = 0
+\end{equation}
+
+The hyperparameter $\theta_{l,i}$ derivative of the first-derivative factor, $F^{\left(1\right)}_{1,2}$, can be expressed as follows:
+\begin{multline}
+\label{eq:GGKernel_diF1}
+	\frac{\partial F^{\left(1\right)}_{1,2}}{\partial \theta_{l,i}} = -\frac{1}{2P^2} \frac{\partial P}{\partial x_{1,2}} \frac{\partial P}{\partial \theta_{l,i}} + \left[\frac{2r}{S^2} \frac{\partial r}{\partial x_{1,2}} - \left(\frac{2r^2}{S^3} - \frac{1}{2S^2}\right) \frac{\partial S}{\partial x_{1,2}}\right] \frac{\partial S}{\partial \theta_{l,i}} \; +\\
+	\frac{1}{2P} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial P}{\partial x_{1,2}}\right) + \left(\frac{r^2}{S^2} - \frac{1}{2S}\right) \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial S}{\partial x_{1,2}}\right)
+\end{multline}
+where $\partial r/\partial x_{1,2}$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS}, their derivatives with respect to $x_1$ and $x_2$ are given by Equation~\eqref{eq:GGKernel_d1PS}, their derivatives with respect to $\theta_{l,i}$ given by Equation~\eqref{eq:GGKernel_diPS} and
+\begin{equation}
+\label{eq:GGKernel_did1PS}
+	\begin{gathered}
+	\frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial P}{\partial x_{1,2}}\right) = \frac{\partial l\!\left(x_{2,1}\right)}{\partial \theta_{l,i}} \frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}} + l\!\left(x_{2,1}\right) \frac{\partial}{\partial \theta_{l,i}} \left(\frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}}\right) \\
+	\frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial S}{\partial x_{1,2}}\right) = 2 \frac{\partial l\!\left(x_{1,2}\right)}{\partial \theta_{l,i}} \frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}} + 2 l\!\left(x_{1,2}\right) \frac{\partial}{\partial \theta_{l,i}} \left(\frac{\partial l\!\left(x_{1,2}\right)}{\partial x_{1,2}}\right)
+	\end{gathered}
+\end{equation}
+
+The hyperparameter $\theta_{l,i}$ derivative of the second-order factor, $F^{\left(2\right)}_{1,2}$, can be expressed as follows:
+\begin{multline}
+\label{eq:GGKernel_diF2}
+	\frac{\partial F^{\left(2\right)}_{1,2}}{\partial \theta_{l,i}} = H_1 \frac{\partial P}{\partial \theta_{l,i}} + H_2 \frac{\partial S}{\partial \theta_{l,i}} + H_3 \; + \\
+	\frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial^2 P}{\partial x_1 \partial x_2}\right) \left(\frac{4P \, r^4}{S^4} - \frac{12P \, r^2}{S^3} + \frac{3P}{S^2} + \frac{r^2}{SP} - \frac{1}{4P}\right)
+\end{multline}
+where $P$ and $S$ are given by Equation~\eqref{eq:GGKernel_PS}, their derivatives with respect to $\theta_{l,i}$ are given by Equation~\eqref{eq:GGKernel_diPS},
+\begin{equation}
+\label{eq:GGKernel_di_H1}
+	H_1 = -\frac{A}{P} \left(\frac{4r^2}{S^3} - \frac{6}{S^2}\right) + \frac{\partial^2 P}{\partial x_1 \partial x_2} \left(\frac{4r^4}{S^4} - \frac{12r^2}{S^3} + \frac{3}{S^2} - \frac{r^2}{SP^2} + \frac{1}{4P^2}\right)
+\end{equation}
+\begin{multline}
+\label{eq:GGKernel_di_H2}
+	H_2 = -\frac{\partial r}{\partial x_1} \frac{\partial r}{\partial x_2} \left(\frac{8r^2}{S^3} - \frac{2}{S^2}\right) + \frac{12A}{S^2} \left(\frac{r^2}{S^2} - \frac{1}{S}\right) + \frac{B}{S^2} \; -\\
+	\frac{\partial^2 P}{\partial x_1 \partial x_2} \left(\frac{16P \, r^4}{S^5} - \frac{36P \, r^2}{S^4} + \frac{6P}{S^3} + \frac{r^2}{S^2 P}\right)
+\end{multline}
+\begin{multline}
+\label{eq:GGKernel_di_H3}
+	H_3 = -\frac{r}{P} \left(\frac{4r^2}{S^3} - \frac{6}{S^2}\right) \left[\frac{\partial r}{\partial x_1} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial P}{\partial x_2}\right) + \frac{\partial r}{\partial x_2} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial P}{\partial x_1}\right)\right] -\\
+	\frac{r}{2S} \left[\frac{\partial r}{\partial x_1} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial S}{\partial x_2}\right) + \frac{\partial r}{\partial x_2} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial S}{\partial x_1}\right)\right]
+\end{multline}
+where $\partial r/\partial x_{1,2}$ and $\partial r/\partial x_2$ are given by Equation~\eqref{eq:drdx}, the derivatives of $P$ and $S$ with respect to $x_1$ and $x_2$ are given by Equation~\eqref{eq:GGKernel_d1PS}, and the derivatives of these derivatives with respect to $\theta_{l,i}$ are given by Equation~\eqref{eq:GGKernel_did1PS}, and
+\begin{equation}
+\label{eq:GGKernel_did2PS}
+	\frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial^2 P}{\partial x_1 \partial x_2}\right) = \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial l\!\left(x_1\right)}{\partial x_1}\right) \frac{\partial l\!\left(x_2\right)}{\partial x_2} + \frac{\partial l\!\left(x_1\right)}{\partial x_1} \frac{\partial}{\partial \theta_{l,i}}\!\left(\frac{\partial l\!\left(x_2\right)}{\partial x_2}\right)
+\end{equation}
+
+%It should be noted that the remainder of this section will only provide up to the first derivatives for all warping functions, $l\!\left(z\right)$. This is because the second derivative of this kernel does not require higher-order derivatives.
+
+\subsection{Constant Warping Function}
+\label{subsec:GGKernel_C}
+
+This warping function essentially reduces the Gibbs kernel back into the Squared Exponential kernel, outlined in Section~\ref{sec:SEKernel}, and can be expressed as such:
+\begin{equation}
+\label{eq:GGKernel_C}
+	l\!\left(z\right) = l_c
+\end{equation}
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta_l = \left\lbrace l_c \right\rbrace$
+\end{center}
+
+A generalized form of the $n^{\text{th}}$-derivative of this warping function can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_C_dnx}
+	\frac{\partial^n l}{\partial z^n} = l_c \, \delta_{n,0}
+\end{equation}
+where
+\begin{equation}
+\label{eq:KroneckerDelta}
+	\delta_{i,j} = \left\{
+	\begin{aligned}
+	&1 \; , \qquad &i = j \\
+	&0 \; , \qquad &\text{otherwise}
+	\end{aligned}
+	\right.
+\end{equation}
+
+\subsubsection{Hyperparameter $l_c$ Derivatives}
+\label{subsubsec:GG_CHypDer_l}
+
+The generalized form of the hyperparameter $l_c$ derivative of Equation~\eqref{eq:GGKernel_C_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_C_db_dnx}
+	\frac{\partial}{\partial l_c} \left[\frac{\partial^n l\!\left(z\right)}{\partial z^n}\right] = \delta_{n,0}
+\end{equation}
+where $\delta_{n,0}$ is given by Equation~\eqref{eq:KroneckerDelta}.
+
+\subsection{Inverse Gaussian Warping Function}
+\label{subsec:GGKernel_IG}
+
+This warping function is useful for reducing the length scale in a single, localized region of interest within the coordinate space, $z$, and can be mathematically expressed as such:
+\begin{equation}
+\label{eq:GGKernel_IG}
+	l\!\left(z\right) = l_b - l_p \, \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)}
+\end{equation}
+
+\begin{center}
+	\textbf{Hyperparameters:}\hspace{20pt}$\theta_l = \left\lbrace l_b,l_p,\mu,\sigma_l \right\rbrace$
+\end{center}
+
+\begin{comment}
+\begin{equation}
+\label{eq:GGKernel_IG_d1z}
+	\frac{\partial l\!\left(z\right)}{\partial z} = l_p \frac{z - \mu}{\sigma_l^2} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)}
+\end{equation}
+\end{comment}
+
+A generalized form of the $n^{\text{th}}$-derivative of this warping function can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_dnx}
+	\frac{\partial^n l}{\partial z^n} = l_b \, \delta_{n,0} - \frac{l_p}{\sigma_l^n} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)} \sum_{i=0}^{n/2} C_{n,i} \left(\frac{z - \mu}{\sigma_l}\right)^{n-2i}
+\end{equation}
+where $\delta_{n,0}$ is the Kronecker delta as given in Equation~\eqref{eq:KroneckerDelta}, $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsubsection{Hyperparameter $l_b$ Derivatives}
+\label{subsubsec:GG_IGHypDer_lb}
+
+The generalized form of the hyperparameter $l_b$ derivative of Equation~\eqref{eq:GGKernel_IG_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_db_dnx}
+	\frac{\partial}{\partial l_b} \left[\frac{\partial^n l\!\left(z\right)}{\partial z^n}\right] = \delta_{n,0}
+\end{equation}
+where $\delta_{n,0}$ is given by Equation~\eqref{eq:KroneckerDelta}.
+
+\subsubsection{Hyperparameter $l_p$ Derivatives}
+\label{subsubsec:GG_IGHypDer_lp}
+
+The hyperparameter $l_p$ derivative of Equation~\eqref{eq:GGKernel_IG} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_dp}
+	\frac{\partial}{\partial l_p} \left[l\!\left(z\right)\right] = -\exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)}
+\end{equation}
+
+The generalized form of the hyperparameter $l_p$ derivative of Equation~\eqref{eq:GGKernel_IG_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_dp_dnx}
+	\frac{\partial}{\partial l_p} \left[\frac{\partial^n l}{\partial z^n}\right] = - \frac{1}{\sigma_l^n} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)} \sum_{i=0}^{n/2} C_{n,i} \left(\frac{z - \mu}{\sigma_l}\right)^{n-2i}
+\end{equation}
+where $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsubsection{Hyperparameter $\mu$ Derivatives}
+\label{subsubsec:GG_IGHypeDer_m}
+
+The hyperparameter $\mu$ derivative of Equation~\eqref{eq:GGKernel_IG} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_dm}
+	\frac{\partial}{\partial \mu}\!\left[l\!\left(z\right)\right] = -l_p \frac{z - \mu}{\sigma_l^2} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)}
+\end{equation}
+
+The generalized form of the hyperparameter $\mu$ derivative of Equation~\eqref{eq:GGKernel_IG_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_dm_dnx}
+	\frac{\partial}{\partial \mu}\!\left[\frac{\partial^n l}{\partial z^n}\right] = \frac{l_p}{\sigma_l^n} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)} \sum_{i=0}^{\left(n+2\right)/2} C_{n+1,i} \left(\frac{z - \mu}{\sigma_l}\right)^{n+1-2i}
+\end{equation}
+where $C_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsubsection{Hyperparameter $\sigma_l$ Derivatives}
+\label{subsubsec:GG_IGHypeDer_s}
+
+The hyperparameter $\sigma_l$ derivative of Equation~\eqref{eq:GGKernel_IG} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_ds}
+	\frac{\partial}{\partial \sigma_l}\!\left[l\!\left(z\right)\right] = l_p \frac{\left(z - \mu\right)^2}{\sigma_l^3} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)}
+\end{equation}
+
+The generalized form of the hyperparameter $\sigma_l$ derivative of Equation~\eqref{eq:GGKernel_IG_dnx} can be expressed as follows:
+\begin{equation}
+\label{eq:GGKernel_IG_ds_dnx}
+	\frac{\partial}{\partial \sigma_l}\!\left[\frac{\partial^n l}{\partial z^n}\right] = \frac{l_p}{\sigma_l^{n+1}} \exp{\left(-\frac{\left(z - \mu\right)^2}{2 \sigma_l^2}\right)} \sum_{i=0}^{\left(n+2\right)/2} L_{n,i} \left(\frac{z - \mu}{\sigma_l}\right)^{n+2-2i}
+\end{equation}
+where $L_{n,i}$ is given by Equation~\eqref{eq:Coefficient_dl_dnx} and the upper limit of the sum is always rounded down to the nearest integer.
+
+\subsubsection{Additional Notes}
+\label{subsubsec:GG_IGNotes}
+
+Due to strong correlation between the hyperparameter, $\mu$, and the resulting predicted fit from the algorithm, it was decided that it would not be treated as a hyperparameter within the ``GPR1D" implementation. Instead, $\mu$ is treated as a constant, with a user-specified value, which is not altered during any of the optimization procedures.
+
+\printbibliography
+
+\end{document}
