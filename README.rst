@@ -15,7 +15,7 @@ by using the following on the command line:
 
 .. code-block:: console
 
-    pip install [--user] -e GPR1D[guis]
+    pip install [--user] GPR1D[guis]
 
 Use the :code:`--user` flag if you do not have root access on the system
 that you are working on. If you have already cloned the
@@ -25,6 +25,11 @@ use the following instead:
 .. code-block:: console
 
     pip install [--user] -e .[guis]
+
+Removal of the :code:`[guis]` portion will no longer check for
+the GUI generation and plotting packages needed for this
+functionality. However, these packages are not crucial for the
+base classes and algorithms.
 
 
 Documentation
@@ -44,11 +49,15 @@ into their own Python scripts, a demo script is provided in
 scripts/. The basic syntax used to create kernels, select
 settings, and perform GPR fits are outlined there.
 
+In addition, a simplified GPR1D class is available for those
+wishing to distill the parameters into a subset of the most
+crucial ones.
+
 For any questions or to report bugs, please do so through the
 proper channels in the GitLab repository.
 
 
-** IMPORTANT note for users! **
+*Important note for users!*
 
 The following runtime warnings are common within this routine,
 but they are filtered out by default:
