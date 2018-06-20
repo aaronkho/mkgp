@@ -72,7 +72,7 @@ class _Kernel(object):
 
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
         """
-        Initializes the :code:`Kernel` instance.
+        Initializes the :code:`_Kernel` instance.
 
         .. note::
 
@@ -1626,14 +1626,14 @@ class Matern_HI_Kernel(_Kernel):
 
     .. note::
   
-        Recommended :code:`nu` is 5/2 for second order differentiability
+        Recommended :code:`nu = 5/2` for second order differentiability
         while retaining maximum feature representation.
 
     :kwarg amp: float. Hyperparameter representing variability of model in y.
 
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
 
-    :kwarg nu: float. Constant value setting the volatility of the model, recommended valie is 2.5.
+    :kwarg nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
@@ -2179,7 +2179,7 @@ class Gibbs_Kernel(_Kernel):
 
     def set_constants(self,consts):
         """
-        Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`WarpingFunction` instances.
+        Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
@@ -2693,8 +2693,8 @@ class GaussianProcessRegression1D(object):
 
         :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include::
-                       [:code:`grad`, :code:`mom`, :code:`nag`, :code:`adagrad`, :code:`adadelta`, :code:`adam`, :code:`adamax`, :code:`nadam`] or their respective indices in the list.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include:
+                       ['grad', 'mom', 'nag', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam'] or their respective indices in the list.
 
         :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method. (optional)
 
@@ -2798,8 +2798,8 @@ class GaussianProcessRegression1D(object):
 
         :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include::
-                       [:code:`grad`, :code:`mom`, :code:`nag`, :code:`adagrad`, :code:`adadelta`, :code:`adam`, :code:`adamax`, :code:`nadam`] or their respective indices in the list.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include:
+                       ['grad', 'mom', 'nag', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam'] or their respective indices in the list.
 
         :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method. (optional)
 
@@ -3496,7 +3496,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3567,7 +3567,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3639,7 +3639,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3717,7 +3717,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3791,7 +3791,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3872,7 +3872,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -3951,7 +3951,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -4031,7 +4031,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
@@ -4494,7 +4494,7 @@ class GaussianProcessRegression1D(object):
             implementation, it was decided that this approximation was good enough for the
             uses of the current implementation. (v1.0.1)
 
-        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within :code:`kbounds` argument. (optional)
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
         :returns: none.
         """
@@ -4568,7 +4568,7 @@ class GaussianProcessRegression1D(object):
 
         :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. (optional)
 
-        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument. (optional)
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
         :returns: none.
         """
@@ -4636,13 +4636,14 @@ class GaussianProcessRegression1D(object):
             if hscflag:
                 xntest = np.array([0.0])
                 ye = self._ye.copy() if self._nye is None else self._nye.copy()
+                aye = np.full(ye.shape,0.2 * np.mean(np.abs(ye)))
                 if isinstance(self._ekk,_Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
                     elp = self._elp
                     ekk = copy.copy(self._ekk)
                     ekkvec = []
                     elmlvec = []
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4652,7 +4653,7 @@ class GaussianProcessRegression1D(object):
                         etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
                         ekk.set_hyperparameters(etheta,log=True)
                         try:
-                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                             ekkvec.append(copy.copy(ekk))
                             elmlvec.append(elml)
                         except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4666,19 +4667,19 @@ class GaussianProcessRegression1D(object):
                     else:
                         raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
                 elif not self._eflag and self._eeps is not None:
-                    ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                    ekk = Noise_Kernel(float(np.mean(aye)))
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                     self._ekk = copy.copy(ekk)
                     self._eflag = True
-                (barE,varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
+                (barE,varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
                 if barE is not None:
-                    (dbarE,dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
+                    (dbarE,dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
                     nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
                     ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
                     xnl = nxn - 0.5 * ddx
                     xnu = nxn + 0.5 * ddx
-                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
-                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
+                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=ye,yerr=aye,do_drv=True))
+                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=ye,yerr=aye,do_drv=True))
                     ddbarEt = np.abs(dbarEu - dbarEl) / ddx
                     nsum = 50
                     ddbarE = np.zeros(xn.shape)
@@ -4966,7 +4967,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         use the results of the first optimization, regardless of its
         quality or convergence status.
 
-    :arg kernel: object. The covariance function, as a :code:`Kernel` instance, to be used in the fit procedure.
+    :arg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in the fit procedure.
 
     :arg xdata: array. Vector of x-values corresponding to data to be fitted.
 
@@ -4994,7 +4995,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         parameters reduced only to essentials and most crucial knobs for
         fine-tuning.
 
-        :arg kernel: object. The covariance function, as a :code:`Kernel` instance, to be used in the fit procedure.
+        :arg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in the fit procedure.
 
         :arg xdata: array. Vector of x-values corresponding to data to be fitted.
 
@@ -5046,7 +5047,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         optimization on the *first* call. Subsequent calls
         merely evaluate the optimized fit at the input x-values.
 
-        :arg xnew: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+        :arg xnew: array. Vector of x-values corresponding to points at which the GPR results should be evaulated.
 
         :returns: tuple.
                   Mean of GPR predictive distribution, ie. the fit ;
@@ -5090,9 +5091,9 @@ def KernelConstructor(name):
         All :code:`_OperatorKernel` class implementations should use encapsulating
         round brackets to specify their constituents. (v1.0.1)
 
-    :arg name: str. The codename of the desired :code:`Kernel` instance.
+    :arg name: str. The codename of the desired :code:`_Kernel` instance.
 
-    :returns: object. The desired :code:`Kernel` instance with default parameters. Returns :code:`None` if given kernel codename was invalid.
+    :returns: object. The desired :code:`_Kernel` instance with default parameters. Returns :code:`None` if given kernel codename was invalid.
     """
 
     kernel = None
