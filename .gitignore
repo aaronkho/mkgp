@@ -9,3 +9,4 @@ __pycache__/
 # Build directories
 dist/
 build/
+conda_build/

@@ -1,0 +1,37 @@
+{% set name = "GPR1D" %}
+{% set version = "1.0.1" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  git_rev: v1.0.1
+  git_url: 'https://gitlab.com/aaronkho/GPR1D'
+
+requirements:
+  host:
+    - python
+    - setuptools
+    - numpy >=1.13
+    - scipy >=0.17
+  run:
+    - python
+    - numpy >=1.13
+    - scipy >=0.17
+
+build:
+  script: python -m pip install --no-deps --ignore-installed .
+
+
+about:
+  home: {{ load_setup_py_data().url }}
+  license: {{ load_setup_py_data().license }}
+  license_file: LICENSE
+  summary: {{ load_setup_py_data().description }}
+  doc_url: 'https://aaronkho.gitlab.io/GPR1D/'
+
+extra:
+  recipe-maintainers:
+    - aaronkho
+    - Karel-van-de-Plassche
