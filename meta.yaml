@@ -2,17 +2,17 @@
 {% set version = "1.0.1" %}
 
 package:
-  name: '{{ name|lower }}'
-  version: '{{ version }}'
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
-  git_rev: v1.0.1
-  git_url: 'https://gitlab.com/aaronkho/GPR1D'
+  git_rev: v{{ version }}
+  git_url: https://gitlab.com/aaronkho/{{ name }}
 
 requirements:
   host:
     - python
-    - setuptools
+    - pip
     - numpy >=1.13
     - scipy >=0.17
   run:
@@ -29,7 +29,7 @@ about:
   license: {{ load_setup_py_data().license }}
   license_file: LICENSE
   summary: {{ load_setup_py_data().description }}
-  doc_url: 'https://aaronkho.gitlab.io/GPR1D/'
+  doc_url: https://aaronkho.gitlab.io/{{ name }}
 
 extra:
   recipe-maintainers:
