@@ -1824,6 +1824,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
+            vary_yerrs = self.HeteroscedasticBox.isChecked()
 
             try:
                 tic = time.perf_counter()
@@ -1833,7 +1834,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres)
                 self.gpr.set_search_parameters(epsilon=yeps,method=yopm,spars=yopp)
                 self.gpr.set_error_search_parameters(epsilon=eeps,method=eopm,spars=eopp)
-                self.gpr.GPRFit(xnew,nigp_flag=use_xerrs,nrestarts=ynres)
+                self.gpr.GPRFit(xnew,hsgp_flag=vary_yerrs,nigp_flag=use_xerrs,nrestarts=ynres)
                 self.fNewData = False
                 toc = time.perf_counter()
                 print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))

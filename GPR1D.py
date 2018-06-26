@@ -2495,14 +2495,14 @@ class GaussianProcessRegression1D(object):
         self._dbarF = None
         self._dvarF = None
         self._lml = None
-        self._eflag = False
         self._barE = None
         self._varE = None
         self._dbarE = None
         self._dvarE = None
         self._varN = None
         self._dvarN = None
-        self._nye = None
+        self._gpye = None
+        self._egpye = None
         self._fwarn = False
         self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
@@ -2564,56 +2564,89 @@ class GaussianProcessRegression1D(object):
 
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             self._xx = np.array(xdata).flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
             self._xx = xdata.flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(xerr,(list,tuple)) and len(xerr) > 0:
             self._xe = np.array(xerr).flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xerr,np.ndarray) and xerr.size > 0:
             self._xe = xerr.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xerr,str):
             self._xe = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(ydata,(list,tuple)) and len(ydata) > 0:
             self._yy = np.array(ydata).flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(ydata,np.ndarray) and ydata.size > 0:
             self._yy = ydata.flatten()
+            self._gpye = None
+            self._egpye = None
         if isinstance(yerr,(list,tuple)) and len(yerr) > 0:
             self._ye = np.array(yerr).flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(yerr,np.ndarray) and yerr.size > 0:
             self._ye = yerr.flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(yerr,str):
             self._ye = None
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(dxdata,(list,tuple)) and len(dxdata) > 0:
             temp = np.array([])
             for item in dxdata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dxx = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dxdata,np.ndarray) and dxdata.size > 0:
             self._dxx = dxdata.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dxdata,str):
             self._dxx = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(dydata,(list,tuple)) and len(dydata) > 0:
             temp = np.array([])
             for item in dydata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dyy = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dydata,np.ndarray) and dydata.size > 0:
             self._dyy = dydata.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dydata,str):
             self._dyy = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(dyerr,(list,tuple)) and len(dyerr) > 0:
             temp = np.array([])
             for item in dyerr:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dye = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dyerr,np.ndarray) and dyerr.size > 0:
             self._dye = dyerr.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dyerr,str):
             self._dye = None
+            self._gpye = None
+            self._egpye = None
 
 
     def set_conditioner(self,condnum=None,lbound=None,ubound=None):
@@ -2664,7 +2697,8 @@ class GaussianProcessRegression1D(object):
 
         if isinstance(kernel,_Kernel):
             self._ekk = copy.copy(kernel)
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(self._ekk,_Kernel):
             kh = self._ekk.get_hyperparameters(log=True)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
@@ -2678,10 +2712,12 @@ class GaussianProcessRegression1D(object):
                 else:
                     kb = None
                 self._ekb = kb
-                self._eflag = False
+                self._gpye = None
+                self._egpye = None
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._elp = float(regpar)
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
 
@@ -2715,10 +2751,9 @@ class GaussianProcessRegression1D(object):
             self._eps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    midx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                midx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
@@ -2818,10 +2853,9 @@ class GaussianProcessRegression1D(object):
             self._eeps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    emidx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                emidx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             emidx = int(method)
         if emidx is not None:
             if emidx == 1:
@@ -2907,22 +2941,44 @@ class GaussianProcessRegression1D(object):
         self._fwarn = True if flag else False
 
 
-    def get_raw_data(self,conditioned=False):
+    def get_raw_data(self,processed=False):
         """
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
-        with or without omissions / filters / conditioning. If :code:`set_conditioner()`
-        has not been called, uses default settings for the data conditioner.
-
-        :kwarg conditioned: bool. Perform data conditioning before returning values to see data actually used by fitting routine. (optional)
+        without any internal processing.
 
         :returns: (array, array, array, array, array, array, array).
             Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        cxx = self._xx
-        cyy = self._yy
-        cxe = self._xe
-        cye = self._ye
+        rxx = self._xx
+        ryy = self._yy
+        rxe = self._xe
+        rye = self._ye
+        rdxx = self._dxx
+        rdyy = self._dyy
+        rdye = self._dye
+        return (rxx,ryy,rxe,rye,rdxx,rdyy,rdye)
+
+
+    def get_processed_data(self):
+        """
+        Returns the input data passed into the latest :code:`GPRFit()` call,
+        including all internal processing performed by that call.
+
+        .. note::
+
+            If :code:`GPRFit()` was executed with :code:`nigp_flag = True`, then
+            the raw x-error data is folded into the y-error. As such, this
+            function only returns y-errors.
+
+        :returns: (array, array, array, array, array, array, array).
+            Vectors in order of x-values, y-values, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
+        """
+
+        pxx = self._xx
+        pyy = self._yy
+        pxe = self._xe
+        pye = self._ye if self._gpye is None else self._gpye
         dxx = self._dxx
         dyy = self._dyy
         dye = self._dye
@@ -2930,8 +2986,8 @@ class GaussianProcessRegression1D(object):
             lb = -1.0e50 if self._lb is None else self._lb
             ub = 1.0e50 if self._ub is None else self._ub
             cn = 5.0e-3 if self._cn is None else self._cn
-            (cxx,cyy,cxe,cye,nn) = self._condition_data(cxx,cyy,cxe,cye,lb,ub,cn)
-        return (cxx,cyy,cxe,cye,dxx,dyy,dye)
+            (pxx,pyy,pxe,cye,nn) = self._condition_data(pxx,pyy,pxe,pye,lb,ub,cn)
+        return (pxx,pyy,pye,dxx,dyy,dye)
 
 
     def get_gp_x(self):
@@ -3204,10 +3260,9 @@ class GaussianProcessRegression1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        ye = self._ye if self._nye is None else self._nye
         barE = None
-        if xn is not None and ye is not None and self._eflag:
-            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
+        if xn is not None and self._gpye is not None and self._egpye is not None:
+            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,epsilon='None'))
         return barE
 
 
@@ -4191,7 +4246,7 @@ class GaussianProcessRegression1D(object):
         lp = self._lp
         xx = self._xx
         yy = self._yy
-        ye = self._ye if self._nye is None else self._nye
+        ye = self._ye if self._gpye is None else self._gpye
         dxx = self._dxx
         dyy = self._dyy
         dye = self._dye
@@ -4260,10 +4315,9 @@ class GaussianProcessRegression1D(object):
             eps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    midx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                midx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
@@ -4423,7 +4477,7 @@ class GaussianProcessRegression1D(object):
         lp = self._lp
         xx = self._xx
         yy = self._yy
-        ye = self._ye if self._nye is None else self._nye
+        ye = self._ye if self._gpye is None else self._gpye
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
         cn = 5.0e-3 if self._cn is None else self._cn
@@ -4476,6 +4530,58 @@ class GaussianProcessRegression1D(object):
         return (barF,errF,lml)
 
 
+    def make_HSGP_errors(self):
+        """
+        """
+
+        if self._ye is not None and self._yy.size == self._ye.size:
+            elml = None
+            ekk = None
+            xntest = np.array([0.0])
+            ye = self._ye.copy() if self._gpye is None else self._gpye.copy()
+            aye = np.full(ye.shape,np.nanmax([0.2 * np.mean(np.abs(ye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
+#            aye = 0.1 * ye
+            if isinstance(self._ekk,_Kernel) and self._ekb is not None and self._eeps is not None and self._egpye is None:
+                elp = self._elp
+                ekk = copy.copy(self._ekk)
+                ekkvec = []
+                elmlvec = []
+                try:
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                    ekkvec.append(copy.copy(ekk))
+                    elmlvec.append(elml)
+                except (ValueError,np.linalg.linalg.LinAlgError):
+                    ekkvec.append(None)
+                    elmlvec.append(np.NaN)
+                for jj in np.arange(0,self._enr):
+                    etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
+                    ekk.set_hyperparameters(etheta,log=True)
+                    try:
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                        ekkvec.append(copy.copy(ekk))
+                        elmlvec.append(elml)
+                    except (ValueError,np.linalg.linalg.LinAlgError):
+                        ekkvec.append(None)
+                        elmlvec.append(np.NaN)
+                eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
+                if len(eimaxv) > 0:
+                    eimax = eimaxv[0]
+                    ekk = ekkvec[eimax]
+                    self._ekk = copy.copy(ekkvec[eimax])
+                else:
+                    raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
+            elif self._eeps is not None and self._egpye is None:
+                ekk = Noise_Kernel(float(np.mean(aye)))
+                (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                self._ekk = copy.copy(ekk)
+            if isinstance(ekk,_Kernel):
+                xntest = self._xx.copy() + 1.0e-8
+                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                self._egpye = aye.copy()
+        else:
+            raise ValueError('Check input y-errors to make sure they are valid.')
+
+
     def make_NIGP_errors(self,nrestarts=0):
         """
         Calculates a vector of modified y-errors based on input x-errors and a test model
@@ -4504,11 +4610,8 @@ class GaussianProcessRegression1D(object):
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
-        if not self._fwarn:
-            warnings.filterwarnings("ignore",category=RuntimeWarning)
-
-        if self._kk is not None and self._xe is not None and self._xx.size == self._xe.size:
-            barF = None
+        if isinstance(self._kk,_Kernel) and self._xe is not None and self._xx.size == self._xe.size:
+            nlml = None
             nkk = None
             xntest = np.array([0.0])
             if self._kb is not None and nr > 0:
@@ -4533,26 +4636,23 @@ class GaussianProcessRegression1D(object):
                         kkvec.append(None)
                         lmlvec.append(np.NaN)
                 imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
-                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon=-1.0))
+                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
             else:
-                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest))
-            if barF is not None and isinstance(nkk,_Kernel):
+                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+            if isinstance(nkk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
-                nfilt = np.any([np.isnan(self._xe),np.isnan(self._ye)],axis=0)
                 cxe = self._xe.copy()
+                cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
+                nfilt = np.any([np.isnan(cxe),np.isnan(cye)],axis=0)
                 cxe[nfilt] = 0.0
-                cye = self._ye.copy()
                 cye[nfilt] = 0.0
-                self._nye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
+                self._gpye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
 
-        if not self._fwarn:
-            warnings.filterwarnings("default",category=RuntimeWarning)
 
-
-    def GPRFit(self,xnew,nigp_flag=False,nrestarts=None):
+    def GPRFit(self,xnew,hsgp_flag=True,nigp_flag=False,nrestarts=None):
         """
         Main GP regression fitting routine, **recommended** to call this after using set functions, instead of the
         :code:`__basic_fit()` function, as this adapts the method based on inputs, performs 1st derivative and
@@ -4566,7 +4666,10 @@ class GaussianProcessRegression1D(object):
 
         :arg xnew: array. Vector of x-values at which the predicted fit will be evaluated.
 
-        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. (optional)
+        :kwarg hsgp_flag: bool. Set as true to perform Gaussian Process regression fit with variable y-errors. Default is :code:`True`. (optional)
+
+        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. Default is :code:`False`. (optional)
+                          **Recommended** only to use with :code:`hsgp_flag = True`!
 
         :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
@@ -4584,17 +4687,60 @@ class GaussianProcessRegression1D(object):
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         barF = None
         varF = None
         lml = None
         nkk = None
-        self._nye = None
+        if hsgp_flag:
+            self.make_HSGP_errors()
         if nigp_flag:
             self.make_NIGP_errors(nr)
-        hscflag = True if self._ye is not None else False
+            if hsgp_flag:
+                self._egpye = None
+                self.make_HSGP_errors()
+        if self._gpye is None:
+            hsgp_flag = False
+            nigp_flag = False
+            self._gpye = self._ye.copy()
 
-        if not self._fwarn:
-            warnings.filterwarnings("ignore",category=RuntimeWarning)
+        if self._egpye is not None:
+            (self._barE,self._varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
+            (self._dbarE,self._dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
+            nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
+            ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
+            xnl = nxn - 0.5 * ddx
+            xnu = nxn + 0.5 * ddx
+            dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,do_drv=True))
+            dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,do_drv=True))
+            ddbarEt = np.abs(dbarEu - dbarEl) / ddx
+            nsum = 50
+            ddbarE = np.zeros(xn.shape)
+            for nx in np.arange(0,xn.size):
+                ivec = np.where(nxn >= xn[nx])[0][0]
+                nbeg = nsum - (ivec + 1) if (ivec + 1) < nsum else 0
+                nend = nsum - (nxn.size - ivec - 1) if (nxn.size - ivec - 1) < nsum else 0
+                temp = None
+                if nbeg > 0:
+                    vbeg = np.full((nbeg,),ddbarEt[0])
+                    temp = np.hstack((vbeg,ddbarEt[:ivec+nsum+1]))
+                    ddbarE[nx] = float(np.mean(temp))
+                elif nend > 0:
+                    vend = np.full((nend,),ddbarEt[-1]) if nend > 0 else np.array([])
+                    temp = np.hstack((ddbarEt[ivec-nsum:],vend))
+                    ddbarE[nx] = float(np.mean(temp))
+                else:
+                    ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
+            self._ddbarE = ddbarE.copy()
+        else:
+            self._gpye = np.full(xn.shape,np.sqrt(np.mean(np.power(self._gpye,2.0)))) if self._gpye is not None else None
+            self._barE = self._gpye.copy() if self._gpye is not None else None
+            self._varE = np.zeros(xn.shape) if self._barE is not None else None
+            self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
+            self._dvarE = np.zeros(xn.shape) if self._barE is not None else None
+            self._ddbarE = np.zeros(xn.shape) if self._barE is not None else None
 
         if self._kk is not None and self._kb is not None and nr > 0:
             xntest = np.array([0.0])
@@ -4628,94 +4774,17 @@ class GaussianProcessRegression1D(object):
             (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
 
         if barF is not None and isinstance(nkk,_Kernel):
-            barE = None
-            varE = None
-            dbarE = None
-            dvarE = None
-            ddbarE = None
-            if hscflag:
-                xntest = np.array([0.0])
-                ye = self._ye.copy() if self._nye is None else self._nye.copy()
-                aye = np.full(ye.shape,0.2 * np.mean(np.abs(ye)))
-                if isinstance(self._ekk,_Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
-                    elp = self._elp
-                    ekk = copy.copy(self._ekk)
-                    ekkvec = []
-                    elmlvec = []
-                    try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                        ekkvec.append(copy.copy(ekk))
-                        elmlvec.append(elml)
-                    except (ValueError,np.linalg.linalg.LinAlgError):
-                        ekkvec.append(None)
-                        elmlvec.append(np.NaN)
-                    for jj in np.arange(0,self._enr):
-                        etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
-                        ekk.set_hyperparameters(etheta,log=True)
-                        try:
-                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                            ekkvec.append(copy.copy(ekk))
-                            elmlvec.append(elml)
-                        except (ValueError,np.linalg.linalg.LinAlgError):
-                            ekkvec.append(None)
-                            elmlvec.append(np.NaN)
-                    eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
-                    if len(eimaxv) > 0:
-                        eimax = eimaxv[0]
-                        self._ekk = copy.copy(ekkvec[eimax])
-                        self._eflag = True
-                    else:
-                        raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-                elif not self._eflag and self._eeps is not None:
-                    ekk = Noise_Kernel(float(np.mean(aye)))
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                    self._ekk = copy.copy(ekk)
-                    self._eflag = True
-                (barE,varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
-                if barE is not None:
-                    (dbarE,dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
-                    nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
-                    ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
-                    xnl = nxn - 0.5 * ddx
-                    xnu = nxn + 0.5 * ddx
-                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=ye,yerr=aye,do_drv=True))
-                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=ye,yerr=aye,do_drv=True))
-                    ddbarEt = np.abs(dbarEu - dbarEl) / ddx
-                    nsum = 50
-                    ddbarE = np.zeros(xn.shape)
-                    for nx in np.arange(0,xn.size):
-                        ivec = np.where(nxn >= xn[nx])[0][0]
-                        nbeg = nsum - (ivec + 1) if (ivec + 1) < nsum else 0
-                        nend = nsum - (nxn.size - ivec - 1) if (nxn.size - ivec - 1) < nsum else 0
-                        temp = None
-                        if nbeg > 0:
-                            vbeg = np.full((nbeg,),ddbarEt[0])
-                            temp = np.hstack((vbeg,ddbarEt[:ivec+nsum+1]))
-                            ddbarE[nx] = float(np.mean(temp))
-                        elif nend > 0:
-                            vend = np.full((nend,),ddbarEt[-1]) if nend > 0 else np.array([])
-                            temp = np.hstack((ddbarEt[ivec-nsum:],vend))
-                            ddbarE[nx] = float(np.mean(temp))
-                        else:
-                            ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
-
             self._xF = xn.copy()
             self._barF = barF.copy()
             self._varF = varF.copy() if varF is not None else None
-            self._barE = barE.copy() if barE is not None else None
-            self._varE = varE.copy() if varE is not None else None
-            self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
             self._lml = lml
             self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = dbarF.copy() if dbarF is not None else None
             self._dvarF = dvarF.copy() if dvarF is not None else None
-            self._dbarE = dbarE.copy() if dbarE is not None else None
-            self._dvarE = dvarE.copy() if dvarE is not None else None
-#            self._dvarN = dvarF + np.diag(np.power(dbarE,2.0)) if dvarF is not None and dbarE is not None else None
-#            ddfac = np.sqrt(np.mean(np.power(ddbarE,2.0))) if ddbarE is not None else 0.0
-            ddfac = ddbarE.copy() if ddbarE is not None else 0.0
-            self._dvarN = np.diag(2.0 * (np.power(dbarE,2.0) + np.abs(barE * ddfac))) if barE is not None and dbarE is not None else None
+            self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else None
+            ddfac = self._ddbarE.copy() if self._ddbarE is not None else 0.0
+            self._dvarN = np.diag(2.0 * (np.power(self._dbarE,2.0) + np.abs(self._barE * ddfac))) if self._dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
 
