@@ -1841,12 +1841,12 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 ylml = self.gpr.get_gp_lml()
                 print("Final log-marginal-likelihood: %15.8f" % (ylml))
                 if (isinstance(eeps,(float,int)) and eeps > 0.0) or (isinstance(enres,(float,int)) and enres > 0):
-                    ehyps = self.gpr.get_error_kernel().get_hyperparameters()
+                    ehyps = self.gpr.get_error_kernel().hyperparameters
                     print("   --- Optimized error kernel hyperparameters: ---")
                     print(ehyps)
                 if (isinstance(yeps,(float,int)) and yeps > 0.0) or (isinstance(ynres,(float,int)) and ynres > 0):
-                    yhyps = self.gpr.get_gp_kernel().get_hyperparameters()
-                    print("   *** Optimized kernel hyperparameters ***")
+                    yhyps = self.gpr.get_gp_kernel().hyperparameters
+                    print("   *** Optimized kernel hyperparameters: ***")
                     print(yhyps)
             except Exception as e:
                 print(repr(e))
