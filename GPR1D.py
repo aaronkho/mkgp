@@ -239,7 +239,7 @@ class _Kernel(object):
         if isinstance(theta,(list,tuple,array)):
             userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
+            raise TypeError('%s Kernel hyperparameters must be given as an array-like object.' % (self._fname))
         if isinstance(self._hyperparameters,array):
             if userhyps.size >= self._hyperparameters.size:
                 if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
@@ -254,9 +254,9 @@ class _Kernel(object):
                     userhyps[:self._hyperparameters.size] = htemp
                 self._hyperparameters = np.array(userhyps[:self._hyperparameters.size],dtype=np.float64)
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
+                raise ValueError('%s Kernel hyperparameters must contain at least %d elements.' % (self.name,self._hyperparameters.size))
         else:
-            warnings.warn('Kernel instance has no hyperparameters.',stacklevel=2)
+            warnings.warn('%s Kernel instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
     @constants.setter
@@ -273,14 +273,14 @@ class _Kernel(object):
         if isinstance(consts,(list,tuple,array)):
             usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
+            raise TypeError('%s Kernel constants must be given as an array-like object.' % (self._fname))
         if isinstance(self._constants,array):
             if usercsts.size >= self._constants.size:
                 self._constants = np.array(usercsts[:self._constants.size],dtype=np.float64)
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s Kernel constants must contain at least %d elements.' % (self.name,self._constants.size))
         else:
-            warnings.warn('Kernel instance has no constants.',stacklevel=2)
+            warnings.warn('%s Kernel instance has no constants.' % (self.name),stacklevel=2)
 
 
     @bounds.setter
@@ -297,9 +297,9 @@ class _Kernel(object):
         if isinstance(bounds,(list,tuple,array)):
             userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
         if userbnds.shape[0] != 2:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
         if isinstance(self._hyperparameters,array):
             if userbnds.shape[1] >= self._hyperparameters.size:
                 self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
@@ -307,9 +307,9 @@ class _Kernel(object):
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
-                raise ValueError('Argument bounds must be a 2D-array-like object with exactly 2 rows and at least %d elements per row.' % (self._hyperparameters.size))
+                raise ValueError('%s Kernel bounds must be a 2D-array-like object with exactly 2 rows and at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            warnings.warn('Kernel instance has no hyperparameters to set bounds for.',stacklevel=2)
+            warnings.warn('%s Kernel instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -355,6 +355,35 @@ class _OperatorKernel(_Kernel):
         """
         super(_OperatorKernel,self).__init__(name,func,hderf)
         self._kernel_list = klist if klist is not None else []
+
+
+    @property
+    def name(self):
+        """
+        Returns the codename of the :code:`_OperatorKernel` instance.
+
+        :returns: str. Codename of the :code:`_OperatorKernel` instance.
+        """
+
+        val = self._fname if isinstance(self._fname,str) else None
+        temp = ""
+        for kk in self._kernel_list:
+            temp = temp + "-" + kk.name if temp else kk.name
+        temp = "(" + temp + ")"
+        val = val + temp if val is not None else "None"
+        return val
+
+
+    @property
+    def basename(self):
+        """
+        Returns the base codename of the :code:`_OperatorKernel` instance.
+
+        :returns: str. Base codename of the :code:`_OperatorKernel` instance.
+        """
+
+        val = self._fname if isinstance(self._fname,str) else "None"
+        return val
 
 
     @property
@@ -417,7 +446,7 @@ class _OperatorKernel(_Kernel):
         if isinstance(theta,(list,tuple,array)):
             userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
+            raise TypeError('%s OperatorKernel hyperparameters must be given as an array-like object.' % (self._fname))
         nhyps = self.hyperparameters.size
         if nhyps > 0:
             if userhyps.size >= nhyps:
@@ -431,9 +460,9 @@ class _OperatorKernel(_Kernel):
                             kk.hyperparameters = theta[ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (nhyps))
+                raise ValueError('%s OperatorKernal hyperparameters must contain at least %d elements.' % (self.name,nhyps))
         else:
-            warnings.warn('OperatorKernel instance has no hyperparameters.',stacklevel=2)
+            warnings.warn('%s OperatorKernel instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
     @constants.setter
@@ -450,7 +479,7 @@ class _OperatorKernel(_Kernel):
         if isinstance(consts,(list,tuple,array)):
             usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
+            raise TypeError('%s OperatorKernel constants must be given as an array-like object.' % (self._fname))
         ncsts = self.constants.size
         if ncsts > 0:
             if usercsts.size >= ncsts:
@@ -464,9 +493,9 @@ class _OperatorKernel(_Kernel):
                             kk.constants = consts[ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (ncsts))
+                raise ValueError('%s OperatorKernel constants must contain at least %d elements.' % (self.name,ncsts))
         else:
-            warnings.warn('OperatorKernel instance has no constants.',stacklevel=2)
+            warnings.warn('%s OperatorKernel instance has no constants.' % (self.name),stacklevel=2)
 
 
     @bounds.setter
@@ -483,9 +512,9 @@ class _OperatorKernel(_Kernel):
         if isinstance(bounds,(list,tuple,array)):
             userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument bounds must be a 2d-array-like object with exactly 2 rows.')
+            raise TypeError('%s OperatorKernel bounds must be given as a 2d-array-like object with exactly 2 rows.' % (self._fname))
         if userbnds.shape[0] != 2:
-            raise TypeError('Argument bounds must be a 2d-array-like object with exactly 2 rows.')
+            raise TypeError('%s OperatorKernel bounds must be given as a 2d-array-like object with exactly 2 rows.' % (self._fname))
         nhyps = self.hyperparameters.size
         if nhyps > 0:
             if userbnds.shape[1] >= nhyps:
@@ -499,9 +528,9 @@ class _OperatorKernel(_Kernel):
                             kk.bounds = userbnds[:,ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Arguments bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self._hyperparameters.size))
+                raise ValueError('%s OperatorKernel bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            warnings.warn('OperatorKernel instance has no hyperparameters to set bounds for.',stacklevel=2)
+            warnings.warn('%s OperatorKernel instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -621,7 +650,8 @@ class _WarpingFunction(object):
         :returns: str. Codename of the :code:`_WarpingFunction` instance.
         """
 
-        return self._fname
+        val = self._fname if isinstance(self._fname,str) else "None"
+        return val
 
 
     @property
@@ -692,7 +722,7 @@ class _WarpingFunction(object):
         if isinstance(theta,(list,tuple,array)):
             userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
+            raise TypeError('%s WarpingFunction hyperparameters must be given as an array-like object.' % (self._fname))
         if isinstance(self._hyperparameters,array):
             if userhyps.size >= self._hyperparameters.size:
                 if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
@@ -707,9 +737,9 @@ class _WarpingFunction(object):
                     userhyps[:self._hyperparameters.size] = htemp
                 self._hyperparameters = np.array(userhyps[:self._hyperparameters.size],dtype=np.float64)
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
+                raise ValueError('%s WarpingFunction hyperparameters must contain at least %d elements.' % (self.name,self._hyperparameters.size))
         else:
-            warnings.warn('WarpingFunction object has no hyperparameters.',stacklevel=2)
+            warnings.warn('%s WarpingFunction instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
     @constants.setter
@@ -726,14 +756,14 @@ class _WarpingFunction(object):
         if isinstance(consts,(list,tuple,array)):
             usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
+            raise TypeError('%s WarpingFunction constants must be given as an array-like object.' % (self._fname))
         if isinstance(self._constants,array):
             if usercsts.size >= self._constants.size:
                 self._constants = np.array(usercsts[:self._constants.size],dtype=np.float64)
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s WarpingFunction constants must contain at least %d elements.' % (self.name,self._constants.size))
         else:
-            warnings.warn('WarpingFunction object has no constants.',stacklevel=2)
+            warnings.warn('%s WarpingFunction instance has no constants.' % (self.name),stacklevel=2)
 
 
     @bounds.setter
@@ -750,9 +780,9 @@ class _WarpingFunction(object):
         if isinstance(bounds,(list,tuple,array)):
             userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
+            raise TypeError('%s WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
         if userbnds.shape[0] != 2:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
+            raise TypeError('%s WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
         if isinstance(self._hyperparameters,array):
             if userbnds.shape[1] >= self._hyperparameters.size:
                 self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
@@ -760,9 +790,9 @@ class _WarpingFunction(object):
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
-                raise ValueError('Arguments bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self._hyperparameters.size))
+                raise ValueError('%s WarpingFunction bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            warnings.warn('WarpingFunction object has no hyperparameters to set bounds for.',stacklevel=2)
+            warnings.warn('%s WarpingFunction instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -817,22 +847,17 @@ class Sum_Kernel(_OperatorKernel):
 
         klist = kwargs.get("klist")
         uklist = []
-        name = "None"
         if len(args) >= 2 and isinstance(args[0],_Kernel) and isinstance(args[1],_Kernel):
-            name = ""
             for kk in args:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.name if name else kk.name
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
-            name = ""
             for kk in klist:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.name if name else kk.name
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel instances.')
-        super(Sum_Kernel,self).__init__("Sum("+name+")",self.__calc_covm,True,uklist)
+        super(Sum_Kernel,self).__init__("Sum",self.__calc_covm,True,uklist)
 
 
     def __copy__(self):
@@ -921,7 +946,7 @@ class Product_Kernel(_OperatorKernel):
             for kk in args:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.name if name else kk.name
+
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
             name = ""
             for kk in klist:
@@ -2271,7 +2296,7 @@ class Gibbs_Kernel(_Kernel):
         if isinstance(theta,(list,tuple,array)):
             userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
+            raise TypeError('%s Kernel hyperparameters must be given as an array-like object.' % (self._fname))
         if super(Gibbs_Kernel,self).hyperparameters.size > 0:
             super(Gibbs_Kernel,self.__class__).hyperparameters.__set__(self,userhyps)
         if isinstance(self._wfunc,_WarpingFunction):
@@ -2279,7 +2304,7 @@ class Gibbs_Kernel(_Kernel):
             if nhyps < userhyps.size:
                 self._wfunc.hyperparameters = userhyps[nhyps:]
         else:
-            warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
+            warnings.warn('%s warping function is not a valid WarpingFunction instance.' % (type(self).__name__))
 
 
     @constants.setter
@@ -2296,7 +2321,7 @@ class Gibbs_Kernel(_Kernel):
         if isinstance(consts,(list,tuple,array)):
             usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
+            raise TypeError('%s Kernel constants must be given as an array-like object.' % (self._fname))
         if super(Gibbs_Kernel,self).constants.size > 0:
             super(Gibbs_Kernel,self.__class__).constants.__set__(self,usercsts)
         if isinstance(self._wfunc,_WarpingFunction):
@@ -2304,7 +2329,7 @@ class Gibbs_Kernel(_Kernel):
             if ncsts < usercsts.size:
                 self._wfunc.constants = usercsts[ncsts:]
         else:
-            warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
+            warnings.warn('%s warping function is not a valid WarpingFunction object.' % (type(self).__name__))
 
 
     @bounds.setter
@@ -2321,18 +2346,17 @@ class Gibbs_Kernel(_Kernel):
         if isinstance(bounds,(list,tuple,array)):
             userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
         if userbnds.shape[0] != 2:
-            raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
-        if super(Gibbs_Kernel,self).bounds is not None:
-            super(Gibbs_Kernel,self.__class__).bounds.__set__(self,userbnds)
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        super(Gibbs_Kernel,self.__class__).bounds.__set__(self,userbnds)
         if isinstance(self._wfunc,_WarpingFunction):
             wbnds = super(Gibbs_Kernel,self).bounds
             nbnds = wbnds.shape[1] if wbnds is not None else 0
             if nbnds < userbnds.shape[1]:
                 self._wfunc.bounds = userbnds[:,nbnds:]
         else:
-            warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
+            warnings.warn('%s warping function is not a valid WarpingFunction object.' % (type(self).__name__))
 
 
     def __copy__(self):
@@ -4439,15 +4463,15 @@ class GaussianProcessRegression1D(object):
         xn = None
         kk = copy.copy(self._kk)
         lp = self._lp
-        xx = self._xx.copy()
-        yy = self._yy.copy()
-        ye = self._ye.copy() if self._gpye is None else self._gpye.copy()
-        dxx = self._dxx.copy()
-        dyy = self._dyy.copy()
-        dye = self._dye.copy()
+        xx = copy.deepcopy(self._xx)
+        yy = copy.deepcopy(self._yy)
+        ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
+        dxx = copy.deepcopy(self._dxx)
+        dyy = copy.deepcopy(self._dyy)
+        dye = copy.deepcopy(self._dye)
         eps = self._eps
         opm = self._opm
-        opp = self._opp.copy()
+        opp = copy.deepcopy(self._opp)
         dh = self._dh
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
@@ -4743,7 +4767,7 @@ class GaussianProcessRegression1D(object):
             elml = None
             ekk = None
             xntest = np.array([0.0])
-            ye = self._ye.copy() if self._gpye is None else self._gpye.copy()
+            ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
             aye = np.full(ye.shape,np.nanmax([0.2 * np.mean(np.abs(ye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
 #            aye = 0.1 * ye
             if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None:
@@ -4822,12 +4846,12 @@ class GaussianProcessRegression1D(object):
             nlml = None
             nkk = None
             xntest = np.array([0.0])
-            if self._kb is not None and nr > 0:
+            if self._kk.bounds is not None and nr > 0:
+                tkk = copy.copy(self._kk)
                 kkvec = []
                 lmlvec = []
-                tkk = copy.copy(self._kk)
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except ValueError:
@@ -4946,19 +4970,19 @@ class GaussianProcessRegression1D(object):
             self._ddbarE = ddbarE.copy()
         else:
             self._gpye = np.full(xn.shape,np.sqrt(np.mean(np.power(self._gpye,2.0)))) if self._gpye is not None else None
-            self._barE = self._gpye.copy() if self._gpye is not None else None
+            self._barE = copy.deepcopy(self._gpye) if self._gpye is not None else None
             self._varE = np.zeros(xn.shape) if self._barE is not None else None
             self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
             self._dvarE = np.zeros(xn.shape) if self._barE is not None else None
             self._ddbarE = np.zeros(xn.shape) if self._barE is not None else None
 
-        if self._kk is not None and self._kb is not None and nr > 0:
+        if isinstance(self._kk,_Kernel) and self._kk.bounds is not None and nr > 0:
             xntest = np.array([0.0])
+            tkk = copy.copy(self._kk)
             kkvec = []
             lmlvec = []
-            tkk = copy.copy(self._kk)
             try:
-                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                 kkvec.append(copy.copy(tkk))
                 lmlvec.append(tlml)
             except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4982,20 +5006,20 @@ class GaussianProcessRegression1D(object):
                 (barF,varF,lml,nkk) = self.__basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
             else:
                 raise ValueError('None of the fit attempts converged. Please adjust kernel settings and try again.')
-        else:
+        elif isinstance(self._kk,_Kernel):
             (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
 
         if barF is not None and isinstance(nkk,_Kernel):
-            self._xF = xn.copy()
-            self._barF = barF.copy()
-            self._varF = varF.copy() if varF is not None else None
+            self._xF = copy.deepcopy(xn)
+            self._barF = copy.deepcopy(barF)
+            self._varF = copy.deepcopy(varF) if varF is not None else None
             self._lml = lml
             self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
-            self._dbarF = dbarF.copy() if dbarF is not None else None
-            self._dvarF = dvarF.copy() if dvarF is not None else None
+            self._dbarF = copy.deepcopy(dbarF) if dbarF is not None else None
+            self._dvarF = copy.deepcopy(dvarF) if dvarF is not None else None
             self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else None
-            ddfac = self._ddbarE.copy() if self._ddbarE is not None else 0.0
+            ddfac = copy.deepcopy(self._ddbarE) if self._ddbarE is not None else 0.0
             self._dvarN = np.diag(2.0 * (np.power(self._dbarE,2.0) + np.abs(self._barE * ddfac))) if self._dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')

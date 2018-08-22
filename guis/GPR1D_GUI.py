@@ -697,7 +697,7 @@ class GibbsKernelWidget(_KernelWidget):
         self.WarpFuncSettings = QtWidgets.QStackedLayout()
         self.WarpFuncSettings.addWidget(self.CWarpFuncSettings)
         self.WarpFuncSettings.addWidget(self.IGWarpFuncSettings)
-        self.WarpFuncSettings.setCurrentIndex(1)
+        self.WarpFuncSettings.setCurrentIndex(self.WarpFuncSelectionList.currentIndex())
 
         tbox = QtWidgets.QVBoxLayout()
         tbox.addLayout(kbox)
@@ -1805,7 +1805,6 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 ykname = 'Sum(' + ykname + '-n)'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
                 ykbounds = np.vstack((ykbounds,np.atleast_2d([float(self.YNoiseLBEntry.text()),float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
-                ykbounds = np.transpose(ykbounds)
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
             ykernel = GPR1D.KernelReconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
             if ykbounds is not None:
