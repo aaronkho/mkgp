@@ -754,10 +754,11 @@ class _WarpingFunction(object):
         if userbnds.shape[0] != 2:
             raise TypeError('Argument bounds must be a 2D-array-like object with exactly 2 rows.')
         if isinstance(self._hyperparameters,array):
-            if ubnds.shape[1] >= self._hyperparameters.size:
-                self._hyp_lbounds = np.array(userbnds[0,:self._hyperparmaeters.size],dtype=np.float64)
-                self._hyp_ubounds = np.array(userbnds[1,:self._hyperparmaeters.size],dtype=np.float64)
-                self.hyperparameters = self._hyperparameters.copy()
+            if userbnds.shape[1] >= self._hyperparameters.size:
+                self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
+                self._hyp_ubounds = np.array(userbnds[1,:self._hyperparameters.size],dtype=np.float64)
+                if self._force_bounds:
+                    self.hyperparameters = self._hyperparameters.copy()
             else:
                 raise ValueError('Arguments bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self._hyperparameters.size))
         else:
@@ -2329,7 +2330,7 @@ class Gibbs_Kernel(_Kernel):
             wbnds = super(Gibbs_Kernel,self).bounds
             nbnds = wbnds.shape[1] if wbnds is not None else 0
             if nbnds < userbnds.shape[1]:
-                self._wfunc.bounds = usercsts[:,nbnds:]
+                self._wfunc.bounds = userbnds[:,nbnds:]
         else:
             warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
 
@@ -2599,11 +2600,12 @@ class IG_WarpingFunction(_WarpingFunction):
         """
 
         super(IG_WarpingFunction,self.__class__).bounds.__set__(self,bounds)
-        hyps = self.hyperparameters
-        csts = self.constants
-        if hyps[1] > (csts[1] * hyps[0]):
-            hyps[1] = csts[1] * hyps[0]
-            super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,hyps)
+        if self._force_bounds:
+            hyps = self.hyperparameters
+            csts = self.constants
+            if hyps[1] > (csts[1] * hyps[0]):
+                hyps[1] = csts[1] * hyps[0]
+                super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,hyps)
 
 
     def __copy__(self):
@@ -2713,12 +2715,13 @@ class GaussianProcessRegression1D(object):
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
                 elif kb.shape[0] == 2:
-                    kb = np.log10(kb.T) if kb.shape[1] == kh.size else None
+                    kb = np.log10(kb) if kb.shape[1] == kh.size else None
                 elif kb.shape[1] == 2:
-                    kb = np.log10(kb) if kb.shape[0] == kh.size else None
+                    kb = np.log10(kb.T) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
                 self._kb = kb
+                self._kk.bounds = np.power(10.0,self._kb)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._lp = float(regpar)
 
@@ -2889,14 +2892,15 @@ class GaussianProcessRegression1D(object):
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
                 elif kb.shape[0] == 2:
-                    kb = np.log10(kb.T) if kb.shape[1] == kh.size else None
+                    kb = np.log10(kb) if kb.shape[1] == kh.size else None
                 elif kb.shape[1] == 2:
-                    kb = np.log10(kb) if kb.shape[0] == kh.size else None
+                    kb = np.log10(kb.T) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
                 self._ekb = kb
                 self._gpye = None
                 self._egpye = None
+                self._ekk.bounds = np.power(10.0,self._ekb)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._elp = float(regpar)
             self._gpye = None
@@ -2941,14 +2945,14 @@ class GaussianProcessRegression1D(object):
         if midx is not None:
             if midx == 1:
                 self._opm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
                 self._opp = opp.copy()
             elif midx == 2:
                 self._opm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
@@ -2990,7 +2994,7 @@ class GaussianProcessRegression1D(object):
                 self._opp = opp.copy()
             else:
                 self._opm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
+                opp = np.array([1.0e-4]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
@@ -3043,14 +3047,14 @@ class GaussianProcessRegression1D(object):
         if emidx is not None:
             if emidx == 1:
                 self._eopm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
                 self._eopp = opp.copy()
             elif emidx == 2:
                 self._eopm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
@@ -3092,7 +3096,7 @@ class GaussianProcessRegression1D(object):
                 self._eopp = opp.copy()
             else:
                 self._eopm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
+                opp = np.array([1.0e-4]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
@@ -3740,7 +3744,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -3811,7 +3816,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -3883,7 +3889,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         if newkk.is_hderiv_implemented():
             # Hyperparameter derivatives computed in linear space
             gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
@@ -3961,7 +3968,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -4035,7 +4043,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -4116,7 +4125,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -4195,7 +4205,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -4275,7 +4286,8 @@ class GaussianProcessRegression1D(object):
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = np.log10(kk.hyperparameters)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
         lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
@@ -4425,17 +4437,17 @@ class GaussianProcessRegression1D(object):
         """
 
         xn = None
-        kk = self._kk
+        kk = copy.copy(self._kk)
         lp = self._lp
-        xx = self._xx
-        yy = self._yy
-        ye = self._ye if self._gpye is None else self._gpye
-        dxx = self._dxx
-        dyy = self._dyy
-        dye = self._dye
+        xx = self._xx.copy()
+        yy = self._yy.copy()
+        ye = self._ye.copy() if self._gpye is None else self._gpye.copy()
+        dxx = self._dxx.copy()
+        dyy = self._dyy.copy()
+        dye = self._dye.copy()
         eps = self._eps
         opm = self._opm
-        opp = self._opp
+        opp = self._opp.copy()
         dh = self._dh
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
@@ -4727,14 +4739,14 @@ class GaussianProcessRegression1D(object):
         :returns: none.
         """
 
-        if self._ye is not None and self._yy.size == self._ye.size:
+        if isinstance(self._ekk,_Kernel) and self._ye is not None and self._yy.size == self._ye.size:
             elml = None
             ekk = None
             xntest = np.array([0.0])
             ye = self._ye.copy() if self._gpye is None else self._gpye.copy()
             aye = np.full(ye.shape,np.nanmax([0.2 * np.mean(np.abs(ye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
 #            aye = 0.1 * ye
-            if isinstance(self._ekk,_Kernel) and self._ekb is not None and self._eeps is not None and self._egpye is None:
+            if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None:
                 elp = self._elp
                 ekk = copy.copy(self._ekk)
                 ekkvec = []
@@ -4747,7 +4759,9 @@ class GaussianProcessRegression1D(object):
                     ekkvec.append(None)
                     elmlvec.append(np.NaN)
                 for jj in np.arange(0,self._enr):
-                    etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
+#                    ekb = self._ekb
+                    ekb = np.log10(self._ekk.bounds)
+                    etheta = np.abs(ekb[1,:] - ekb[0,:]).flatten() * np.random.random_sample((ekb.shape[1],)) + np.nanmin(ekb,axis=0).flatten()
                     ekk.hyperparameters = np.power(10.0,etheta)
                     try:
                         (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
@@ -4820,7 +4834,9 @@ class GaussianProcessRegression1D(object):
                     kkvec.append(None)
                     lmlvec.append(np.NaN)
                 for ii in np.arange(0,nr):
-                    theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
+#                    kb = self._kb
+                    kb = np.log10(self._kk.bounds)
+                    theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
                     tkk.hyperparameters = np.power(10.0,theta)
                     try:
                         (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
@@ -4949,7 +4965,9 @@ class GaussianProcessRegression1D(object):
                 kkvec.append(None)
                 lmlvec.append(np.NaN)
             for ii in np.arange(0,nr):
-                theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
+#                kb = self._kb
+                kb = np.log10(self._kk.bounds)
+                theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
                 tkk.hyperparameters = np.power(10.0,theta)
                 try:
                     (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))

@@ -854,7 +854,7 @@ class GradAscentOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -873,7 +873,7 @@ class MomentumOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -899,7 +899,7 @@ class NesterovOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -1805,8 +1805,11 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 ykname = 'Sum(' + ykname + '-n)'
                 ykhyps = np.hstack((ykhyps,float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
                 ykbounds = np.vstack((ykbounds,np.atleast_2d([float(self.YNoiseLBEntry.text()),float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
+                ykbounds = np.transpose(ykbounds)
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
             ykernel = GPR1D.KernelReconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
+            if ykbounds is not None:
+                ykbounds = np.transpose(ykbounds)
 
             ekernel = None
             ekname = self.EKernelSettings.currentWidget().get_name()
@@ -1828,6 +1831,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
+            if ekbounds is not None:
+                ekbounds = np.transpose(ekbounds)
             vary_yerrs = self.HeteroscedasticBox.isChecked() if ekernel is not None else False
 
             try:
