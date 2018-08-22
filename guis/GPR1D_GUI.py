@@ -10,6 +10,7 @@ import copy
 import pickle
 import numpy as np
 import distutils
+import inspect
 
 import matplotlib
 old_mpl = distutils.version.LooseVersion(matplotlib.__version__) <= distutils.version.LooseVersion("2.0.0")
@@ -1078,6 +1079,9 @@ class GPR1D_GUI(QtWidgets.QWidget):
         super(GPR1D_GUI, self).__init__()
         self.fNewData = False
         self.gpr = GPR1D.GaussianProcessRegression1D()
+        location = inspect.getsourcefile(type(self.gpr))
+        self.srcdir = os.path.dirname(location) + '/'
+        print("Using GPR1D definition from: %s" % (self.srcdir))
         self.initUI()
 
     def initUI(self):
@@ -1824,7 +1828,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
-            vary_yerrs = self.HeteroscedasticBox.isChecked()
+            vary_yerrs = self.HeteroscedasticBox.isChecked() if ekernel is not None else False
 
             try:
                 tic = time.perf_counter()

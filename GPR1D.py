@@ -103,6 +103,7 @@ class _Kernel(object):
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
+        self._force_bounds = False
 
 
     def __call__(self,x1,x2,der=0,hder=None):
@@ -145,6 +146,17 @@ class _Kernel(object):
         else:
             raise NotImplementedError('Covariance function of %s Kernel object not yet defined.' % (self.name))
         return k_out
+
+
+    def enforce_bounds(self,value=True):
+        """
+        Sets a flag to enforce the given hyperparameter bounds.
+
+        :kwarg value: bool. Boolean value to set the flag.
+
+        :reutnrs: none.
+        """
+        self._force_bounds = True if value else False
 
 
     @property
@@ -230,12 +242,12 @@ class _Kernel(object):
             raise TypeError('Argument theta must be an array-like object.')
         if isinstance(self._hyperparameters,array):
             if userhyps.size >= self._hyperparameters.size:
-                if isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
                     htemp = userhyps[:self._hyperparameters.size]
                     lcheck = (htemp < self._hyp_lbounds)
                     htemp[lcheck] = self._hyp_lbounds[lcheck]
                     userhyps[:self._hyperparameters.size] = htemp
-                if isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
                     htemp = userhyps[:self._hyperparameters.size]
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
@@ -292,7 +304,8 @@ class _Kernel(object):
             if userbnds.shape[1] >= self._hyperparameters.size:
                 self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
                 self._hyp_ubounds = np.array(userbnds[1,:self._hyperparameters.size],dtype=np.float64)
-                self.hyperparameters = self._hyperparameters.copy()
+                if self._force_bounds:
+                    self.hyperparameters = self._hyperparameters.copy()
             else:
                 raise ValueError('Argument bounds must be a 2D-array-like object with exactly 2 rows and at least %d elements per row.' % (self._hyperparameters.size))
         else:
@@ -565,6 +578,7 @@ class _WarpingFunction(object):
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
+        self._force_bounds = False
 
 
     def __call__(self,zz,der=0,hder=None):
@@ -586,6 +600,17 @@ class _WarpingFunction(object):
         else:
             raise NotImplementedError('Warping function not yet defined.')
         return k_out
+
+
+    def enforce_bounds(self,value=True):
+        """
+        Sets a flag to enforce the given hyperparameter bounds.
+
+        :kwarg value: bool. Boolean value to set the flag.
+
+        :reutnrs: none.
+        """
+        self._force_bounds = True if value else False
 
 
     @property
@@ -670,12 +695,12 @@ class _WarpingFunction(object):
             raise TypeError('Argument theta must be an array-like object.')
         if isinstance(self._hyperparameters,array):
             if userhyps.size >= self._hyperparameters.size:
-                if isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
                     htemp = userhyps[:self._hyperparameters.size]
                     lcheck = (htemp < self._hyp_lbounds)
                     htemp[lcheck] = self._hyp_lbounds[lcheck]
                     userhyps[:self._hyperparameters.size] = htemp
-                if isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
                     htemp = userhyps[:self._hyperparameters.size]
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
@@ -1083,6 +1108,7 @@ class Constant_Kernel(_Kernel):
         bnds = self.bounds
         chp = float(csts[0])
         kcopy = Constant_Kernel(chp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1172,6 +1198,7 @@ class Noise_Kernel(_Kernel):
         bnds = self.bounds
         nhp = float(hyps[0])
         kcopy = Noise_Kernel(nhp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1260,6 +1287,7 @@ class Linear_Kernel(_Kernel):
         bnds = self.bounds
         chp = float(hyps[0])
         kcopy = Linear_Kernel(chp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1360,6 +1388,7 @@ class Poly_Order_Kernel(_Kernel):
         chp = float(hyps[0])
         cst = float(hyps[1])
         kcopy = Poly_Order_Kernel(chp,cst)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1471,6 +1500,7 @@ class SE_Kernel(_Kernel):
         chp = float(hyps[0])
         shp = float(hyps[1])
         kcopy = SE_Kernel(chp,shp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1611,6 +1641,7 @@ class RQ_Kernel(_Kernel):
         rhp = float(hyps[1])
         ralp = float(hyps[2])
         kcopy = RQ_Kernel(ramp,rhp,ralp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1762,6 +1793,7 @@ class Matern_HI_Kernel(_Kernel):
         mhp = float(hyps[1])
         nup = float(csts[0])
         kcopy = Matern_HI_Kernel(mamp,mhp,nup)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -1888,6 +1920,7 @@ class NN_Kernel(_Kernel):
         nnop = float(hyps[1])
         nnhp = float(hyps[2])
         kcopy = NN_Kernel(nnamp,nnop,nnhp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -2314,6 +2347,7 @@ class Gibbs_Kernel(_Kernel):
         chp = float(hyps[0])
         wfunc = copy.copy(self._wfunc)
         kcopy = Gibbs_Kernel(chp,wfunc)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -2381,6 +2415,7 @@ class Constant_WarpingFunction(_WarpingFunction):
         bnds = self.bounds
         chp = float(hyps[0])
         kcopy = Constant_WarpingFunction(chp)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -2587,6 +2622,7 @@ class IG_WarpingFunction(_WarpingFunction):
         gmc = float(csts[0])
         lrc = float(csts[1])
         kcopy = IG_WarpingFunction(lbhp,ghhp,gshp,gmc,lrc)
+        kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
@@ -4728,7 +4764,8 @@ class GaussianProcessRegression1D(object):
                 else:
                     raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
             elif self._eeps is not None and self._egpye is None:
-                ekk = Noise_Kernel(float(np.mean(aye)))
+#                ekk = Noise_Kernel(float(np.mean(aye)))
+                ekk = copy.copy(self._ekk)
                 (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                 self._ekk = copy.copy(ekk)
             if isinstance(ekk,_Kernel):
