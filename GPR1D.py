@@ -25,6 +25,7 @@ from operator import itemgetter
 np_itypes = (np.int8,np.int16,np.int32,np.int64)
 np_utypes = (np.uint8,np.uint16,np.uint32,np.uint64)
 np_ftypes = (np.float16,np.float32,np.float64)
+array = np.ndarray
 
 __all__ = ['Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operator classes
            'Constant_Kernel', 'Noise_Kernel', 'Linear_Kernel', 'Poly_Order_Kernel', 'SE_Kernel', 'RQ_Kernel',
@@ -53,7 +54,7 @@ class _Kernel(object):
     .. warning::
 
         Get/set functions not yet programmed as actual attributes! May required some code restructuring to incorporate
-        this though. (v1.0.1)
+        this though. (v >= 1.0.1)
 
     :kwarg name: str. Codename of :code:`_Kernel` class implementation.
 
@@ -70,13 +71,13 @@ class _Kernel(object):
     :kwarg ctags: array. Names of constants to be stored as indices in the :code:`_Kernel` class implementation. (optional)
     """
 
-    def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
+    def __init__(self,name=None,func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
         """
-        Initializes the :code:`Kernel` instance.
+        Initializes the :code:`_Kernel` instance.
 
         .. note::
 
-            Nothing is done with the :code:`htags` and :code:`ctags` arguments currently. (v1.0.1)
+            Nothing is done with the :code:`htags` and :code:`ctags` arguments currently. (v >= 1.0.1)
 
         :kwarg name: str. Codename of :code:`_Kernel` class implementation.
 
@@ -97,10 +98,12 @@ class _Kernel(object):
 
         self._fname = name
         self._function = func if callable(func) else None
-        self._hyperparameters = np.array(copy.deepcopy(hyps)).flatten() if hyps is not None else None
-        self._constants = np.array(copy.deepcopy(csts)).flatten() if csts is not None else None
-        self._bounds = None
+        self._hyperparameters = np.array(hyps,dtype=np.float64).flatten() if isinstance(hyps,(list,tuple,array)) else None
+        self._constants = np.array(csts,dtype=np.float64).flatten() if isinstance(csts,(list,tuple,array)) else None
+        self._hyp_lbounds = None
+        self._hyp_ubounds = None
         self._hderflag = hderf
+        self._force_bounds = False
 
 
     def __call__(self,x1,x2,der=0,hder=None):
@@ -120,23 +123,56 @@ class _Kernel(object):
 
         k_out = None
         if callable(self._function):
-            k_out = self._function(x1,x2,der,hder)
+            xt1 = None
+            xt2 = None
+            dert = 0
+            hdert = None
+            if isinstance(x1,(float,int,np_itypes,np_utypes,np_ftypes)):
+                xt1 = np.array(np.atleast_2d(x1),dtype=np.float64)
+            elif isinstance(x1,(list,tuple,array)):
+                xt1 = np.array(np.atleast_2d(x1),dtype=np.float64)
+            if isinstance(x2,(float,int,np_itypes,np_utypes,np_ftypes)):
+                xt2 = np.array(np.atleast_2d(x2),dtype=np.float64)
+            elif isinstance(x2,(list,tuple,array)):
+                xt2 = np.array(np.atleast_2d(x2),dtype=np.float64)
+            if isinstance(der,(float,int,np_itypes,np_utypes,np_ftypes)):
+                dert = int(der)
+            if isinstance(hder,(float,int,np_itypes,np_utypes,np_ftypes)):
+                hdert = int(hder)
+            if isinstance(xt1,array) and isinstance(xt2,array):
+                k_out = self._function(xt1,xt2,dert,hdert)
+            else:
+                raise TypeError('Arguments x1 and x2 must be a 2D-array-like object.')
         else:
-            raise NotImplementedError('Covariance function of kernel instance not yet defined.')
+            raise NotImplementedError('Covariance function of %s Kernel object not yet defined.' % (self.name))
         return k_out
 
 
-    def get_name(self):
+    def enforce_bounds(self,value=True):
+        """
+        Sets a flag to enforce the given hyperparameter bounds.
+
+        :kwarg value: bool. Boolean value to set the flag.
+
+        :reutnrs: none.
+        """
+        self._force_bounds = True if value else False
+
+
+    @property
+    def name(self):
         """
         Returns the codename of the :code:`_Kernel` instance.
 
         :returns: str. Codename of the :code:`_Kernel` instance.
         """
 
-        return self._fname
+        val = self._fname if isinstance(self._fname,str) else "None"
+        return val
 
 
-    def get_hyperparameters(self,log=False):
+    @property
+    def hyperparameters(self):
         """
         Return the hyperparameters stored in the :code:`_Kernel` instance.
 
@@ -146,12 +182,13 @@ class _Kernel(object):
         """
 
         val = np.array([])
-        if self._hyperparameters is not None:
-            val = np.log10(self._hyperparameters) if log else self._hyperparameters
+        if isinstance(self._hyperparameters,array):
+            val = self._hyperparameters.copy()
         return val
 
 
-    def get_constants(self):
+    @property
+    def constants(self):
         """
         Return the constants stored in the :code:`_Kernel` instance.
 
@@ -159,23 +196,22 @@ class _Kernel(object):
         """
 
         val = np.array([])
-        if self._constants is not None:
-            val = self._constants
+        if isinstance(self._constants,array):
+            val = self._constants.copy()
         return val
 
 
-    def get_bounds(self,log=False):
+    @property
+    def bounds(self):
         """
         Return the hyperparameter search bounds stored in the :code:`_Kernel` instance.
 
-        :kwarg log: bool. Returns the bounds as :code:`log10(self._bounds)`. (optional)
-
-        :returns: array. Hyperparameter bounds list, ordered according to the specific :code:`_Kernel` class implementation.
+        :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_Kernel` class implementation.
         """
 
         val = None
-        if self._bounds is not None:
-            val = np.log10(self._bounds) if log else self._bounds
+        if isinstance(self._hyp_lbounds,array) and isinstance(self._hyp_ubounds,array) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
+            val = np.vstack((self._hyp_lbounds.flatten(),self._hyp_ubounds.flatten()))
         return val
 
 
@@ -189,45 +225,42 @@ class _Kernel(object):
         return self._hderflag
 
 
-    def set_hyperparameters(self,theta,log=False):
+    @hyperparameters.setter
+    def hyperparameters(self,theta):
         """
         Set the hyperparameters stored in the :code:`_Kernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` implementation.
 
-        :kwarg log: bool. Indicates that :code:`theta` is passed in as :code:`log10(theta)`. (optional)
-
         :returns: none.
         """
 
-        uhyps = None
-        if isinstance(theta,(list,tuple)):
-            uhyps = np.array(theta).flatten()
-        elif isinstance(theta,np.ndarray):
-            uhyps = theta.flatten()
+        userhyps = None
+        if isinstance(theta,(list,tuple,array)):
+            userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
-        if log:
-            uhyps = np.power(10.0,uhyps)
-        if self._hyperparameters is not None:
-            if uhyps.size >= self._hyperparameters.size:
-                if self._bounds is not None and self._bounds.shape[1] == self._hyperparameters.size:
-                    htemp = uhyps[:self._hyperparameters.size]
-                    lbounds = self._bounds[0,:].flatten()
-                    lcheck = (htemp < lbounds)
-                    htemp[lcheck] = lbounds[lcheck]
-                    ubounds = self._bounds[1,:].flatten()
-                    ucheck = (htemp > ubounds)
-                    htemp[ucheck] = ubounds[ucheck]
-                    uhyps[:self._hyperparameters.size] = htemp
-                self._hyperparameters = uhyps[:self._hyperparameters.size]
+            raise TypeError('%s Kernel hyperparameters must be given as an array-like object.' % (self._fname))
+        if isinstance(self._hyperparameters,array):
+            if userhyps.size >= self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
+                    htemp = userhyps[:self._hyperparameters.size]
+                    lcheck = (htemp < self._hyp_lbounds)
+                    htemp[lcheck] = self._hyp_lbounds[lcheck]
+                    userhyps[:self._hyperparameters.size] = htemp
+                if self._force_bounds and isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
+                    htemp = userhyps[:self._hyperparameters.size]
+                    ucheck = (htemp > self._hyp_ubounds)
+                    htemp[ucheck] = self._hyp_ubounds[ucheck]
+                    userhyps[:self._hyperparameters.size] = htemp
+                self._hyperparameters = np.array(userhyps[:self._hyperparameters.size],dtype=np.float64)
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
+                raise ValueError('%s Kernel hyperparameters must contain at least %d elements.' % (self.name,self._hyperparameters.size))
         else:
-            raise AttributeError('Kernel instance has no hyperparameters.')
+            warnings.warn('%s Kernel instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
-    def set_constants(self,consts):
+    @constants.setter
+    def constants(self,consts):
         """
         Set the constants stored in the :code:`_Kernel` instance.
 
@@ -236,65 +269,47 @@ class _Kernel(object):
         :returns: none.
         """
 
-        ucsts = None
-        if isinstance(consts,(list,tuple)):
-            ucsts = np.array(consts).flatten()
-        elif isinstance(consts,np.ndarray):
-            ucsts = consts.flatten()
+        usercsts = None
+        if isinstance(consts,(list,tuple,array)):
+            usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
-        if self._constants is not None:
-            if ucsts.size >= self._constants.size:
-                self._constants = ucsts[:self._constants.size]
+            raise TypeError('%s Kernel constants must be given as an array-like object.' % (self._fname))
+        if isinstance(self._constants,array):
+            if usercsts.size >= self._constants.size:
+                self._constants = np.array(usercsts[:self._constants.size],dtype=np.float64)
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s Kernel constants must contain at least %d elements.' % (self.name,self._constants.size))
         else:
-            raise AttributeError('Kernel instance has no constants.')
+            warnings.warn('%s Kernel instance has no constants.' % (self.name),stacklevel=2)
 
 
-    def set_bounds(self,lbounds,ubounds,log=False):
+    @bounds.setter
+    def bounds(self,bounds):
         """
         Set the hyperparameter bounds stored in the :code:`_Kernel` instance.
 
-        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
-
-        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
-
-        :kwarg log: bool. Indicates that :code:`lbounds` and :code:`ubounds` are passed in as :code:`log10(lbounds)` and :code:`log10(ubounds)`. (optional)
+        :arg bounds: 2D array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
 
         :returns: none.
         """
 
-        ubnds = None
-        if isinstance(lbounds,(list,tuple)):
-            ubnds = np.array(lbounds).flatten()
-        elif isinstance(lbounds,np.ndarray):
-            ubnds = lbounds.flatten()
+        userbnds = None
+        if isinstance(bounds,(list,tuple,array)):
+            userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument lbounds must be an array-like object.')
-        if isinstance(ubounds,(list,tuple)) and len(ubounds) == ubnds.size:
-            ubnds = np.vstack((ubnds,np.array(ubounds).flatten()))
-        elif isinstance(ubounds,np.ndarray) and ubounds.size == ubnds.size:
-            ubnds = np.vstack((ubnds,ubounds.flatten()))
-        else:
-            raise TypeError('Argument ubounds must be an array-like object and have dimensions equal to lbounds.')
-        if log:
-            ubnds = np.power(10.0,ubnds)
-        if self._hyperparameters is not None:
-            if ubnds.shape[1] >= self._hyperparameters.size:
-                self._bounds = ubnds[:,:self._hyperparmaeters.size]
-                htemp = self._hyperparameters.copy()
-                lbounds = self._bounds[0,:].flatten()
-                lcheck = (htemp < lbounds)
-                htemp[lcheck] = lbounds[lcheck]
-                ubounds = self._bounds[1,:].flatten()
-                ucheck = (htemp > ubounds)
-                htemp[ucheck] = ubounds[ucheck]
-                self._hyperparameters = copy.deepcopy(htemp)
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        if userbnds.shape[0] != 2:
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        if isinstance(self._hyperparameters,array):
+            if userbnds.shape[1] >= self._hyperparameters.size:
+                self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
+                self._hyp_ubounds = np.array(userbnds[1,:self._hyperparameters.size],dtype=np.float64)
+                if self._force_bounds:
+                    self.hyperparameters = self._hyperparameters.copy()
             else:
-                raise ValueError('Arguments lbounds and ubounds must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s Kernel bounds must be a 2D-array-like object with exactly 2 rows and at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            raise AttributeError('Kernel instance has no hyperparameters to set bounds for.')
+            warnings.warn('%s Kernel instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -313,7 +328,7 @@ class _OperatorKernel(_Kernel):
     .. warning::
 
         Get/set functions not yet programmed as actual attributes! May required some code restructuring to incorporate
-        this though. (v1.0.1)
+        this though. (v >= 1.0.1)
 
     :kwarg name: str. Codename of :code:`_OperatorKernel` class implementation.
 
@@ -342,22 +357,51 @@ class _OperatorKernel(_Kernel):
         self._kernel_list = klist if klist is not None else []
 
 
-    def get_hyperparameters(self,log=False):
+    @property
+    def name(self):
+        """
+        Returns the codename of the :code:`_OperatorKernel` instance.
+
+        :returns: str. Codename of the :code:`_OperatorKernel` instance.
+        """
+
+        val = self._fname if isinstance(self._fname,str) else None
+        temp = ""
+        for kk in self._kernel_list:
+            temp = temp + "-" + kk.name if temp else kk.name
+        temp = "(" + temp + ")"
+        val = val + temp if val is not None else "None"
+        return val
+
+
+    @property
+    def basename(self):
+        """
+        Returns the base codename of the :code:`_OperatorKernel` instance.
+
+        :returns: str. Base codename of the :code:`_OperatorKernel` instance.
+        """
+
+        val = self._fname if isinstance(self._fname,str) else "None"
+        return val
+
+
+    @property
+    def hyperparameters(self):
         """
         Return the hyperparameters of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
-
-        :kwarg log: bool. Returns the hyperparameters as :code:`log10(self._hyperparameters)`. (optional)
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
         """
 
         val = np.array([])
         for kk in self._kernel_list:
-            val = np.append(val,kk.get_hyperparameters(log=log))
+            val = np.hstack((val,kk.hyperparameters))
         return val
 
 
-    def get_constants(self):
+    @property
+    def constants(self):
         """
         Return the constants of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
@@ -366,68 +410,63 @@ class _OperatorKernel(_Kernel):
 
         val = np.array([])
         for kk in self._kernel_list:
-            val = np.append(val,kk.get_constants())
+            val = np.hstack((val,kk.constants))
         return val
 
 
-    def get_bounds(self,log=False):
+    @property
+    def bounds(self):
         """
         Return the hyperparameter bounds of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :kwarg log: bool. Returns the bounds as :code:`log10(self._bounds)`. (optional)
 
-        :returns: array. Hyperparameter bounds list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
+        :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
         """
 
-        val = np.array([])
+        val = None
         for kk in self._kernel_list:
-            kval = kk.get_bounds(log=log)
+            kval = kk.bounds
             if kval is not None:
-                val = np.append(val,kval)
-        if val.size == 0:
-            val = None
+                val = np.hstack((val,kval)) if val is not None else kval.copy()
         return val
 
 
-    def set_hyperparameters(self,theta,log=False):
+    @hyperparameters.setter
+    def hyperparameters(self,theta):
         """
         Set the hyperparameters stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
 
-        :kwarg log: bool. Indicates that :code:`theta` is passed in as :code:`log10(theta)`. (optional)
-
         :returns: none.
         """
 
-        uhyps = None
-        if isinstance(theta,(list,tuple)):
-            uhyps = np.array(theta).flatten()
-        elif isinstance(theta,np.ndarray):
-            uhyps = theta.flatten()
+        userhyps = None
+        if isinstance(theta,(list,tuple,array)):
+            userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
-        if log:
-            uhyps = np.power(10.0,uhyps)
-        nhyps = self.get_hyperparameters().size
+            raise TypeError('%s OperatorKernel hyperparameters must be given as an array-like object.' % (self._fname))
+        nhyps = self.hyperparameters.size
         if nhyps > 0:
-            if uhyps.size >= nhyps:
+            if userhyps.size >= nhyps:
                 ndone = 0
                 for kk in self._kernel_list:
-                    nhere = ndone + kk.get_hyperparameters().size
+                    nhere = ndone + kk.hyperparameters.size
                     if nhere != ndone:
                         if nhere == nhyps:
-                            kk.set_hyperparameters(theta[ndone:],log=log)
+                            kk.hyperparameters = theta[ndone:]
                         else:
-                            kk.set_hyperparameters(theta[ndone:nhere],log=log)
+                            kk.hyperparameters = theta[ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (nhyps))
+                raise ValueError('%s OperatorKernal hyperparameters must contain at least %d elements.' % (self.name,nhyps))
         else:
-            raise AttributeError('OperatorKernel instance has no hyperparameters.')
+            warnings.warn('%s OperatorKernel instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
-    def set_constants(self,consts):
+    @constants.setter
+    def constants(self,consts):
         """
         Set the constants stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
@@ -436,75 +475,62 @@ class _OperatorKernel(_Kernel):
         :returns: none.
         """
 
-        ucsts = None
-        if isinstance(consts,(list,tuple)):
-            ucsts = np.array(consts).flatten()
-        elif isinstance(consts,np.ndarray):
-            ucsts = consts.flatten()
+        usercsts = None
+        if isinstance(consts,(list,tuple,array)):
+            usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
-        ncsts = self.get_constants().size
+            raise TypeError('%s OperatorKernel constants must be given as an array-like object.' % (self._fname))
+        ncsts = self.constants.size
         if ncsts > 0:
-            if ucsts.size >= ncsts:
+            if usercsts.size >= ncsts:
                 ndone = 0
                 for kk in self._kernel_list:
-                    nhere = ndone + kk.get_constants().size
+                    nhere = ndone + kk.constants.size
                     if nhere != ndone:
                         if nhere == ncsts:
-                            kk.set_constants(consts[ndone:])
+                            kk.constants = consts[ndone:]
                         else:
-                            kk.set_constants(consts[ndone:nhere])
+                            kk.constants = consts[ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (ncsts))
+                raise ValueError('%s OperatorKernel constants must contain at least %d elements.' % (self.name,ncsts))
         else:
-            raise AttributeError('OperatorKernel instance has no constants.')
+            warnings.warn('%s OperatorKernel instance has no constants.' % (self.name),stacklevel=2)
 
 
-    def set_bounds(self,lbounds,ubounds,log=False):
+    @bounds.setter
+    def bounds(self,bounds):
         """
         Set the hyperparameter bounds stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
-        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
-
-        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
-
-        :kwarg log: bool. Indicates that :code:`lbounds` and :code:`ubounds` are passed in as :code:`log10(lbounds)` and :code:`log10(ubounds)`. (optional)
+        :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
 
         :returns: none.
         """
 
-        ubnds = None
-        if isinstance(lbounds,(list,tuple)):
-            ubnds = np.array(lbounds).flatten()
-        elif isinstance(lbounds,np.ndarray):
-            ubnds = lbounds.flatten()
+        userbnds = None
+        if isinstance(bounds,(list,tuple,array)):
+            userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument lbounds must be an array-like object.')
-        if isinstance(ubounds,(list,tuple)) and len(ubounds) == ubnds.size:
-            ubnds = np.vstack((ubnds,np.array(ubounds).flatten()))
-        elif isinstance(ubounds,np.ndarray) and ubounds.size == ubnds.size:
-            ubnds = np.vstack((ubnds,ubounds.flatten()))
-        else:
-            raise TypeError('Argument ubounds must be an array-like object and have dimensions equal to lbounds.')
-        if log:
-            ubnds = np.power(10.0,ubnds)
-        nhyps = self.get_hyperparameters().size
+            raise TypeError('%s OperatorKernel bounds must be given as a 2d-array-like object with exactly 2 rows.' % (self._fname))
+        if userbnds.shape[0] != 2:
+            raise TypeError('%s OperatorKernel bounds must be given as a 2d-array-like object with exactly 2 rows.' % (self._fname))
+        nhyps = self.hyperparameters.size
         if nhyps > 0:
-            if ubnds.shape[1] >= nhyps:
+            if userbnds.shape[1] >= nhyps:
                 ndone = 0
                 for kk in self._kernel_list:
-                    nhere = ndone + kk.get_hyperparameters().size
+                    nhere = ndone + kk.hyperparameters.size
                     if nhere != ndone:
                         if nhere == nhyps:
-                            kk.set_bounds(ubnds[0,ndone:],ubnds[1,ndone:],log=log)
+                            kk.bounds = userbnds[:,ndone:]
                         else:
-                            kk.set_bounds(ubnds[0,ndone:nhere],ubnds[1,ndone:nhere],log=log)
+                            kk.bounds = userbnds[:,ndone:nhere]
                         ndone = nhere
             else:
-                raise ValueError('Arguments lbounds and ubounds must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s OperatorKernel bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            raise AttributeError('OperatorKernel instance has no hyperparameters to set bounds for.')
+            warnings.warn('%s OperatorKernel instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -527,7 +553,7 @@ class _WarpingFunction(object):
     .. warning::
 
         Get/set functions not yet programmed as actual attributes! May required some code restructuring to incorporate
-        this though. (v1.0.1)
+        this though. (v >= 1.0.1)
 
     .. note::
 
@@ -555,7 +581,7 @@ class _WarpingFunction(object):
 
         .. note::
 
-            Nothing is done with the :code:`htags` and :code:`ctags` arguments currently. (v1.0.1)
+            Nothing is done with the :code:`htags` and :code:`ctags` arguments currently. (v >= 1.0.1)
 
         :kwarg name: str. Codename of :code:`_WarpingFunction` class implementation.
 
@@ -576,10 +602,12 @@ class _WarpingFunction(object):
 
         self._fname = name
         self._function = func if func is not None else None
-        self._hyperparameters = copy.deepcopy(hyps) if hyps is not None else None
-        self._constants = copy.deepcopy(csts) if csts is not None else None
-        self._bounds = None
+        self._hyperparameters = np.array(hyps,dtype=np.float64) if isinstance(hyps,(list,tuple,array)) else None
+        self._constants = np.array(csts,dtype=np.float64) if isinstance(csts,(list,tuple,array)) else None
+        self._hyp_lbounds = None
+        self._hyp_ubounds = None
         self._hderflag = hderf
+        self._force_bounds = False
 
 
     def __call__(self,zz,der=0,hder=None):
@@ -603,32 +631,45 @@ class _WarpingFunction(object):
         return k_out
 
 
-    def get_name(self):
+    def enforce_bounds(self,value=True):
+        """
+        Sets a flag to enforce the given hyperparameter bounds.
+
+        :kwarg value: bool. Boolean value to set the flag.
+
+        :reutnrs: none.
+        """
+        self._force_bounds = True if value else False
+
+
+    @property
+    def name(self):
         """
         Returns the codename of the :code:`_WarpingFunction` instance.
 
         :returns: str. Codename of the :code:`_WarpingFunction` instance.
         """
 
-        return self._fname
+        val = self._fname if isinstance(self._fname,str) else "None"
+        return val
 
 
-    def get_hyperparameters(self,log=False):
+    @property
+    def hyperparameters(self):
         """
         Return the hyperparameters stored in the :code:`_WarpingFunction` instance.
-
-        :kwarg log: bool. Returns the hyperparameters as :code:`log10(self._hyperparameters)`.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_WarpingFunction` class implementation.
         """
 
         val = np.array([])
         if self._hyperparameters is not None:
-            val = np.log10(self._hyperparameters) if log else self._hyperparameters
+            val = self._hyperparameters.copy()
         return val
 
 
-    def get_constants(self):
+    @property
+    def constants(self):
         """
         Return the constants stored in the :code:`_WarpingFunction` instance.
 
@@ -637,11 +678,12 @@ class _WarpingFunction(object):
 
         val = np.array([])
         if self._constants is not None:
-            val = self._constants
+            val = self._constants.copy()
         return val
 
 
-    def get_bounds(self,log=False):
+    @property
+    def bounds(self):
         """
         Return the hyperparameter search bounds stored in the :code:`_WarpingFunction` instance.
 
@@ -651,8 +693,8 @@ class _WarpingFunction(object):
         """
 
         val = None
-        if self._bounds is not None:
-            val = np.log10(self._bounds) if log else self._bounds
+        if isinstance(self._hyp_lbounds,array) and isinstance(self._hyp_ubounds,array) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
+            val = np.vstack((self._hyp_lbounds.flatten(),self._hyp_ubounds.flatten()))
         return val
 
 
@@ -666,45 +708,42 @@ class _WarpingFunction(object):
         return self._hderflag
 
 
-    def set_hyperparameters(self,theta,log=False):
+    @hyperparameters.setter
+    def hyperparameters(self,theta):
         """
         Set the hyperparameters stored in the :code:`_WarpingFunction` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
-        :kwarg log: bool. Indicates that :code:`theta` is passed in as :code:`log10(theta)`.
-
         :returns: none.
         """
 
-        uhyps = None
-        if isinstance(theta,(list,tuple)):
-            uhyps = np.array(theta).flatten()
-        elif isinstance(theta,np.ndarray):
-            uhyps = theta.flatten()
+        userhyps = None
+        if isinstance(theta,(list,tuple,array)):
+            userhyps = np.array(theta).flatten()
         else:
-            raise TypeError('Argument theta must be an array-like object.')
-        if log:
-            uhyps = np.power(10.0,uhyps)
-        if self._hyperparameters is not None:
-            if uhyps.size >= self._hyperparameters.size:
-                if self._bounds is not None and self._bounds.shape[1] == self._hyperparameters.size:
-                    htemp = uhyps[:self._hyperparameters.size]
-                    lbounds = self._bounds[0,:].flatten()
-                    lcheck = (htemp < lbounds)
-                    htemp[lcheck] = lbounds[lcheck]
-                    ubounds = self._bounds[1,:].flatten()
-                    ucheck = (htemp > ubounds)
-                    htemp[ucheck] = ubounds[ucheck]
-                    uhyps[:self._hyperparameters.size] = htemp
-                self._hyperparameters = uhyps[:self._hyperparameters.size]
+            raise TypeError('%s WarpingFunction hyperparameters must be given as an array-like object.' % (self._fname))
+        if isinstance(self._hyperparameters,array):
+            if userhyps.size >= self._hyperparameters.size:
+                if self._force_bounds and isinstance(self._hyp_lbounds,array) and self._hyp_lbounds.size == self._hyperparameters.size:
+                    htemp = userhyps[:self._hyperparameters.size]
+                    lcheck = (htemp < self._hyp_lbounds)
+                    htemp[lcheck] = self._hyp_lbounds[lcheck]
+                    userhyps[:self._hyperparameters.size] = htemp
+                if self._force_bounds and isinstance(self._hyp_ubounds,array) and self._hyp_ubounds.size == self._hyperparameters.size:
+                    htemp = userhyps[:self._hyperparameters.size]
+                    ucheck = (htemp > self._hyp_ubounds)
+                    htemp[ucheck] = self._hyp_ubounds[ucheck]
+                    userhyps[:self._hyperparameters.size] = htemp
+                self._hyperparameters = np.array(userhyps[:self._hyperparameters.size],dtype=np.float64)
             else:
-                raise ValueError('Argument theta must contain at least %d elements.' % (self._hyperparameters.size))
+                raise ValueError('%s WarpingFunction hyperparameters must contain at least %d elements.' % (self.name,self._hyperparameters.size))
         else:
-            raise AttributeError('WarpingFunction object has no hyperparameters.')
+            warnings.warn('%s WarpingFunction instance has no hyperparameters.' % (self.name),stacklevel=2)
 
 
-    def set_constants(self,consts):
+    @constants.setter
+    def constants(self,consts):
         """
         Set the constants stored in the :code:`_WarpingFunction` object.
 
@@ -713,65 +752,47 @@ class _WarpingFunction(object):
         :returns: none.
         """
 
-        ucsts = None
-        if isinstance(consts,(list,tuple)):
-            ucsts = np.array(consts).flatten()
-        elif isinstance(consts,np.ndarray):
-            ucsts = consts.flatten()
+        usercsts = None
+        if isinstance(consts,(list,tuple,array)):
+            usercsts = np.array(consts).flatten()
         else:
-            raise TypeError('Argument consts must be an array-like object.')
-        if self._constants is not None:
-            if ucsts.size >= self._constants.size:
-                self._constants = ucsts[:self._constants.size]
+            raise TypeError('%s WarpingFunction constants must be given as an array-like object.' % (self._fname))
+        if isinstance(self._constants,array):
+            if usercsts.size >= self._constants.size:
+                self._constants = np.array(usercsts[:self._constants.size],dtype=np.float64)
             else:
-                raise ValueError('Argument consts must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s WarpingFunction constants must contain at least %d elements.' % (self.name,self._constants.size))
         else:
-            raise AttributeError('WarpingFunction object has no constants.')
+            warnings.warn('%s WarpingFunction instance has no constants.' % (self.name),stacklevel=2)
 
 
-    def set_bounds(self,lbounds,ubounds,log=False):
+    @bounds.setter
+    def bounds(self,bounds):
         """
         Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
 
-        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
-
-        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
-
-        :kwarg log: bool. Indicates that :code:`lbounds` and :code:`ubounds` are passed in as :code:`log10(lbounds)` and :code:`log10(ubounds)`.
+        :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
         """
 
-        ubnds = None
-        if isinstance(lbounds,(list,tuple)):
-            ubnds = np.array(lbounds).flatten()
-        elif isinstance(lbounds,np.ndarray):
-            ubnds = lbounds.flatten()
+        userbnds = None
+        if isinstance(bounds,(list,tuple,array)):
+            userbnds = np.atleast_2d(bounds)
         else:
-            raise TypeError('Argument lbounds must be an array-like object.')
-        if isinstance(ubounds,(list,tuple)) and len(ubounds) == ubnds.size:
-            ubnds = np.vstack((ubnds,np.array(ubounds).flatten()))
-        elif isinstance(ubounds,np.ndarray) and ubounds.size == ubnds.size:
-            ubnds = np.vstack((ubnds,ubounds.flatten()))
-        else:
-            raise TypeError('Argument ubounds must be an array-like object and have dimensions equal to lbounds.')
-        if log:
-            ubnds = np.power(10.0,ubnds)
-        if self._hyperparameters is not None:
-            if ubnds.shape[1] >= self._hyperparameters.size:
-                self._bounds = ubnds[:,:self._hyperparmaeters.size]
-                htemp = self._hyperparameters.copy()
-                lbounds = self._bounds[0,:].flatten()
-                lcheck = (htemp < lbounds)
-                htemp[lcheck] = lbounds[lcheck]
-                ubounds = self._bounds[1,:].flatten()
-                ucheck = (htemp > ubounds)
-                htemp[ucheck] = ubounds[ucheck]
-                self._hyperparameters = copy.deepcopy(htemp)
+            raise TypeError('%s WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        if userbnds.shape[0] != 2:
+            raise TypeError('%s WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        if isinstance(self._hyperparameters,array):
+            if userbnds.shape[1] >= self._hyperparameters.size:
+                self._hyp_lbounds = np.array(userbnds[0,:self._hyperparameters.size],dtype=np.float64)
+                self._hyp_ubounds = np.array(userbnds[1,:self._hyperparameters.size],dtype=np.float64)
+                if self._force_bounds:
+                    self.hyperparameters = self._hyperparameters.copy()
             else:
-                raise ValueError('Arguments lbounds and ubounds must contain at least %d elements.' % (self._constants.size))
+                raise ValueError('%s WarpingFunction bounds must be a 2D-array-like object with exactly 2 rows and contain at least %d elements per row.' % (self.name,self._hyperparameters.size))
         else:
-            raise AttributeError('WarpingFunction object has no hyperparameters to set bounds for.')
+            warnings.warn('%s WarpingFunction instance has no hyperparameters to set bounds for.' % (self.name),stacklevel=2)
 
 
 
@@ -803,13 +824,12 @@ class Sum_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
+        covm = np.full(x1.shape,np.NaN) if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
         for kk in self._kernel_list:
             covm = covm + kk(x1,x2,der,ihyp)
             if ihyp is not None:
-                hyps = np.array(kk.get_hyperparameters())
-                nhyps = hyps.size
+                nhyps = kk.hyperparameters.size
                 ihyp = ihyp - nhyps
         return covm
 
@@ -827,22 +847,17 @@ class Sum_Kernel(_OperatorKernel):
 
         klist = kwargs.get("klist")
         uklist = []
-        name = "None"
         if len(args) >= 2 and isinstance(args[0],_Kernel) and isinstance(args[1],_Kernel):
-            name = ""
             for kk in args:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name() if name else kk.get_name()
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
-            name = ""
             for kk in klist:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name() if name else kk.get_name()
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel instances.')
-        super(Sum_Kernel,self).__init__("Sum("+name+")",self.__calc_covm,True,uklist)
+        super(Sum_Kernel,self).__init__("Sum",self.__calc_covm,True,uklist)
 
 
     def __copy__(self):
@@ -884,17 +899,17 @@ class Product_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
-        nks = len(self._kernel_list)
+        covm = np.full(x1.shape,np.NaN) if self._kernel_list is None else np.zeros(x1.shape)
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
         dermat = np.atleast_2d([0] * nks)
         sd = int(np.sign(der))
-        for ii in np.arange(0,int(np.abs(der))):
+        for ii in np.arange(0,int(sd * der)):
             for jj in np.arange(1,nks):
                 deradd = dermat.copy()
                 dermat = np.vstack((dermat,deradd))
             for row in np.arange(0,dermat.shape[0]):
                 rem = row % nks
-                fac = (row - rem) / (nks**int(np.abs(der)))
+                fac = (row - rem) / (nks**int(sd * der))
                 idx = int((rem + fac) % nks)
                 dermat[row,idx] = dermat[row,idx] + 1
         oddfilt = (np.mod(dermat,2) != 0)
@@ -904,10 +919,9 @@ class Product_Kernel(_OperatorKernel):
             covterm = np.ones(x1.shape)
             for col in np.arange(0,dermat.shape[1]):
                 kk = self._kernel_list[col]
-                covterm = covterm * kk(x1,x2,int(dermat[row,col]),ihyp)
+                covterm = covterm * kk(x1,x2,dermat[row,col],ihyp)
                 if ihyp is not None:
-                    hyps = np.array(kk.get_hyperparameters())
-                    nhyps = hyps.size
+                    nhyps = kk.hyperparameters.size
                     ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
@@ -932,13 +946,13 @@ class Product_Kernel(_OperatorKernel):
             for kk in args:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name() if name else kk.get_name()
+
         elif isinstance(klist,list) and len(klist) >= 2 and isinstance(klist[0],_Kernel) and isinstance(klist[1],_Kernel):
             name = ""
             for kk in klist:
                 if isinstance(kk,_Kernel):
                     uklist.append(kk)
-                    name = name + "-" + kk.get_name() if name else kk.get_name()
+                    name = name + "-" + kk.name if name else kk.name
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel objects.')
         super(Product_Kernel,self).__init__("Prod("+name+")",self.__calc_covm,True,uklist)
@@ -988,13 +1002,12 @@ class Symmetric_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        covm = np.NaN if self._kernel_list is None else np.zeros(x1.shape)
+        covm = np.full(x1.shape,np.NaN) if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
         for kk in self._kernel_list:
             covm = covm + kk(x1,x2,der,ihyp) + kk(-x1,x2,der,ihyp)      # Not sure if division by 2 is necessary to conserve covm
             if ihyp is not None:
-                hyps = np.array(kk.get_hyperparameters())
-                nhyps = hyps.size
+                nhyps = kk.hyperparameters.size
                 ihyp = ihyp - nhyps
         return covm
 
@@ -1019,14 +1032,14 @@ class Symmetric_Kernel(_OperatorKernel):
                 print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
             kk = args[0]
             uklist.append(kk)
-            name = name + kk.get_name()
+            name = name + kk.name
         elif isinstance(klist,list) and len(klist) >= 1 and isinstance(klist[0],_Kernel):
             name = ""
             if len(klist) >= 2:
                 print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
             kk = klist[0]
             uklist.append(kk)
-            name = name + kk.get_name()
+            name = name + kk.name
         else:
             raise TypeError('Arguments to Symmetric_Kernel must be Kernel objects.')
         super(Symmetric_Kernel,self).__init__("Sym("+name+")",self.__calc_covm,True,uklist)
@@ -1081,7 +1094,9 @@ class Constant_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        c_hyp = self._constants[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        c_hyp = csts[0]
         rr = np.abs(x1 - x2)
         covm = np.zeros(rr.shape)
         if der == 0:
@@ -1114,8 +1129,14 @@ class Constant_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._constants[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(csts[0])
         kcopy = Constant_Kernel(chp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1148,7 +1169,9 @@ class Noise_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        n_hyp = self._hyperparameters[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        n_hyp = hyps[0]
         rr = np.abs(x1 - x2)
         covm = np.zeros(rr.shape)
         if der == 0:
@@ -1156,9 +1179,9 @@ class Noise_Kernel(_Kernel):
                 covm[rr == 0.0] = n_hyp**2.0
             elif hder == 0:
                 covm[rr == 0.0] = 2.0 * n_hyp
-#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centred on rr = 0 with small width ss
+#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centred on rr = 0 with small width, ss
 #       Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
-#       Commented out for stability reasons.
+#        Commented out for stability reasons.
 #        elif der == 2 or der == -2:
 #            drdx1 = np.sign(x1 - x2)
 #            drdx1[drdx1==0] = 1.0
@@ -1196,8 +1219,14 @@ class Noise_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        nhp = float(self._hyperparameters[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        nhp = float(hyps[0])
         kcopy = Noise_Kernel(nhp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1225,7 +1254,9 @@ class Linear_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        v_hyp = self._hyperparameters[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        v_hyp = hyps[0]
         pp = x1 * x2
         covm = np.zeros(pp.shape)
         if der == 0:
@@ -1277,8 +1308,14 @@ class Linear_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._hyperparameters[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
         kcopy = Linear_Kernel(chp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1308,8 +1345,10 @@ class Poly_Order_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        v_hyp = self._hyperparameters[0]
-        b_hyp = self._hyperparameters[1]
+        hyps = self.hyperparameters
+        csts = self.constants
+        v_hyp = hyps[0]
+        b_hyp = hyps[1]
         pp = x1 * x2
         covm = np.zeros(pp.shape)
         if der == 0:
@@ -1369,9 +1408,15 @@ class Poly_Order_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._hyperparameters[0])
-        cst = float(self._hyperparameters[1])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
+        cst = float(hyps[1])
         kcopy = Poly_Order_Kernel(chp,cst)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1400,8 +1445,10 @@ class SE_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        v_hyp = self._hyperparameters[0]
-        l_hyp = self._hyperparameters[1]
+        hyps = self.hyperparameters
+        csts = self.constants
+        v_hyp = hyps[0]
+        l_hyp = hyps[1]
         rr = np.abs(x1 - x2)
         drdx1 = np.sign(x1 - x2)
         drdx1[drdx1 == 0] = 1.0
@@ -1473,9 +1520,15 @@ class SE_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._hyperparameters[0])
-        shp = float(self._hyperparameters[1])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
+        shp = float(hyps[1])
         kcopy = SE_Kernel(chp,shp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1511,9 +1564,11 @@ class RQ_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        rq_amp = self._hyperparameters[0]
-        l_hyp = self._hyperparameters[1]
-        a_hyp = self._hyperparameters[2]
+        hyps = self.hyperparameters
+        csts = self.constants
+        rq_amp = hyps[0]
+        l_hyp = hyps[1]
+        a_hyp = hyps[2]
         rr = np.abs(x1 - x2)
         rqt = 1.0 + np.power(rr,2.0) / (2.0 * a_hyp * l_hyp**2.0)
         drdx1 = np.sign(x1 - x2)
@@ -1605,10 +1660,16 @@ class RQ_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        ramp = float(self._hyperparameters[0])
-        rhp = float(self._hyperparameters[1])
-        ralp = float(self._hyperparameters[2])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        ramp = float(hyps[0])
+        rhp = float(hyps[1])
+        ralp = float(hyps[2])
         kcopy = RQ_Kernel(ramp,rhp,ralp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1626,14 +1687,14 @@ class Matern_HI_Kernel(_Kernel):
 
     .. note::
   
-        Recommended :code:`nu` is 5/2 for second order differentiability
+        Recommended :code:`nu = 5/2` for second order differentiability
         while retaining maximum feature representation.
 
     :kwarg amp: float. Hyperparameter representing variability of model in y.
 
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
 
-    :kwarg nu: float. Constant value setting the volatility of the model, recommended valie is 2.5.
+    :kwarg nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
@@ -1651,9 +1712,11 @@ class Matern_HI_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        mat_amp = self._hyperparameters[0]
-        mat_hyp = self._hyperparameters[1]
-        nu = self._constants[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        mat_amp = hyps[0]
+        mat_hyp = hyps[1]
+        nu = csts[0]
         if nu < np.abs(der):
             raise ValueError('Matern nu parameter must be greater than requested derivative order.')
         pp = int(nu)
@@ -1749,10 +1812,16 @@ class Matern_HI_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        mamp = float(self._hyperparameters[0])
-        mhp = float(self._hyperparameters[1])
-        nup = float(self._constants[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        mamp = float(hyps[0])
+        mhp = float(hyps[1])
+        nup = float(csts[0])
         kcopy = Matern_HI_Kernel(mamp,mhp,nup)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1791,9 +1860,11 @@ class NN_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        nn_amp = self._hyperparameters[0]
-        nn_off = self._hyperparameters[1]
-        nn_hyp = self._hyperparameters[2]
+        hyps = self.hyperparameters
+        csts = self.constants
+        nn_amp = hyps[0]
+        nn_off = hyps[1]
+        nn_hyp = hyps[2]
         rr = np.abs(x1 - x2)
         pp = x1 * x2
         nnfac = 2.0 / np.pi
@@ -1828,7 +1899,7 @@ class NN_Kernel(_Kernel):
             nnt2 = (-0.5 * chi / xi) * (dpdx2 * dchidx1 + dpdx1 * dchidx2) 
             covm = nn_amp**2.0 * nnfac * nnk * (nnt1 + nnt2)
         else:
-            raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
+            raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.name+' kernel.')
         return covm
 
 
@@ -1868,10 +1939,16 @@ class NN_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        nnamp = float(self._hyperparameters[0])
-        nnop = float(self._hyperparameters[1])
-        nnhp = float(self._hyperparameters[2])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        nnamp = float(hyps[0])
+        nnop = float(hyps[1])
+        nnhp = float(hyps[2])
         kcopy = NN_Kernel(nnamp,nnop,nnhp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -1910,14 +1987,16 @@ class Gibbs_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         """
 
-        v_hyp = self._hyperparameters[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        v_hyp = hyps[0]
         l_hyp1 = self._wfunc(x1,0)
         l_hyp2 = self._wfunc(x2,0)
         rr = x1 - x2
         ll = np.power(l_hyp1,2.0) + np.power(l_hyp2,2.0)
         mm = l_hyp1 * l_hyp2
         lder = int((int(np.abs(der)) + 1) / 2)
-        hdermax = self._wfunc.get_hyperparameters().size
+        hdermax = self._wfunc.hyperparameters.size
         covm = np.zeros(rr.shape)
         if der == 0:
             if hder is None:
@@ -2097,11 +2176,12 @@ class Gibbs_Kernel(_Kernel):
                 drt = -2.0 * drdx1 * drdx2 * (4.0 * np.power(rr,2.0) / np.power(ll,3.0) - 1.0 / np.power(ll,2.0))
                 covm = dkfac * (dt + jt + rt) + kfac * (ddt + djt + drt)
         else:
-            raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.get_name()+' kernel.')
+            raise NotImplementedError('Derivatives of order 3 or higher not implemented in '+self.name+' kernel.')
         return covm
 
 
-    def get_wfunc_name():
+    @property
+    def wfuncname(self):
         """
         Returns the codename of the stored :code:`_WarpingFunction` instance.
 
@@ -2109,8 +2189,12 @@ class Gibbs_Kernel(_Kernel):
         """
 
         # Ensure reconstruction failure if warping function is not properly defined
-        wname = self._wfunc.get_name() if isinstance(self._wfunc,_WarpingFunction) else "?"
-        return wname
+        wfname = "?"
+        if isinstance(self._wfunc,_WarpingFunction):
+            wfname = self._wfunc.name 
+        else:
+            warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
+        return wfname
 
 
     def evaluate_wfunc(self,xx,der=0,hder=None):
@@ -2126,8 +2210,12 @@ class Gibbs_Kernel(_Kernel):
         :returns: array. Warping function evaluations at input values, under the given derivative settings. Has the same dimensions as :code:`xx`.
         """
 
-        # Ensure covariance function evaluation failure if warping function is not properly defined
-        lsf = self._wfunc(xx,der,hder) if isinstance(self._wfunc,_WarpingFunction) else None
+        # Prevent catastrophic failure if warping function is not properly defined
+        lsf = None
+        if isinstance(self._wfunc,_WarpingFunction):
+            lsf = self._wfunc(xx,der,hder)
+        else:
+            warnings.warn('Gibbs_Kernel warping function is not a valid WarpingFunction object.')
         return lsf
 
 
@@ -2147,66 +2235,128 @@ class Gibbs_Kernel(_Kernel):
             self._wfunc = copy.copy(wfunc)
         elif wfunc is None:
             self._wfunc = Constant_WarpingFunction(1.0e0)
-        wfname = self._wfunc.get_name()
-        wfhyps = self._wfunc.get_hyperparameters()
-        wfcsts = self._wfunc.get_constants()
 
         hyps = np.zeros((1,))
         if isinstance(var,(float,int,np_itypes,np_utypes,np_ftypes)):
             hyps[0] = float(var)
         else:
             raise ValueError('Amplitude hyperparameter must be a real number.')
-        hyps = np.hstack((hyps,wfhyps))
-        csts = wfcsts.copy() if wfcsts.size > 0 else None 
-        super(Gibbs_Kernel,self).__init__("Gw"+wfname,self.__calc_covm,True,hyps,csts)
+        super(Gibbs_Kernel,self).__init__("G",self.__calc_covm,True,hyps)
 
 
-    def set_hyperparameters(self,theta,log=False):
+    @property
+    def name(self):
+
+        name = super(Gibbs_Kernel,self).name
+        if isinstance(self._wfunc,_WarpingFunction):
+            name = name + "w" + self._wfunc.name
+        return name
+
+
+    @property
+    def hyperparameters(self):
+
+        val = super(Gibbs_Kernel,self).hyperparameters
+        if isinstance(self._wfunc,_WarpingFunction):
+            val = np.hstack((val,self._wfunc.hyperparameters))
+        return val
+
+
+    @property
+    def constants(self):
+
+        val = super(Gibbs_Kernel,self).constants
+        if isinstance(self._wfunc,_WarpingFunction):
+            val = np.hstack((val,self._wfunc.constants))
+        return val
+
+
+    @property
+    def bounds(self):
+
+        val = super(Gibbs_Kernel,self).bounds
+        if isinstance(self._wfunc,_WarpingFunction):
+            wval = self._wfunc.bounds
+            if wval is not None:
+                val = np.hstack((val,wval)) if val is not None else wval
+        return val
+
+
+    @hyperparameters.setter
+    def hyperparameters(self,theta):
         """
         Set the hyperparameters stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
-        :kwarg log: bool. Indicates that :code:`theta` is passed in as :code:`log10(theta)`.
-
         :returns: none.
         """
 
-        super(Gibbs_Kernel,self).set_hyperparameters(theta,log)
-        if isinstance(self._wfunc,_WarpingFunction) and self._hyperparameters.size > 1:
-            self._wfunc.set_hyperparameters(self._hyperparameters[1:])
+        userhyps = None
+        if isinstance(theta,(list,tuple,array)):
+            userhyps = np.array(theta).flatten()
+        else:
+            raise TypeError('%s Kernel hyperparameters must be given as an array-like object.' % (self._fname))
+        if super(Gibbs_Kernel,self).hyperparameters.size > 0:
+            super(Gibbs_Kernel,self.__class__).hyperparameters.__set__(self,userhyps)
+        if isinstance(self._wfunc,_WarpingFunction):
+            nhyps = super(Gibbs_Kernel,self).hyperparameters.size
+            if nhyps < userhyps.size:
+                self._wfunc.hyperparameters = userhyps[nhyps:]
+        else:
+            warnings.warn('%s warping function is not a valid WarpingFunction instance.' % (type(self).__name__))
 
 
-    def set_constants(self,consts):
+    @constants.setter
+    def constants(self,consts):
         """
-        Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`WarpingFunction` instances.
+        Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
         :returns: none.
         """
 
-        super(Gibbs_Kernel,self).set_constants(consts)
-        if isinstance(self._wfunc,_WarpingFunction) and self._constants.size > 0:
-            self._wfunc.set_constants(self._constants)
+        usercsts = None
+        if isinstance(consts,(list,tuple,array)):
+            usercsts = np.array(consts).flatten()
+        else:
+            raise TypeError('%s Kernel constants must be given as an array-like object.' % (self._fname))
+        if super(Gibbs_Kernel,self).constants.size > 0:
+            super(Gibbs_Kernel,self.__class__).constants.__set__(self,usercsts)
+        if isinstance(self._wfunc,_WarpingFunction):
+            ncsts = super(Gibbs_Kernel,self).constants.size
+            if ncsts < usercsts.size:
+                self._wfunc.constants = usercsts[ncsts:]
+        else:
+            warnings.warn('%s warping function is not a valid WarpingFunction object.' % (type(self).__name__))
 
 
-    def set_bounds(self,lbounds,ubounds,log=False):
+    @bounds.setter
+    def bounds(self,bounds):
         """
         Set the hyperparameter bounds stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
-        :arg lbounds: array. Hyperparameter lower bound list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
-
-        :arg ubounds: array. Hyperparameter upper bound list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
-
-        :kwarg log: bool. Indicates that :code:`lbounds` and :code:`ubounds` are passed in as :code:`log10(lbounds)` and :code:`log10(ubounds)`.
+        :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
         :returns: none.
         """
 
-        super(Gibbs_Kernel,self).set_bounds(lbounds,ubounds,log)
-        if isinstance(self._wfunc,_WarpingFunction) and self._hyperparameters.size > 1:
-            self._wfunc.set_hyperparameters(self._hyperparameters[1:])
+        userbnds = None
+        if isinstance(bounds,(list,tuple,array)):
+            userbnds = np.atleast_2d(bounds)
+        else:
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        if userbnds.shape[0] != 2:
+            raise TypeError('%s Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.' % (self._fname))
+        super(Gibbs_Kernel,self.__class__).bounds.__set__(self,userbnds)
+        if isinstance(self._wfunc,_WarpingFunction):
+            wbnds = super(Gibbs_Kernel,self).bounds
+            nbnds = wbnds.shape[1] if wbnds is not None else 0
+            if nbnds < userbnds.shape[1]:
+                self._wfunc.bounds = userbnds[:,nbnds:]
+        else:
+            warnings.warn('%s warping function is not a valid WarpingFunction object.' % (type(self).__name__))
 
 
     def __copy__(self):
@@ -2216,9 +2366,15 @@ class Gibbs_Kernel(_Kernel):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._hyperparameters[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
         wfunc = copy.copy(self._wfunc)
         kcopy = Gibbs_Kernel(chp,wfunc)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -2243,7 +2399,9 @@ class Constant_WarpingFunction(_WarpingFunction):
         :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
         """
 
-        c_hyp = self._hyperparameters[0]
+        hyps = self.hyperparameters
+        csts = self.constants
+        c_hyp = hyps[0]
         warp = np.zeros(zz.shape)
         if der == 0:
             if hder is None:
@@ -2277,8 +2435,14 @@ class Constant_WarpingFunction(_WarpingFunction):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        chp = float(self._hyperparameters[0])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
         kcopy = Constant_WarpingFunction(chp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -2311,11 +2475,13 @@ class IG_WarpingFunction(_WarpingFunction):
         :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
         """
 
-        base = self._hyperparameters[0]
-        amp = self._hyperparameters[1]
-        sig = self._hyperparameters[2]
-        mu = self._constants[0]
-        maxfrac = self._constants[1]
+        hyps = self.hyperparameters
+        csts = self.constants
+        base = hyps[0]
+        amp = hyps[1]
+        sig = hyps[2]
+        mu = csts[0]
+        maxfrac = csts[1]
         nn = int(np.abs(der))
         hh = amp if amp < (maxfrac * base) else maxfrac * base
         warp = np.ones(zz.shape) * base
@@ -2393,26 +2559,44 @@ class IG_WarpingFunction(_WarpingFunction):
         super(IG_WarpingFunction,self).__init__("IG",self.__calc_warp,True,hyps,csts)
 
 
-    def set_hyperparameters(self,theta,log=False):
+    @property
+    def hyperparameters(self):
+
+        return super(IG_WarpingFunction,self).hyperparameters
+
+
+    @property
+    def constants(self):
+
+        return super(IG_WarpingFunction,self).constants
+
+
+    @property
+    def bounds(self):
+
+        return super(IG_WarpingFunction,self).bounds
+
+
+    @hyperparameters.setter
+    def hyperparameters(self,theta):
         """
         Set the hyperparameters stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
-        :kwarg log: bool. Indicates that :code:`theta` is passed in as :code:`log10(theta)`.
-
         :returns: none.
         """
 
-        super(IG_WarpingFunction,self).set_hyperparameters(theta,log)
-        base = self._hyperparameters[0]
-        amp = self._hyperparameters[1]
-        maxfrac = self._constants[1]
-        if amp > (maxfrac * base):
-            self._hyperparameters[1] = maxfrac * base
+        super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,theta)
+        hyps = self.hyperparameters
+        csts = self.constants
+        if hyps[1] > (csts[1] * hyps[0]):
+            hyps[1] = csts[1] * hyps[0]
+            super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,hyps)
 
 
-    def set_constants(self,consts):
+    @constants.setter
+    def constants(self,consts):
         """
         Set the constants stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
@@ -2421,12 +2605,31 @@ class IG_WarpingFunction(_WarpingFunction):
         :returns: none.
         """
 
-        super(IG_WarpingFunction,self).set_constants(consts)
-        base = self._hyperparameters[0]
-        amp = self._hyperparameters[1]
-        maxfrac = self._constants[1]
-        if amp > (maxfrac * base):
-            self._hyperparameters[1] = maxfrac * base
+        super(IG_WarpingFunction,self.__class__).constants.__set__(self,consts)
+        hyps = self.hyperparameters
+        csts = self.constants
+        if hyps[1] > (csts[1] * hyps[0]):
+            hyps[1] = csts[1] * hyps[0]
+            super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,hyps)
+
+
+    @bounds.setter
+    def bounds(self,bounds):
+        """
+        Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
+
+        :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
+
+        :returns: none.
+        """
+
+        super(IG_WarpingFunction,self.__class__).bounds.__set__(self,bounds)
+        if self._force_bounds:
+            hyps = self.hyperparameters
+            csts = self.constants
+            if hyps[1] > (csts[1] * hyps[0]):
+                hyps[1] = csts[1] * hyps[0]
+                super(IG_WarpingFunction,self.__class__).hyperparameters.__set__(self,hyps)
 
 
     def __copy__(self):
@@ -2436,12 +2639,18 @@ class IG_WarpingFunction(_WarpingFunction):
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         """
 
-        lbhp = float(self._hyperparameters[0])
-        ghhp = float(self._hyperparameters[1])
-        gshp = float(self._hyperparameters[2])
-        gmc = float(self._constants[0])
-        lrc = float(self._constants[1])
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        lbhp = float(hyps[0])
+        ghhp = float(hyps[1])
+        gshp = float(hyps[2])
+        gmc = float(csts[0])
+        lrc = float(csts[1])
         kcopy = IG_WarpingFunction(lbhp,ghhp,gshp,gmc,lrc)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
         return kcopy
 
 
@@ -2495,14 +2704,14 @@ class GaussianProcessRegression1D(object):
         self._dbarF = None
         self._dvarF = None
         self._lml = None
-        self._eflag = False
         self._barE = None
         self._varE = None
         self._dbarE = None
         self._dvarE = None
         self._varN = None
         self._dvarN = None
-        self._nye = None
+        self._gpye = None
+        self._egpye = None
         self._fwarn = False
         self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
@@ -2524,18 +2733,19 @@ class GaussianProcessRegression1D(object):
             self._kk = copy.copy(kernel)
             self._ikk = copy.copy(self._kk)
         if isinstance(self._kk,_Kernel):
-            kh = self._kk.get_hyperparameters(log=True)
+            kh = np.log10(self._kk.hyperparameters)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
                 elif kb.shape[0] == 2:
-                    kb = np.log10(kb.T) if kb.shape[1] == kh.size else None
+                    kb = np.log10(kb) if kb.shape[1] == kh.size else None
                 elif kb.shape[1] == 2:
-                    kb = np.log10(kb) if kb.shape[0] == kh.size else None
+                    kb = np.log10(kb.T) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
                 self._kb = kb
+                self._kk.bounds = np.power(10.0,self._kb)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._lp = float(regpar)
 
@@ -2564,56 +2774,89 @@ class GaussianProcessRegression1D(object):
 
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             self._xx = np.array(xdata).flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
             self._xx = xdata.flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(xerr,(list,tuple)) and len(xerr) > 0:
             self._xe = np.array(xerr).flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xerr,np.ndarray) and xerr.size > 0:
             self._xe = xerr.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(xerr,str):
             self._xe = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(ydata,(list,tuple)) and len(ydata) > 0:
             self._yy = np.array(ydata).flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(ydata,np.ndarray) and ydata.size > 0:
             self._yy = ydata.flatten()
+            self._gpye = None
+            self._egpye = None
         if isinstance(yerr,(list,tuple)) and len(yerr) > 0:
             self._ye = np.array(yerr).flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(yerr,np.ndarray) and yerr.size > 0:
             self._ye = yerr.flatten()
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         elif isinstance(yerr,str):
             self._ye = None
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(dxdata,(list,tuple)) and len(dxdata) > 0:
             temp = np.array([])
             for item in dxdata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dxx = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dxdata,np.ndarray) and dxdata.size > 0:
             self._dxx = dxdata.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dxdata,str):
             self._dxx = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(dydata,(list,tuple)) and len(dydata) > 0:
             temp = np.array([])
             for item in dydata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dyy = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dydata,np.ndarray) and dydata.size > 0:
             self._dyy = dydata.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dydata,str):
             self._dyy = None
+            self._gpye = None
+            self._egpye = None
         if isinstance(dyerr,(list,tuple)) and len(dyerr) > 0:
             temp = np.array([])
             for item in dyerr:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dye = temp.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dyerr,np.ndarray) and dyerr.size > 0:
             self._dye = dyerr.flatten()
+            self._gpye = None
+            self._egpye = None
         elif isinstance(dyerr,str):
             self._dye = None
+            self._gpye = None
+            self._egpye = None
 
 
     def set_conditioner(self,condnum=None,lbound=None,ubound=None):
@@ -2664,24 +2907,28 @@ class GaussianProcessRegression1D(object):
 
         if isinstance(kernel,_Kernel):
             self._ekk = copy.copy(kernel)
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(self._ekk,_Kernel):
-            kh = self._ekk.get_hyperparameters(log=True)
+            kh = np.log10(self._ekk.hyperparameters)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
                 elif kb.shape[0] == 2:
-                    kb = np.log10(kb.T) if kb.shape[1] == kh.size else None
+                    kb = np.log10(kb) if kb.shape[1] == kh.size else None
                 elif kb.shape[1] == 2:
-                    kb = np.log10(kb) if kb.shape[0] == kh.size else None
+                    kb = np.log10(kb.T) if kb.shape[0] == kh.size else None
                 else:
                     kb = None
                 self._ekb = kb
-                self._eflag = False
+                self._gpye = None
+                self._egpye = None
+                self._ekk.bounds = np.power(10.0,self._ekb)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._elp = float(regpar)
-            self._eflag = False
+            self._gpye = None
+            self._egpye = None
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
 
@@ -2693,8 +2940,8 @@ class GaussianProcessRegression1D(object):
 
         :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include::
-                       [:code:`grad`, :code:`mom`, :code:`nag`, :code:`adagrad`, :code:`adadelta`, :code:`adam`, :code:`adamax`, :code:`nadam`] or their respective indices in the list.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include:
+                       ['grad', 'mom', 'nag', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam'] or their respective indices in the list.
 
         :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method. (optional)
 
@@ -2715,22 +2962,21 @@ class GaussianProcessRegression1D(object):
             self._eps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    midx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                midx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
                 self._opm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
                 self._opp = opp.copy()
             elif midx == 2:
                 self._opm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
@@ -2772,7 +3018,7 @@ class GaussianProcessRegression1D(object):
                 self._opp = opp.copy()
             else:
                 self._opm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
+                opp = np.array([1.0e-4]).flatten()
                 for ii in np.arange(0,self._opp.size):
                     if ii < opp.size:
                         opp[ii] = self._opp[ii]
@@ -2798,8 +3044,8 @@ class GaussianProcessRegression1D(object):
 
         :kwarg epsilon: float. Convergence criteria for optimization algorithm, set negative to disable.
 
-        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include::
-                       [:code:`grad`, :code:`mom`, :code:`nag`, :code:`adagrad`, :code:`adadelta`, :code:`adam`, :code:`adamax`, :code:`nadam`] or their respective indices in the list.
+        :kwarg method: str or int. Hyperparameter optimization algorithm selection. Choices include:
+                       ['grad', 'mom', 'nag', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam'] or their respective indices in the list.
 
         :kwarg spars: array. Parameters for hyperparameter optimization algorithm, defaults depend on chosen method. (optional)
 
@@ -2818,22 +3064,21 @@ class GaussianProcessRegression1D(object):
             self._eeps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    emidx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                emidx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             emidx = int(method)
         if emidx is not None:
             if emidx == 1:
                 self._eopm = self._opopts[1]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
                 self._eopp = opp.copy()
             elif emidx == 2:
                 self._eopm = self._opopts[2]
-                opp = np.array([1.0e-5,0.9]).flatten()
+                opp = np.array([1.0e-4,0.9]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
@@ -2875,7 +3120,7 @@ class GaussianProcessRegression1D(object):
                 self._eopp = opp.copy()
             else:
                 self._eopm = self._opopts[0]
-                opp = np.array([1.0e-5]).flatten()
+                opp = np.array([1.0e-4]).flatten()
                 for ii in np.arange(0,self._eopp.size):
                     if ii < opp.size:
                         opp[ii] = self._eopp[ii]
@@ -2907,22 +3152,44 @@ class GaussianProcessRegression1D(object):
         self._fwarn = True if flag else False
 
 
-    def get_raw_data(self,conditioned=False):
+    def get_raw_data(self,processed=False):
         """
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
-        with or without omissions / filters / conditioning. If :code:`set_conditioner()`
-        has not been called, uses default settings for the data conditioner.
-
-        :kwarg conditioned: bool. Perform data conditioning before returning values to see data actually used by fitting routine. (optional)
+        without any internal processing.
 
         :returns: (array, array, array, array, array, array, array).
             Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        cxx = self._xx
-        cyy = self._yy
-        cxe = self._xe
-        cye = self._ye
+        rxx = self._xx
+        ryy = self._yy
+        rxe = self._xe
+        rye = self._ye
+        rdxx = self._dxx
+        rdyy = self._dyy
+        rdye = self._dye
+        return (rxx,ryy,rxe,rye,rdxx,rdyy,rdye)
+
+
+    def get_processed_data(self):
+        """
+        Returns the input data passed into the latest :code:`GPRFit()` call,
+        including all internal processing performed by that call.
+
+        .. note::
+
+            If :code:`GPRFit()` was executed with :code:`nigp_flag = True`, then
+            the raw x-error data is folded into the y-error. As such, this
+            function only returns y-errors.
+
+        :returns: (array, array, array, array, array, array, array).
+            Vectors in order of x-values, y-values, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
+        """
+
+        pxx = self._xx
+        pyy = self._yy
+        pxe = self._xe
+        pye = self._ye if self._gpye is None else self._gpye
         dxx = self._dxx
         dyy = self._dyy
         dye = self._dye
@@ -2930,8 +3197,8 @@ class GaussianProcessRegression1D(object):
             lb = -1.0e50 if self._lb is None else self._lb
             ub = 1.0e50 if self._ub is None else self._ub
             cn = 5.0e-3 if self._cn is None else self._cn
-            (cxx,cyy,cxe,cye,nn) = self._condition_data(cxx,cyy,cxe,cye,lb,ub,cn)
-        return (cxx,cyy,cxe,cye,dxx,dyy,dye)
+            (pxx,pyy,pxe,cye,nn) = self._condition_data(pxx,pyy,pxe,pye,lb,ub,cn)
+        return (pxx,pyy,pye,dxx,dyy,dye)
 
 
     def get_gp_x(self):
@@ -3095,8 +3362,8 @@ class GaussianProcessRegression1D(object):
         kpars = None
         krpar = None
         if isinstance(self._kk,_Kernel):
-            kname = self._kk.get_name()
-            kpars = np.hstack((self._kk.get_hyperparameters(log=False),self._kk.get_constants()))
+            kname = self._kk.name
+            kpars = np.hstack((self._kk.hyperparameters,self._kk.constants))
             krpar = self._lp
         return (kname,kpars,krpar)
 
@@ -3123,8 +3390,8 @@ class GaussianProcessRegression1D(object):
         kpars = None
         krpar = None
         if isinstance(self._ekk,_Kernel):
-            kname = self._ekk.get_name()
-            kpars = np.hstack((self._ekk.get_hyperparameters(log=False),self._ekk.get_constants()))
+            kname = self._ekk.name
+            kpars = np.hstack((self._ekk.hyperparameters,self._ekk.constants))
             krpar = self._elp
         return (kname,kpars,krpar)
 
@@ -3204,14 +3471,13 @@ class GaussianProcessRegression1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew,np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        ye = self._ye if self._nye is None else self._nye
         barE = None
-        if xn is not None and ye is not None and self._eflag:
-            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,epsilon='None'))
+        if xn is not None and self._gpye is not None and self._egpye is not None:
+            barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,epsilon='None'))
         return barE
 
 
-    def __gp_base_alg(self,xn,kk,lp,xx,yy,ye,dxx,dyy,dye,dd):
+    def _gp_base_alg(self,xn,kk,lp,xx,yy,ye,dxx,dyy,dye,dd):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3290,7 +3556,7 @@ class GaussianProcessRegression1D(object):
         return (barF,varF,lml)
 
 
-    def __gp_brute_deriv1(self,xn,kk,lp,xx,yy,ye):
+    def _gp_brute_deriv1(self,xn,kk,lp,xx,yy,ye):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3352,7 +3618,7 @@ class GaussianProcessRegression1D(object):
         return (barF,varF,lml)
 
 
-    def __gp_brute_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye,dh):
+    def _gp_brute_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3382,23 +3648,23 @@ class GaussianProcessRegression1D(object):
         """
 
         xn = np.array([0.0])
-        theta = kk.get_hyperparameters(log=True)
+        theta = np.log10(kk.hyperparameters)
         gradlml = np.zeros(theta.shape).flatten()
         for ii in np.arange(0,theta.size):
             testkk = copy.copy(kk)
             theta_in = theta.copy()
             theta_in[ii] = theta[ii] - 0.5 * dh
-            testkk.set_hyperparameters(theta_in,log=True)
-            llml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            testkk.hyperparameters = np.power(10.0,theta_in)
+            llml = itemgetter(2)(self._gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             theta_in[ii] = theta[ii] + 0.5 * dh
-            testkk.set_hyperparameters(theta_in,log=True)
-            ulml = itemgetter(2)(self.__gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            testkk.hyperparameters = np.power(10.0,theta_in)
+            ulml = itemgetter(2)(self._gp_base_alg(xn,testkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             gradlml[ii] = (ulml - llml) / dh
 
         return gradlml
 
 
-    def __gp_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye):
+    def _gp_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3426,7 +3692,7 @@ class GaussianProcessRegression1D(object):
         """
 
         # Set up the problem grids for calculating the required matrices from covf
-        theta = kk.get_hyperparameters()
+        theta = kk.hyperparameters
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
         xxd = dxx if dflag else []
         xf = np.append(xx,xxd)
@@ -3461,7 +3727,7 @@ class GaussianProcessRegression1D(object):
         return gradlml
 
 
-    def __gp_grad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
+    def _gp_grad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3496,30 +3762,31 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             theta_step = eta * gradlml
             theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             lmlold = lmlnew
@@ -3529,7 +3796,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_momentum_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+    def _gp_momentum_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3567,30 +3834,31 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             theta_step = gam * theta_step + eta * gradlml
             theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             lmlold = lmlnew
@@ -3600,7 +3868,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_nesterov_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+    def _gp_nesterov_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3639,38 +3907,39 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         if newkk.is_hderiv_implemented():
             # Hyperparameter derivatives computed in linear space
-            gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+            gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
             gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_base)
         else:
-            gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+            gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
         theta_step = eta * gradlml
         theta_old = theta_base.copy()
         theta_new = theta_old + theta_step
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         icount = 0
         while dlml > eps and icount < self._imax:
-            newkk.set_hyperparameters(theta_new,log=True)
+            newkk.hyperparameters = np.power(10.0,theta_new)
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             theta_step = gam * theta_step + eta * gradlml
             theta_new = theta_old + theta_step   # Only called ascent since step is added here, not subtracted
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             lmlold = lmlnew
@@ -3680,7 +3949,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_adagrad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
+    def _gp_adagrad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3717,16 +3986,17 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         gold = np.zeros(theta_base.shape)
@@ -3734,15 +4004,15 @@ class GaussianProcessRegression1D(object):
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             gnew = gold + np.power(gradlml,2.0)
             theta_step = eta * gradlml / np.sqrt(gnew + 1.0e-8)
             theta_new = theta_old + theta_step
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             gold = gnew
@@ -3753,7 +4023,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_adadelta_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
+    def _gp_adadelta_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3791,16 +4061,17 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         etatemp = np.ones(theta_base.shape) * eta
@@ -3810,15 +4081,15 @@ class GaussianProcessRegression1D(object):
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             gnew = gam * gold + (1.0 - gam) * np.power(gradlml,2.0)
             theta_step = etatemp * gradlml / np.sqrt(gnew + 1.0e-8)
             theta_new = theta_old + theta_step
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             tnew = gam * told + (1.0 - gam) * np.power(theta_step,2.0)
@@ -3832,7 +4103,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_adam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+    def _gp_adam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3872,16 +4143,17 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         mold = None
@@ -3890,16 +4162,16 @@ class GaussianProcessRegression1D(object):
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
             vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
             theta_step = eta * (mnew / (1.0 - b1**(icount + 1))) / (np.sqrt(vnew / (1.0 - b2**(icount + 1))) + 1.0e-8)
             theta_new = theta_old + theta_step
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             mold = mnew
@@ -3911,7 +4183,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_adamax_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+    def _gp_adamax_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -3951,16 +4223,17 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         mold = None
@@ -3969,17 +4242,17 @@ class GaussianProcessRegression1D(object):
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
             vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
             unew = b2 * vnew if vold is None else np.nanmax([b2 * vold,np.abs(gradlml)],axis=0)
             theta_step = eta * (mnew / (1.0 - b1**(icount + 1))) / unew
             theta_new = theta_old + theta_step
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             mold = mnew
@@ -3991,7 +4264,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __gp_nadam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
+    def _gp_nadam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -4031,16 +4304,17 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
         :returns: (object, float).
-            Final :code:`Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
+            Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
         """
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
-        theta_base = kk.get_hyperparameters(log=True)
+        theta_base = np.log10(newkk.hyperparameters)
+        gradlml = np.zeros(theta_base.shape)
         theta_step = np.zeros(theta_base.shape)
         theta_old = theta_base.copy()
-        lmlold = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+        lmlold = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
         lmlnew = 0.0
         dlml = eps + 1.0
         mold = None
@@ -4049,16 +4323,16 @@ class GaussianProcessRegression1D(object):
         while dlml > eps and icount < self._imax:
             if newkk.is_hderiv_implemented():
                 # Hyperparameter derivatives computed in linear space
-                gradlml_lin = self.__gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
+                gradlml_lin = self._gp_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye)
                 gradlml = gradlml_lin * np.log(10.0) * np.power(10.0,theta_old)
             else:
-                gradlml = self.__gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
+                gradlml = self._gp_brute_grad_lml(newkk,lp,xx,yy,ye,dxx,dyy,dye,dh)
             mnew = gradlml if mold is None else b1 * mold + (1.0 - b1) * gradlml
             vnew = np.power(gradlml,2.0) if vold is None else b2 * vold + (1.0 - b2) * np.power(gradlml,2.0)
             theta_step = eta * (mnew / (1.0 - b1**(icount + 1)) + (1.0 - b1) * gradlml / (1.0 - b1**(icount + 1))) / (np.sqrt(vnew / (1.0 - b2)) + 1.0e-8)
             theta_new = theta_old + theta_step
-            newkk.set_hyperparameters(theta_new,log=True)
-            lmlnew = itemgetter(2)(self.__gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
+            newkk.hyperparameters = np.power(10.0,theta_new)
+            lmlnew = itemgetter(2)(self._gp_base_alg(xn,newkk,lp,xx,yy,ye,dxx,dyy,dye,0))
             dlml = np.abs(lmlold - lmlnew)
             theta_old = theta_new.copy()
             mold = mnew
@@ -4070,7 +4344,7 @@ class GaussianProcessRegression1D(object):
         return (newkk,lmlnew)
 
 
-    def __condition_data(self,xx,xe,yy,ye,lb,ub,cn):
+    def _condition_data(self,xx,xe,yy,ye,lb,ub,cn):
         """
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -4187,17 +4461,17 @@ class GaussianProcessRegression1D(object):
         """
 
         xn = None
-        kk = self._kk
+        kk = copy.copy(self._kk)
         lp = self._lp
-        xx = self._xx
-        yy = self._yy
-        ye = self._ye if self._nye is None else self._nye
-        dxx = self._dxx
-        dyy = self._dyy
-        dye = self._dye
+        xx = copy.deepcopy(self._xx)
+        yy = copy.deepcopy(self._yy)
+        ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
+        dxx = copy.deepcopy(self._dxx)
+        dyy = copy.deepcopy(self._dyy)
+        dye = copy.deepcopy(self._dye)
         eps = self._eps
         opm = self._opm
-        opp = self._opp
+        opp = copy.deepcopy(self._opp)
         dh = self._dh
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
@@ -4260,10 +4534,9 @@ class GaussianProcessRegression1D(object):
             eps = None
         if isinstance(method,str):
             mstr = method.lower()
-            for mm in np.arange(0,len(self._opopts)):
-                if re.match(mstr,self._opopts[mm],flags=re.IGNORECASE):
-                    midx = mm
-        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) < len(self._opopts):
+            if mstr in self._opopts:
+                midx = self._opopts.index(mstr)
+        elif isinstance(method,(float,int,np_itypes,np_utypes,np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
@@ -4342,7 +4615,7 @@ class GaussianProcessRegression1D(object):
             if ye is None:
                 ye = np.array([0.0])
             xe = np.array([0.0])
-            (xx,xe,yy,ye,nn) = self.__condition_data(xx,xe,yy,ye,lb,ub,cn)
+            (xx,xe,yy,ye,nn) = self._condition_data(xx,xe,yy,ye,lb,ub,cn)
             myy = np.mean(yy)
             yy = yy - myy
             sc = np.nanmax(np.abs(yy))
@@ -4355,29 +4628,29 @@ class GaussianProcessRegression1D(object):
                 if dye is None:
                     dye = np.array([0.0])
                 dxe = np.array([0.0])
-                (dxx,dxe,dyy,dye,dnn) = self.__condition_data(dxx,dxe,dyy,dye,-1.0e50,1.0e50,cn)
+                (dxx,dxe,dyy,dye,dnn) = self._condition_data(dxx,dxe,dyy,dye,-1.0e50,1.0e50,cn)
                 dyy = dyy / sc
                 dye = dye / sc
             dd = 1 if do_drv else 0
             nkk = copy.copy(kk)
             if eps is not None and not do_drv:
                 if opm == 'mom' and opp.size > 1:
-                    (nkk,lml) = self.__gp_momentum_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                    (nkk,lml) = self._gp_momentum_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
                 elif opm == 'nag' and opp.size > 1:
-                    (nkk,lml) = self.__gp_nesterov_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                    (nkk,lml) = self._gp_nesterov_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
                 elif opm == 'adagrad' and opp.size > 0:
-                    (nkk,lml) = self.__gp_adagrad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
+                    (nkk,lml) = self._gp_adagrad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
                 elif opm == 'adadelta' and opp.size > 1:
-                    (nkk,lml) = self.__gp_adadelta_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
+                    (nkk,lml) = self._gp_adadelta_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],dh)
                 elif opm == 'adam' and opp.size > 2:
-                    (nkk,lml) = self.__gp_adam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                    (nkk,lml) = self._gp_adam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
                 elif opm == 'adamax' and opp.size > 2:
-                    (nkk,lml) = self.__gp_adamax_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                    (nkk,lml) = self._gp_adamax_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
                 elif opm == 'nadam' and opp.size > 2:
-                    (nkk,lml) = self.__gp_nadam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
+                    (nkk,lml) = self._gp_nadam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
                 elif opm == 'grad' and opp.size > 0:
-                    (nkk,lml) = self.__gp_grad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
-            (barF,varF,lml) = self.__gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
+                    (nkk,lml) = self._gp_grad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
+            (barF,varF,lml) = self._gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
             barF = barF * sc if do_drv else barF * sc + myy
             varF = varF * sc**2.0
             errF = varF if rtn_cov else np.sqrt(np.diag(varF))
@@ -4423,7 +4696,7 @@ class GaussianProcessRegression1D(object):
         lp = self._lp
         xx = self._xx
         yy = self._yy
-        ye = self._ye if self._nye is None else self._nye
+        ye = self._ye if self._gpye is None else self._gpye
         lb = -1.0e50 if self._lb is None else self._lb
         ub = 1.0e50 if self._ub is None else self._ub
         cn = 5.0e-3 if self._cn is None else self._cn
@@ -4459,7 +4732,7 @@ class GaussianProcessRegression1D(object):
             if ye is None:
                 ye = np.array([0.0])
             xe = np.array([0.0])
-            (xx,xe,yy,ye,nn) = self.__condition_data(xx,xe,yy,ye,lb,ub,cn)
+            (xx,xe,yy,ye,nn) = self._condition_data(xx,xe,yy,ye,lb,ub,cn)
             myy = np.mean(yy)
             yy = yy - myy
             sc = np.nanmax(np.abs(yy))
@@ -4467,7 +4740,7 @@ class GaussianProcessRegression1D(object):
                 sc = 1.0
             yy = yy / sc
             ye = ye / sc
-            (barF,varF,lml) = self.__gp_brute_deriv1(xn,kk,lp,xx,yy,ye)
+            (barF,varF,lml) = self._gp_brute_deriv1(xn,kk,lp,xx,yy,ye)
             barF = barF * sc
             varF = varF * sc**2.0
             errF = varF if rtn_cov else np.sqrt(np.diag(varF))
@@ -4476,10 +4749,75 @@ class GaussianProcessRegression1D(object):
         return (barF,errF,lml)
 
 
+    def make_HSGP_errors(self):
+        """
+        Calculates a vector of modified y-errors based on GPR fit of input y-errors,
+        for use inside a heteroscedastic GPR execution.
+
+        .. note::
+
+            This function is automatically called inside :code:`GPRFit()` when the
+            :code:`hsgp_flag` argument is :code:`True`. For this reason, this function
+            automatically stores all results within the appropriate class variables.
+
+        :returns: none.
+        """
+
+        if isinstance(self._ekk,_Kernel) and self._ye is not None and self._yy.size == self._ye.size:
+            elml = None
+            ekk = None
+            xntest = np.array([0.0])
+            ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
+            aye = np.full(ye.shape,np.nanmax([0.2 * np.mean(np.abs(ye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
+#            aye = 0.1 * ye
+            if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None:
+                elp = self._elp
+                ekk = copy.copy(self._ekk)
+                ekkvec = []
+                elmlvec = []
+                try:
+                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                    ekkvec.append(copy.copy(ekk))
+                    elmlvec.append(elml)
+                except (ValueError,np.linalg.linalg.LinAlgError):
+                    ekkvec.append(None)
+                    elmlvec.append(np.NaN)
+                for jj in np.arange(0,self._enr):
+#                    ekb = self._ekb
+                    ekb = np.log10(self._ekk.bounds)
+                    etheta = np.abs(ekb[1,:] - ekb[0,:]).flatten() * np.random.random_sample((ekb.shape[1],)) + np.nanmin(ekb,axis=0).flatten()
+                    ekk.hyperparameters = np.power(10.0,etheta)
+                    try:
+                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                        ekkvec.append(copy.copy(ekk))
+                        elmlvec.append(elml)
+                    except (ValueError,np.linalg.linalg.LinAlgError):
+                        ekkvec.append(None)
+                        elmlvec.append(np.NaN)
+                eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
+                if len(eimaxv) > 0:
+                    eimax = eimaxv[0]
+                    ekk = ekkvec[eimax]
+                    self._ekk = copy.copy(ekkvec[eimax])
+                else:
+                    raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
+            elif self._eeps is not None and self._egpye is None:
+#                ekk = Noise_Kernel(float(np.mean(aye)))
+                ekk = copy.copy(self._ekk)
+                (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                self._ekk = copy.copy(ekk)
+            if isinstance(ekk,_Kernel):
+                xntest = self._xx.copy() + 1.0e-8
+                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                self._egpye = aye.copy()
+        else:
+            raise ValueError('Check input y-errors to make sure they are valid.')
+
+
     def make_NIGP_errors(self,nrestarts=0):
         """
         Calculates a vector of modified y-errors based on input x-errors and a test model
-        gradient, for use inside a noisy input GPR.
+        gradient, for use inside a noisy input GPR execution.
 
         .. note::
 
@@ -4492,9 +4830,9 @@ class GaussianProcessRegression1D(object):
             This function does not iterate until the test model derivatives and the actual
             fit derivatives are self-consistent! Although this would be the most rigourous
             implementation, it was decided that this approximation was good enough for the
-            uses of the current implementation. (v1.0.1)
+            uses of the current implementation. (v >= 1.0.1)
 
-        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within :code:`kbounds` argument. (optional)
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
         :returns: none.
         """
@@ -4504,27 +4842,26 @@ class GaussianProcessRegression1D(object):
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
-        if not self._fwarn:
-            warnings.filterwarnings("ignore",category=RuntimeWarning)
-
-        if self._kk is not None and self._xe is not None and self._xx.size == self._xe.size:
-            barF = None
+        if isinstance(self._kk,_Kernel) and self._xe is not None and self._xx.size == self._xe.size:
+            nlml = None
             nkk = None
             xntest = np.array([0.0])
-            if self._kb is not None and nr > 0:
+            if self._kk.bounds is not None and nr > 0:
+                tkk = copy.copy(self._kk)
                 kkvec = []
                 lmlvec = []
-                tkk = copy.copy(self._kk)
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except ValueError:
                     kkvec.append(None)
                     lmlvec.append(np.NaN)
                 for ii in np.arange(0,nr):
-                    theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
-                    tkk.set_hyperparameters(theta,log=True)
+#                    kb = self._kb
+                    kb = np.log10(self._kk.bounds)
+                    theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
+                    tkk.hyperparameters = np.power(10.0,theta)
                     try:
                         (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                         kkvec.append(copy.copy(tkk))
@@ -4533,26 +4870,23 @@ class GaussianProcessRegression1D(object):
                         kkvec.append(None)
                         lmlvec.append(np.NaN)
                 imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
-                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon=-1.0))
+                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
             else:
-                (barF,nkk) = itemgetter(0,3)(self.__basic_fit(xntest))
-            if barF is not None and isinstance(nkk,_Kernel):
+                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+            if isinstance(nkk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
-                nfilt = np.any([np.isnan(self._xe),np.isnan(self._ye)],axis=0)
                 cxe = self._xe.copy()
+                cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
+                nfilt = np.any([np.isnan(cxe),np.isnan(cye)],axis=0)
                 cxe[nfilt] = 0.0
-                cye = self._ye.copy()
                 cye[nfilt] = 0.0
-                self._nye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
+                self._gpye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
 
-        if not self._fwarn:
-            warnings.filterwarnings("default",category=RuntimeWarning)
 
-
-    def GPRFit(self,xnew,nigp_flag=False,nrestarts=None):
+    def GPRFit(self,xnew,hsgp_flag=True,nigp_flag=False,nrestarts=None):
         """
         Main GP regression fitting routine, **recommended** to call this after using set functions, instead of the
         :code:`__basic_fit()` function, as this adapts the method based on inputs, performs 1st derivative and
@@ -4565,10 +4899,12 @@ class GaussianProcessRegression1D(object):
             For details, see article: A. McHutchon, C.E. Rasmussen, 'Gaussian Process Training with Input Noise' (2011)
 
         :arg xnew: array. Vector of x-values at which the predicted fit will be evaluated.
+        :kwarg hsgp_flag: bool. Set as true to perform Gaussian Process regression fit with variable y-errors. Default is :code:`True`. (optional)
 
-        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. (optional)
+        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. Default is :code:`False`. (optional)
+                          **Recommended** only to use with :code:`hsgp_flag = True`!
 
-        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter vlaues within kbounds argument. (optional)
+        :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
         :returns: none.
         """
@@ -4584,33 +4920,78 @@ class GaussianProcessRegression1D(object):
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
 
+        if not self._fwarn:
+            warnings.filterwarnings("ignore",category=RuntimeWarning)
+
         barF = None
         varF = None
         lml = None
         nkk = None
-        self._nye = None
+        if hsgp_flag:
+            self.make_HSGP_errors()
         if nigp_flag:
             self.make_NIGP_errors(nr)
-        hscflag = True if self._ye is not None else False
+            if hsgp_flag:
+                self._egpye = None
+                self.make_HSGP_errors()
+        if self._gpye is None:
+            hsgp_flag = False
+            nigp_flag = False
+            self._gpye = self._ye.copy()
 
-        if not self._fwarn:
-            warnings.filterwarnings("ignore",category=RuntimeWarning)
+        if self._egpye is not None:
+            (self._barE,self._varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
+            (self._dbarE,self._dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
+            nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
+            ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
+            xnl = nxn - 0.5 * ddx
+            xnu = nxn + 0.5 * ddx
+            dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,do_drv=True))
+            dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,do_drv=True))
+            ddbarEt = np.abs(dbarEu - dbarEl) / ddx
+            nsum = 50
+            ddbarE = np.zeros(xn.shape)
+            for nx in np.arange(0,xn.size):
+                ivec = np.where(nxn >= xn[nx])[0][0]
+                nbeg = nsum - (ivec + 1) if (ivec + 1) < nsum else 0
+                nend = nsum - (nxn.size - ivec - 1) if (nxn.size - ivec - 1) < nsum else 0
+                temp = None
+                if nbeg > 0:
+                    vbeg = np.full((nbeg,),ddbarEt[0])
+                    temp = np.hstack((vbeg,ddbarEt[:ivec+nsum+1]))
+                    ddbarE[nx] = float(np.mean(temp))
+                elif nend > 0:
+                    vend = np.full((nend,),ddbarEt[-1]) if nend > 0 else np.array([])
+                    temp = np.hstack((ddbarEt[ivec-nsum:],vend))
+                    ddbarE[nx] = float(np.mean(temp))
+                else:
+                    ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
+            self._ddbarE = ddbarE.copy()
+        else:
+            self._gpye = np.full(xn.shape,np.sqrt(np.mean(np.power(self._gpye,2.0)))) if self._gpye is not None else None
+            self._barE = copy.deepcopy(self._gpye) if self._gpye is not None else None
+            self._varE = np.zeros(xn.shape) if self._barE is not None else None
+            self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
+            self._dvarE = np.zeros(xn.shape) if self._barE is not None else None
+            self._ddbarE = np.zeros(xn.shape) if self._barE is not None else None
 
-        if self._kk is not None and self._kb is not None and nr > 0:
+        if isinstance(self._kk,_Kernel) and self._kk.bounds is not None and nr > 0:
             xntest = np.array([0.0])
+            tkk = copy.copy(self._kk)
             kkvec = []
             lmlvec = []
-            tkk = copy.copy(self._kk)
             try:
-                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                 kkvec.append(copy.copy(tkk))
                 lmlvec.append(tlml)
             except (ValueError,np.linalg.linalg.LinAlgError):
                 kkvec.append(None)
                 lmlvec.append(np.NaN)
             for ii in np.arange(0,nr):
-                theta = np.abs(self._kb[:,1] - self._kb[:,0]).flatten() * np.random.random_sample((self._kb.shape[0],)) + np.nanmin(self._kb,axis=1).flatten()
-                tkk.set_hyperparameters(theta,log=True)
+#                kb = self._kb
+                kb = np.log10(self._kk.bounds)
+                theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
+                tkk.hyperparameters = np.power(10.0,theta)
                 try:
                     (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
@@ -4624,97 +5005,21 @@ class GaussianProcessRegression1D(object):
                 (barF,varF,lml,nkk) = self.__basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
             else:
                 raise ValueError('None of the fit attempts converged. Please adjust kernel settings and try again.')
-        else:
+        elif isinstance(self._kk,_Kernel):
             (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
 
         if barF is not None and isinstance(nkk,_Kernel):
-            barE = None
-            varE = None
-            dbarE = None
-            dvarE = None
-            ddbarE = None
-            if hscflag:
-                xntest = np.array([0.0])
-                ye = self._ye.copy() if self._nye is None else self._nye.copy()
-                if isinstance(self._ekk,_Kernel) and self._ekb is not None and not self._eflag and self._eeps is not None:
-                    elp = self._elp
-                    ekk = copy.copy(self._ekk)
-                    ekkvec = []
-                    elmlvec = []
-                    try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                        ekkvec.append(copy.copy(ekk))
-                        elmlvec.append(elml)
-                    except (ValueError,np.linalg.linalg.LinAlgError):
-                        ekkvec.append(None)
-                        elmlvec.append(np.NaN)
-                    for jj in np.arange(0,self._enr):
-                        etheta = np.abs(self._ekb[:,1] - self._ekb[:,0]).flatten() * np.random.random_sample((self._ekb.shape[0],)) + np.nanmin(self._ekb,axis=1).flatten()
-                        ekk.set_hyperparameters(etheta,log=True)
-                        try:
-                            (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                            ekkvec.append(copy.copy(ekk))
-                            elmlvec.append(elml)
-                        except (ValueError,np.linalg.linalg.LinAlgError):
-                            ekkvec.append(None)
-                            elmlvec.append(np.NaN)
-                    eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
-                    if len(eimaxv) > 0:
-                        eimax = eimaxv[0]
-                        self._ekk = copy.copy(ekkvec[eimax])
-                        self._eflag = True
-                    else:
-                        raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-                elif not self._eflag and self._eeps is not None:
-                    ekk = Noise_Kernel(float(np.mean(ye)))
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
-                    self._ekk = copy.copy(ekk)
-                    self._eflag = True
-                (barE,varE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',epsilon='None',rtn_cov=True))
-                if barE is not None:
-                    (dbarE,dvarE) = itemgetter(0,1)(self.__basic_fit(xn,kernel=self._ekk,ydata=ye,yerr=0.1*ye,dxdata='None',dydata='None',dyerr='None',do_drv=True,rtn_cov=True))
-                    nxn = np.linspace(np.nanmin(xn),np.nanmax(xn),1000)
-                    ddx = np.nanmin(np.diff(nxn)) * 1.0e-2
-                    xnl = nxn - 0.5 * ddx
-                    xnu = nxn + 0.5 * ddx
-                    dbarEl = itemgetter(0)(self.__basic_fit(xnl,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
-                    dbarEu = itemgetter(0)(self.__basic_fit(xnu,kernel=self._ekk,ydata=ye,yerr=0.1*ye,do_drv=True))
-                    ddbarEt = np.abs(dbarEu - dbarEl) / ddx
-                    nsum = 50
-                    ddbarE = np.zeros(xn.shape)
-                    for nx in np.arange(0,xn.size):
-                        ivec = np.where(nxn >= xn[nx])[0][0]
-                        nbeg = nsum - (ivec + 1) if (ivec + 1) < nsum else 0
-                        nend = nsum - (nxn.size - ivec - 1) if (nxn.size - ivec - 1) < nsum else 0
-                        temp = None
-                        if nbeg > 0:
-                            vbeg = np.full((nbeg,),ddbarEt[0])
-                            temp = np.hstack((vbeg,ddbarEt[:ivec+nsum+1]))
-                            ddbarE[nx] = float(np.mean(temp))
-                        elif nend > 0:
-                            vend = np.full((nend,),ddbarEt[-1]) if nend > 0 else np.array([])
-                            temp = np.hstack((ddbarEt[ivec-nsum:],vend))
-                            ddbarE[nx] = float(np.mean(temp))
-                        else:
-                            ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
-
-            self._xF = xn.copy()
-            self._barF = barF.copy()
-            self._varF = varF.copy() if varF is not None else None
-            self._barE = barE.copy() if barE is not None else None
-            self._varE = varE.copy() if varE is not None else None
-            self._varN = np.diag(np.power(barE,2.0)) if barE is not None else None
+            self._xF = copy.deepcopy(xn)
+            self._barF = copy.deepcopy(barF)
+            self._varF = copy.deepcopy(varF) if varF is not None else None
             self._lml = lml
             self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
-            self._dbarF = dbarF.copy() if dbarF is not None else None
-            self._dvarF = dvarF.copy() if dvarF is not None else None
-            self._dbarE = dbarE.copy() if dbarE is not None else None
-            self._dvarE = dvarE.copy() if dvarE is not None else None
-#            self._dvarN = dvarF + np.diag(np.power(dbarE,2.0)) if dvarF is not None and dbarE is not None else None
-#            ddfac = np.sqrt(np.mean(np.power(ddbarE,2.0))) if ddbarE is not None else 0.0
-            ddfac = ddbarE.copy() if ddbarE is not None else 0.0
-            self._dvarN = np.diag(2.0 * (np.power(dbarE,2.0) + np.abs(barE * ddfac))) if barE is not None and dbarE is not None else None
+            self._dbarF = copy.deepcopy(dbarF) if dbarF is not None else None
+            self._dvarF = copy.deepcopy(dvarF) if dvarF is not None else None
+            self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else None
+            ddfac = copy.deepcopy(self._ddbarE) if self._ddbarE is not None else 0.0
+            self._dvarN = np.diag(2.0 * (np.power(self._dbarE,2.0) + np.abs(self._barE * ddfac))) if self._dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
 
@@ -4757,11 +5062,6 @@ class GaussianProcessRegression1D(object):
             mult = self.get_gp_std(noise_flag=mult_flag) / self.get_gp_std(noise_flag=False)
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
-#            for ii in np.arange(0,ns):
-#                syy = np.random.multivariate_normal(mu,var)
-#                syy = spst.multivariate_normal.rvs(mean=mu,cov=var,size=1)
-#                sample = mult * (syy - mu) + mu
-#                samples = syy.copy() if samples is None else np.vstack((samples,sample))
             if samples is not None and simple_out:
                 mean = np.mean(samples,axis=0)
                 std = np.std(samples,axis=0)
@@ -4810,11 +5110,6 @@ class GaussianProcessRegression1D(object):
             mult = self.get_gp_drv_std(noise_flag=mult_flag) / self.get_gp_drv_std(noise_flag=False)
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
-#            for ii in np.arange(0,ns):
-#                syy = np.random.multivariate_normal(mu,var)
-#                syy = spst.multivariate_normal.rvs(mean=mu,cov=var,size=1)
-#                sample = mult * (syy - mu) + mu
-#                samples = syy.copy() if samples is None else np.vstack((samples,sample))
             if samples is not None and simple_out:
                 mean = np.mean(samples,axis=0)
                 std = np.std(samples,axis=0)
@@ -4839,7 +5134,7 @@ class GaussianProcessRegression1D(object):
             use data likelihood from model as the acceptance criterion instead of the
             log-marginal-likelihood. However, MCMC analysis was found only to be
             necessary when using non-Gaussian likelihoods and priors, otherwise the
-            result is effectively equivalent to maximization of the LML. (v1.0.1)
+            result is effectively equivalent to maximization of the LML. (v >= 1.0.1)
 
         :arg nsamples: int. Number of samples to draw from the posterior distribution.
 
@@ -4865,7 +5160,7 @@ class GaussianProcessRegression1D(object):
         sdsigM = None
         if isinstance(self._kk,_Kernel) and ns > 0:
             olml = self._lml
-            otheta = self._kk.get_hyperparameters(log=True)
+            otheta = np.log10(self._kk.hyperparameters)
             tlml = olml
             theta = otheta.copy()
             step = np.ones(theta.shape)
@@ -4878,14 +5173,14 @@ class GaussianProcessRegression1D(object):
                     theta_step = np.zeros(theta.shape)
                     theta_step[ihyp] = step[ihyp]
                     theta_new = theta + theta_step
-                    tkk.set_hyperparameters(theta_new,log=True)
+                    tkk.hyperparameters = np.power(10.0,theta_new)
                     ulml = None
                     try:
                         ulml = itemgetter(2)(self.__basic_fit(xntest,kernel=tkk,epsilon='None'))
                     except (ValueError,np.linalg.linalg.LinAlgError):
                         ulml = tlml - 3.0
                     theta_new = theta - theta_step
-                    tkk.set_hyperparameters(theta_new,log=True)
+                    tkk.hyperparameters = np.power(10.0,theta_new)
                     llml = None
                     try:
                         llml = itemgetter(2)(self.__basic_fit(xntest,kernel=tkk,epsilon='None'))
@@ -4908,7 +5203,7 @@ class GaussianProcessRegression1D(object):
                     jj = jj + 1
                     rstep = np.random.normal(0.0,0.5*step)
                     theta_prop = theta_prop + rstep
-                    nkk.set_hyperparameters(theta_prop,log=True)
+                    nkk.hyperparameters = np.power(10.0,theta_prop)
                     try:
                         nlml = itemgetter(2)(self.__basic_fit(xntest,kernel=nkk,epsilon='None'))
                         if (nlml - tlml) > 0.0:
@@ -4928,7 +5223,7 @@ class GaussianProcessRegression1D(object):
                 tlml = nlml
                 theta = theta_prop.copy()
                 xn = self._xF.copy()
-                nkk.set_hyperparameters(theta,log=True)
+                nkk.hyperparameters = np.power(10.0,theta)
                 (barF,sigF,tlml,nkk) = self.__basic_fit(xn,kernel=nkk,epsilon='None')
                 sbarM = barF.copy() if sbarM is None else np.vstack((sbarM,barF))
                 ssigM = sigF.copy() if ssigM is None else np.vstack((ssigM,sigF))
@@ -4966,7 +5261,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         use the results of the first optimization, regardless of its
         quality or convergence status.
 
-    :arg kernel: object. The covariance function, as a :code:`Kernel` instance, to be used in the fit procedure.
+    :arg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in the fit procedure.
 
     :arg xdata: array. Vector of x-values corresponding to data to be fitted.
 
@@ -4994,7 +5289,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         parameters reduced only to essentials and most crucial knobs for
         fine-tuning.
 
-        :arg kernel: object. The covariance function, as a :code:`Kernel` instance, to be used in the fit procedure.
+        :arg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in the fit procedure.
 
         :arg xdata: array. Vector of x-values corresponding to data to be fitted.
 
@@ -5046,7 +5341,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         optimization on the *first* call. Subsequent calls
         merely evaluate the optimized fit at the input x-values.
 
-        :arg xnew: array. Vector of x-values corresponding to points where GPR results should be evaulated at.
+        :arg xnew: array. Vector of x-values corresponding to points at which the GPR results should be evaulated.
 
         :returns: tuple.
                   Mean of GPR predictive distribution, ie. the fit ;
@@ -5088,11 +5383,11 @@ def KernelConstructor(name):
     .. note::
 
         All :code:`_OperatorKernel` class implementations should use encapsulating
-        round brackets to specify their constituents. (v1.0.1)
+        round brackets to specify their constituents. (v >= 1.0.1)
 
-    :arg name: str. The codename of the desired :code:`Kernel` instance.
+    :arg name: str. The codename of the desired :code:`_Kernel` instance.
 
-    :returns: object. The desired :code:`Kernel` instance with default parameters. Returns :code:`None` if given kernel codename was invalid.
+    :returns: object. The desired :code:`_Kernel` instance with default parameters. Returns :code:`None` if given kernel codename was invalid.
     """
 
     kernel = None
@@ -5148,7 +5443,7 @@ def KernelConstructor(name):
     return kernel
 
 
-def KernelReconstructor(name,pars=None,log=False):
+def KernelReconstructor(name,pars=None):
     """
     Function to reconstruct any :code:`_Kernel` instance from its codename and parameter list,
     useful for saving only necessary data to represent a :code:`GaussianProcessRregression1D`
@@ -5157,13 +5452,11 @@ def KernelReconstructor(name,pars=None,log=False):
     .. note::
 
         All :code:`_OperatorKernel` class implementations should use encapsulating
-        round brackets to specify their constituents. (v1.0.1)
+        round brackets to specify their constituents. (v >= 1.0.1)
 
     :arg name: str. The codename of the desired :code:`_Kernel` instance.
 
     :kwarg pars: array. The hyperparameter and constant values to be stored in the :code:`_Kernel` instance, order determined by the specific :code:`_Kernel` class implementation. (optional)
-
-    :kwarg log: bool. Indicates that :code:`pars` was passed in as :code:`log10(pars)`, does **not** apply to constants. (optional)
 
     :returns: object. The desired :code:`_Kernel` instance, with the supplied parameters already set if parameters were valid. Returns :code:`None` if given kernel codename was invalid.
     """
@@ -5175,12 +5468,12 @@ def KernelReconstructor(name,pars=None,log=False):
     elif isinstance(pars,np.ndarray):
         pvec = pars.flatten()
     if isinstance(kernel,_Kernel) and pvec is not None:
-        nhyp = kernel.get_hyperparameters().size
-        ncst = kernel.get_constants().size
+        nhyp = kernel.hyperparameters.size
+        ncst = kernel.constants.size
         if pvec.size >= nhyp:
             theta = pvec[:nhyp] if pvec.size > nhyp else pvec.copy()
-            kernel.set_hyperparameters(theta,log=log)
+            kernel.hyperparameters = theta
         if ncst > 0 and pvec.size >= (nhyp + ncst):
             csts = pvec[nhyp:nhyp+ncst] if pvec.size > (nhyp + ncst) else pvec[nhyp:]
-            kernel.set_constants(csts)
+            kernel.constants = csts
     return kernel

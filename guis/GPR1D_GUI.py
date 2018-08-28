@@ -10,6 +10,7 @@ import copy
 import pickle
 import numpy as np
 import distutils
+import inspect
 
 import matplotlib
 old_mpl = distutils.version.LooseVersion(matplotlib.__version__) <= distutils.version.LooseVersion("2.0.0")
@@ -696,7 +697,7 @@ class GibbsKernelWidget(_KernelWidget):
         self.WarpFuncSettings = QtWidgets.QStackedLayout()
         self.WarpFuncSettings.addWidget(self.CWarpFuncSettings)
         self.WarpFuncSettings.addWidget(self.IGWarpFuncSettings)
-        self.WarpFuncSettings.setCurrentIndex(1)
+        self.WarpFuncSettings.setCurrentIndex(self.WarpFuncSelectionList.currentIndex())
 
         tbox = QtWidgets.QVBoxLayout()
         tbox.addLayout(kbox)
@@ -853,7 +854,7 @@ class GradAscentOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -872,7 +873,7 @@ class MomentumOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -898,7 +899,7 @@ class NesterovOptimizerWidget(_OptimizerWidget):
 
         GainLabel = QtWidgets.QLabel("Gain Factor:")
         GainLabel.setEnabled(self.aflag)
-        GainEntry = QtWidgets.QLineEdit("1.0e-5")
+        GainEntry = QtWidgets.QLineEdit("1.0e-4")
         GainEntry.setEnabled(self.aflag)
         GainEntry.setValidator(QtGui.QDoubleValidator(0.0,np.Inf,100,None))
         self.add_parameter('gain',GainEntry,label=GainLabel)
@@ -1078,6 +1079,9 @@ class GPR1D_GUI(QtWidgets.QWidget):
         super(GPR1D_GUI, self).__init__()
         self.fNewData = False
         self.gpr = GPR1D.GaussianProcessRegression1D()
+        location = inspect.getsourcefile(type(self.gpr))
+        self.srcdir = os.path.dirname(location) + '/'
+        print("Using GPR1D definition from: %s" % (self.srcdir))
         self.initUI()
 
     def initUI(self):
@@ -1803,6 +1807,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 ykbounds = np.vstack((ykbounds,np.atleast_2d([float(self.YNoiseLBEntry.text()),float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
             ykernel = GPR1D.KernelReconstructor(ykname,pars=np.hstack((ykhyps,ykcsts)))
+            if ykbounds is not None:
+                ykbounds = np.transpose(ykbounds)
 
             ekernel = None
             ekname = self.EKernelSettings.currentWidget().get_name()
@@ -1824,6 +1830,9 @@ class GPR1D_GUI(QtWidgets.QWidget):
                     ekbounds = np.vstack((ekbounds,np.atleast_2d([float(self.ENoiseLBEntry.text()),float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
                 ekernel = GPR1D.KernelReconstructor(ekname,pars=np.hstack((ekhyps,ekcsts)))
+            if ekbounds is not None:
+                ekbounds = np.transpose(ekbounds)
+            vary_yerrs = self.HeteroscedasticBox.isChecked() if ekernel is not None else False
 
             try:
                 tic = time.perf_counter()
@@ -1833,19 +1842,19 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 self.gpr.set_error_kernel(kernel=ekernel,kbounds=ekbounds,regpar=eregpar,nrestarts=enres)
                 self.gpr.set_search_parameters(epsilon=yeps,method=yopm,spars=yopp)
                 self.gpr.set_error_search_parameters(epsilon=eeps,method=eopm,spars=eopp)
-                self.gpr.GPRFit(xnew,nigp_flag=use_xerrs,nrestarts=ynres)
+                self.gpr.GPRFit(xnew,hsgp_flag=vary_yerrs,nigp_flag=use_xerrs,nrestarts=ynres)
                 self.fNewData = False
                 toc = time.perf_counter()
                 print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))
                 ylml = self.gpr.get_gp_lml()
                 print("Final log-marginal-likelihood: %15.8f" % (ylml))
                 if (isinstance(eeps,(float,int)) and eeps > 0.0) or (isinstance(enres,(float,int)) and enres > 0):
-                    ehyps = self.gpr.get_error_kernel().get_hyperparameters()
+                    ehyps = self.gpr.get_error_kernel().hyperparameters
                     print("   --- Optimized error kernel hyperparameters: ---")
                     print(ehyps)
                 if (isinstance(yeps,(float,int)) and yeps > 0.0) or (isinstance(ynres,(float,int)) and ynres > 0):
-                    yhyps = self.gpr.get_gp_kernel().get_hyperparameters()
-                    print("   *** Optimized kernel hyperparameters ***")
+                    yhyps = self.gpr.get_gp_kernel().hyperparameters
+                    print("   *** Optimized kernel hyperparameters: ***")
                     print(yhyps)
             except Exception as e:
                 print(repr(e))

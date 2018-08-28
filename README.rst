@@ -14,7 +14,6 @@ dependencies needed to use this capability, install this package
 by using the following on the command line:
 
 .. code-block:: console
-
     pip install [--user] GPR1D[guis]
 
 Use the :code:`--user` flag if you do not have root access on the system
@@ -23,7 +22,6 @@ repository, enter the top level of the repository directory and
 use the following instead:
 
 .. code-block:: console
-
     pip install [--user] -e .[guis]
 
 Removal of the :code:`[guis]` portion will no longer check for
@@ -63,7 +61,6 @@ The following runtime warnings are common within this routine,
 but they are filtered out by default:
 
 .. code-block:: console
-
     RuntimeWarning: overflow encountered in double_scalars
     RuntimeWarning: invalid value encountered in true_divide
     RuntimeWarning: invalid value encountered in sqrt
