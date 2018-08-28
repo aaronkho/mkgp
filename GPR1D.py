@@ -176,8 +176,6 @@ class _Kernel(object):
         """
         Return the hyperparameters stored in the :code:`_Kernel` instance.
 
-        :kwarg log: bool. Returns the hyperparameters as :code:`log10(self._hyperparameters)`. (optional)
-
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_Kernel` class implementation.
         """
 
@@ -419,8 +417,6 @@ class _OperatorKernel(_Kernel):
         """
         Return the hyperparameter bounds of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
-        :kwarg log: bool. Returns the bounds as :code:`log10(self._bounds)`. (optional)
-
         :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
         """
 
@@ -637,7 +633,7 @@ class _WarpingFunction(object):
 
         :kwarg value: bool. Boolean value to set the flag.
 
-        :reutnrs: none.
+        :returns: none.
         """
         self._force_bounds = True if value else False
 
@@ -686,8 +682,6 @@ class _WarpingFunction(object):
     def bounds(self):
         """
         Return the hyperparameter search bounds stored in the :code:`_WarpingFunction` instance.
-
-        :kwarg log: bool. Returns the bounds as :code:`log10(self._bounds)`.
 
         :returns: array. Hyperparameter bounds list, ordered according to the specific :code:`_WarpingFunction` class implementation.
         """
