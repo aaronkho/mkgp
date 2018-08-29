@@ -5320,10 +5320,10 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
         if self._perform_heterogp:
             error_length = 5.0 * (np.nanmax(self._xx) - np.nanmin(self._xx)) / float(self._xx.size) if self._xx is not None else 5.0e-1
-            error_kernel = RQ_Kernel(1.0e0,error_length,2.0e1)
-            error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e1],[1.0e1,1.0e0,3.0e1]])
-            self.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=10.0,nrestarts=0)
-            self.set_error_search_parameters(epsilon=1.0e-1,method='adam',spars=[1.0e-1,0.4,0.8])
+            error_kernel = RQ_Kernel(5.0e-1,error_length,3.0e1)
+            error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,error_length * 0.25,1.0e1],[1.0e0,error_length * 4.0,5.0e1]])
+            self.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=5.0,nrestarts=0)
+            self.set_error_search_parameters(epsilon=1.0e-1,method='adam',spars=[1.0e-2,0.4,0.8])
         elif isinstance(yerr,(float,int,np_itypes,np_utypes,np_ftypes)):
             ye = np.full(self._yy.shape,yerr)
             self.set_raw_data(yerr=ye)
@@ -5348,7 +5348,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
             nrestarts = None
             self.set_search_parameters(epsilon='none')
             self.set_error_search_parameters(epsilon='none')
-        self.GPRFit(xnew,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
+        self.GPRFit(xnew,hsgp_flag=self._perform_heterogp,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
         return self.get_gp_results()
 
 
