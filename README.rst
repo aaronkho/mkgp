@@ -74,3 +74,9 @@ Plotting the resulting fit and errors is the recommended way to
 check its quality. The log-marginal-likelihood metric can also
 be used, but is only valuable when comparing different fits of
 the same data, ie. its absolute value is meaningless.
+
+From v1.1.1, the adjusted R\ :sup:`2` and pseudo R\ :sup:`2`
+metrics are now available. The adjusted R\ :sup:`2` metric provides
+a measure of how close the fit is to the input data points. The
+pseudo R\ :sup:`2` provides a measure of this closeness accounting
+for the input data uncertainties.
