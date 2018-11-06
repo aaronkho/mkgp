@@ -1847,7 +1847,11 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 toc = time.perf_counter()
                 print("Fitting routine completed. Elapsed time: %.3f s" % (toc - tic))
                 ylml = self.gpr.get_gp_lml()
+                rsad = self.gpr.get_gp_adjusted_r2()
+                rscs = self.gpr.get_gp_generalized_r2()
                 print("Final log-marginal-likelihood: %15.8f" % (ylml))
+                print("Final adjusted R-squared:      %15.8f" % (rsad))
+                print("Final pseudo R-squared (CS):   %15.8f" % (rscs))
                 if (isinstance(eeps,(float,int)) and eeps > 0.0) or (isinstance(enres,(float,int)) and enres > 0):
                     ehyps = self.gpr.get_error_kernel().hyperparameters
                     print("   --- Optimized error kernel hyperparameters: ---")

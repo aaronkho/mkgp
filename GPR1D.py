@@ -2693,11 +2693,13 @@ class GaussianProcessRegression1D(object):
         self._ikk = None
         self._imax = 500
         self._xF = None
+        self._estF = None
         self._barF = None
         self._varF = None
         self._dbarF = None
         self._dvarF = None
         self._lml = None
+        self._nulllml = None
         self._barE = None
         self._varE = None
         self._dbarE = None
@@ -3323,6 +3325,51 @@ class GaussianProcessRegression1D(object):
         return self._lml
 
 
+    def get_gp_null_lml(self):
+        """
+        Returns the log-marginal-likelihood for the null hypothesis, calculated by the latest :code:`GPRFit()` call.
+        This value can be used to normalize the log-marginal-likelihood of the fit for a generalized goodness-of-fit metric.
+
+        :returns: float. Log-marginal-likelihood value of null hypothesis.
+        """
+
+        return self._nulllml
+
+
+    def get_gp_adjusted_r2(self):
+        """
+        Calculates the adjusted R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()`
+        call.
+
+        :returns: float. Adjusted R-squared value.
+        """
+        adjr2 = None
+        if self._xF is not None and self._estF is not None:
+            myy = np.nanmean(self._yy)
+            sstot = np.sum(np.power(self._yy - myy,2.0))
+            ssres = np.sum(np.power(self._yy - self._estF,2.0))
+            kpars = np.hstack((self._kk.hyperparameters,self._kk.constants))
+            adjr2 = 1.0 - (ssres / sstot) * (self._xx.size - 1.0) / (self._xx.size - kpars.size - 1.0)
+        return adjr2
+
+
+    def get_gp_generalized_r2(self):
+        """
+        Calculates the Cox and Snell pseudo R-squared (coefficient of determination) using the results of the latest
+        :code:`GPRFit()` call.
+
+        .. note:: This particular metric is for logistic regression, may not be fully applicable to generalized polynomial
+                  regression. However, they are related here through the use of maximum likelihood optimization. Use with
+                  extreme caution!!!
+
+        :returns: float. Generalized pseudo R-squared value based on Cox and Snell methodology.
+        """
+        genr2 = None
+        if self._xF is not None:
+            genr2 = 1.0 - np.exp(2.0 * (self._nulllml - self._lml) / self._xx.size)
+        return genr2
+
+
     def get_gp_input_kernel(self):
         """
         Returns the original input kernel, with settings retained from before the
@@ -3547,7 +3594,12 @@ class GaussianProcessRegression1D(object):
         #    3rd term: Penalty for the size of given data set
         lml = -0.5 * np.dot(yf.T,alpha) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xf.size * np.log(2.0 * np.pi)
 
-        return (barF,varF,lml)
+        # Log-marginal-likelihood of the null hypothesis, can be used as a normalization factor for general goodness-of-fit metric
+        zfilt = (np.abs(yef) < 1.0e-10)
+        yef[zfilt] = 1.0e-10
+        lmlz = -0.5 * np.sum(np.power(yf / yef,2.0)) - lp * np.sum(np.log(yef)) - 0.5 * xf.size * np.log(2.0 * np.pi)
+
+        return (barF,varF,lml,lmlz)
 
 
     def _gp_brute_deriv1(self,xn,kk,lp,xx,yy,ye):
@@ -3581,7 +3633,7 @@ class GaussianProcessRegression1D(object):
         (xt1,xt2) = np.meshgrid(xn,xn)
         # Set up predictive grids with slight offset in x1 and x2, forms corners of a box around original xn point
         step = np.amin(np.abs(np.diff(xn)))
-        xnl = xn - step * 0.5e-3        # The step is chosen intelligently to be smaller than smallest dxn
+        xnl = xn - step * 0.5e-3            # The step is chosen intelligently to be smaller than smallest dxn
         xnu = xn + step * 0.5e-3
         (xl1,xl2) = np.meshgrid(xx,xnl)
         (xu1,xu2) = np.meshgrid(xx,xnu)
@@ -4644,13 +4696,14 @@ class GaussianProcessRegression1D(object):
                     (nkk,lml) = self._gp_nadam_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],opp[1],opp[2],dh)
                 elif opm == 'grad' and opp.size > 0:
                     (nkk,lml) = self._gp_grad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
-            (barF,varF,lml) = self._gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
+            (barF,varF,lml,lmlz) = self._gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
+#            lmlz = -0.5 * np.sum(np.power(yy / ye,2.0)) - lp * np.sum(np.log(ye)) - 0.5 * xf.size * np.log(2.0 * np.pi)
             barF = barF * sc if do_drv else barF * sc + myy
             varF = varF * sc**2.0
             errF = varF if rtn_cov else np.sqrt(np.diag(varF))
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
-        return (barF,errF,lml,nkk)
+        return (barF,errF,lml,lmlz,nkk)
 
 
     def __brute_derivative(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,rtn_cov=False):
@@ -4770,7 +4823,7 @@ class GaussianProcessRegression1D(object):
                 ekkvec = []
                 elmlvec = []
                 try:
-                    (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                    (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                     ekkvec.append(copy.copy(ekk))
                     elmlvec.append(elml)
                 except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4782,7 +4835,7 @@ class GaussianProcessRegression1D(object):
                     etheta = np.abs(ekb[1,:] - ekb[0,:]).flatten() * np.random.random_sample((ekb.shape[1],)) + np.nanmin(ekb,axis=0).flatten()
                     ekk.hyperparameters = np.power(10.0,etheta)
                     try:
-                        (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                        (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
                     except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4798,7 +4851,7 @@ class GaussianProcessRegression1D(object):
             elif self._eeps is not None and self._egpye is None:
 #                ekk = Noise_Kernel(float(np.mean(aye)))
                 ekk = copy.copy(self._ekk)
-                (elml,ekk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                 self._ekk = copy.copy(ekk)
             if isinstance(ekk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
@@ -4845,7 +4898,7 @@ class GaussianProcessRegression1D(object):
                 kkvec = []
                 lmlvec = []
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
+                    (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except ValueError:
@@ -4857,16 +4910,16 @@ class GaussianProcessRegression1D(object):
                     theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
                     tkk.hyperparameters = np.power(10.0,theta)
                     try:
-                        (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
+                        (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
                         kkvec.append(copy.copy(tkk))
                         lmlvec.append(tlml)
                     except ValueError:
                         kkvec.append(None)
                         lmlvec.append(np.NaN)
                 imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
-                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
+                (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
             else:
-                (nlml,nkk) = itemgetter(2,3)(self.__basic_fit(xntest))
+                (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest))
             if isinstance(nkk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
@@ -4920,7 +4973,9 @@ class GaussianProcessRegression1D(object):
         barF = None
         varF = None
         lml = None
+        lmlz = None
         nkk = None
+        estF = None
         if hsgp_flag:
             self.make_HSGP_errors()
         if nigp_flag:
@@ -4975,7 +5030,7 @@ class GaussianProcessRegression1D(object):
             kkvec = []
             lmlvec = []
             try:
-                (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
+                (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
                 kkvec.append(copy.copy(tkk))
                 lmlvec.append(tlml)
             except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4987,7 +5042,7 @@ class GaussianProcessRegression1D(object):
                 theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
                 tkk.hyperparameters = np.power(10.0,theta)
                 try:
-                    (tlml,tkk) = itemgetter(2,3)(self.__basic_fit(xntest,kernel=tkk))
+                    (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
                 except (ValueError,np.linalg.linalg.LinAlgError):
@@ -4996,17 +5051,21 @@ class GaussianProcessRegression1D(object):
             imaxv = np.where(lmlvec == np.nanmax(lmlvec))[0]
             if len(imaxv) > 0:
                 imax = imaxv[0]
-                (barF,varF,lml,nkk) = self.__basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
+                (barF,varF,lml,lmlz,nkk) = self.__basic_fit(xn,kernel=kkvec[imax],epsilon='None',rtn_cov=True)
+                estF = itemgetter(0)(self.__basic_fit(self._xx + 1.0e-10,kernel=kkvec[imax],epsilon='None',rtn_cov=True))
             else:
                 raise ValueError('None of the fit attempts converged. Please adjust kernel settings and try again.')
         elif isinstance(self._kk,_Kernel):
-            (barF,varF,lml,nkk) = self.__basic_fit(xn,rtn_cov=True)
+            (barF,varF,lml,lmlz,nkk) = self.__basic_fit(xn,rtn_cov=True)
+            estF = itemgetter(0)(self.__basic_fit(self._xx + 1.0e-10,kernel=nkk,epsilon='None',rtn_cov=True))
 
         if barF is not None and isinstance(nkk,_Kernel):
             self._xF = copy.deepcopy(xn)
             self._barF = copy.deepcopy(barF)
             self._varF = copy.deepcopy(varF) if varF is not None else None
+            self._estF = copy.deepcopy(estF) if estF is not None else None
             self._lml = lml
+            self._nulllml = lmlz
             self._kk = copy.copy(nkk) if isinstance(nkk,_Kernel) else None
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = copy.deepcopy(dbarF) if dbarF is not None else None
@@ -5218,7 +5277,7 @@ class GaussianProcessRegression1D(object):
                 theta = theta_prop.copy()
                 xn = self._xF.copy()
                 nkk.hyperparameters = np.power(10.0,theta)
-                (barF,sigF,tlml,nkk) = self.__basic_fit(xn,kernel=nkk,epsilon='None')
+                (barF,sigF,tlml,tlmlz,nkk) = self.__basic_fit(xn,kernel=nkk,epsilon='None')
                 sbarM = barF.copy() if sbarM is None else np.vstack((sbarM,barF))
                 ssigM = sigF.copy() if ssigM is None else np.vstack((ssigM,sigF))
                 (dbarF,dsigF) = itemgetter(0,1)(self.__basic_fit(xn,kernel=nkk,epsilon='None',do_drv=True))
