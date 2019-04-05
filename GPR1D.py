@@ -1623,11 +1623,11 @@ class RQ_Kernel(_Kernel):
         """
         Initializes the :code:`RQ_Kernel` instance.
 
-        :param amp: float. Hyperparameter representing variability of model in y.
+        :kwarg amp: float. Hyperparameter representing variability of model in y.
 
-        :param ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
+        :kwarg ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
 
-        :param alpha: float. Hyperparameter representing degree of length scale mixing in model.
+        :kwarg alpha: float. Hyperparameter representing degree of length scale mixing in model.
 
         :returns: none.
         """
@@ -3148,7 +3148,7 @@ class GaussianProcessRegression1D(object):
         self._fwarn = True if flag else False
 
 
-    def get_raw_data(self,processed=False):
+    def get_raw_data(self):
         """
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
         without any internal processing.
@@ -3182,18 +3182,15 @@ class GaussianProcessRegression1D(object):
             Vectors in order of x-values, y-values, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        pxx = self._xx
-        pyy = self._yy
-        pxe = self._xe
         pye = self._ye if self._gpye is None else self._gpye
+        lb = -1.0e50 if self._lb is None else self._lb
+        ub = 1.0e50 if self._ub is None else self._ub
+        cn = 5.0e-3 if self._cn is None else self._cn
+        (pxx,pyy,pxe,cye,nn) = self._condition_data(self._xx,self._yy,self._xe,pye,lb,ub,cn)
+        # Actually these should be conditioned as well (for next version?)
         dxx = self._dxx
         dyy = self._dyy
         dye = self._dye
-        if conditioned:
-            lb = -1.0e50 if self._lb is None else self._lb
-            ub = 1.0e50 if self._ub is None else self._ub
-            cn = 5.0e-3 if self._cn is None else self._cn
-            (pxx,pyy,pxe,cye,nn) = self._condition_data(pxx,pyy,pxe,pye,lb,ub,cn)
         return (pxx,pyy,pye,dxx,dyy,dye)
 
 
@@ -3217,34 +3214,39 @@ class GaussianProcessRegression1D(object):
         return self._barF
 
 
-    def get_gp_variance(self,noise_flag=True):
+    def get_gp_variance(self,noise_flag=True,noise_mult=None):
         """
         Returns the full covariance matrix of the y-values computed in the latest
         :code:`GPRFit()` call.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
+
+        :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
 
         :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
         """
 
         varF = self._varF
         if varF is not None and self._varN is not None and noise_flag:
-            varF = varF + self._varN
+            nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult,(float,int,np_itypes,np_utypes,np_ftypes)) and float(noise_mult) >= 0.0 else 1.0
+            varF = varF + nfac * self._varN
         return varF
 
 
-    def get_gp_std(self,noise_flag=True):
+    def get_gp_std(self,noise_flag=True,noise_mult=None):
         """
         Returns only the rooted diagonal elements of the covariance matrix of the y-values
         computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma error of fit.
 
-        :param noise_flag: bool. Specifies inclusion of noise term in returned 1 sigma errors. (optional)
+        :kwarg noise_flag: bool. Specifies inclusion of noise term in returned 1 sigma errors. (optional)
+
+        :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
 
         :returns: array. 1D array containing 1 sigma errors of predicted y-values from fit.
         """
 
         sigF = None
-        varF = self.get_gp_variance(noise_flag=noise_flag)
+        varF = self.get_gp_variance(noise_flag=noise_flag,noise_mult=noise_mult)
         if varF is not None:
             sigF = np.sqrt(np.diag(varF))
         return sigF
@@ -3260,20 +3262,23 @@ class GaussianProcessRegression1D(object):
         return self._dbarF
 
 
-    def get_gp_drv_variance(self,noise_flag=True):
+    def get_gp_drv_variance(self,noise_flag=True,noise_mult=None):
         """
         Returns the full covariance matrix of the dy/dx-values computed in the latest
         :code:`GPRFit()` call.
 
         :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
 
+        :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
+
         :returns: array. 2D meshgrid array containing full covariance matrix for predicted dy/dx-values from fit, if requested in fit call.
         """
 
         dvarF = self._dvarF
-        dvarmod = self.get_gp_variance(noise_flag=noise_flag) / self.get_gp_variance(noise_flag=False)
+        dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=noise_mult) / self.get_gp_variance(noise_flag=False)
         if dvarF is not None and self._dvarN is not None and noise_flag:
-            dvarF = dvarF + self._dvarN
+            nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult,(float,int,np_itypes,np_utypes,np_ftypes)) and float(noise_mult) >= 0.0 else 1.0
+            dvarF = dvarF + nfac * self._dvarN
         dvarF = dvarF * dvarmod
         return dvarF
 
@@ -3343,6 +3348,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: float. Adjusted R-squared value.
         """
+
         adjr2 = None
         if self._xF is not None and self._estF is not None:
             myy = np.nanmean(self._yy)
@@ -3358,12 +3364,13 @@ class GaussianProcessRegression1D(object):
         Calculates the Cox and Snell pseudo R-squared (coefficient of determination) using the results of the latest
         :code:`GPRFit()` call.
 
-        .. note:: This particular metric is for logistic regression, may not be fully applicable to generalized polynomial
+        .. note:: This particular metric is for logistic regression and may not be fully applicable to generalized polynomial
                   regression. However, they are related here through the use of maximum likelihood optimization. Use with
                   extreme caution!!!
 
         :returns: float. Generalized pseudo R-squared value based on Cox and Snell methodology.
         """
+
         genr2 = None
         if self._xF is not None:
             genr2 = 1.0 - np.exp(2.0 * (self._nulllml - self._lml) / self._xx.size)
@@ -3944,11 +3951,11 @@ class GaussianProcessRegression1D(object):
 
         :arg dye: array. Vector of dy-errors of derivative data to be included in fit, assumed to be given as 1 sigma. Must have same dimensions as :code:`dxx` if given.
 
-        :param eps: float. Desired convergence criteria.
+        :arg eps: float. Desired convergence criteria.
 
-        :param eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
+        :arg eta: float. Gain factor on gradient to define next step, recommended 1.0e-5.
 
-        :param gam: float. Momentum factor multiplying previous step, recommended 0.9.
+        :arg gam: float. Momentum factor multiplying previous step, recommended 0.9.
 
         :arg dh: float. Step size used to approximate the gradient, recommended 1.0e-2. **Only** applicable if brute-force derivative is used.
 
@@ -4530,7 +4537,7 @@ class GaussianProcessRegression1D(object):
         if isinstance(kernel,_Kernel):
             kk = copy.copy(kernel)
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
-            self._lp = float(regpar)
+            lp = float(regpar)
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
@@ -4849,13 +4856,14 @@ class GaussianProcessRegression1D(object):
                 else:
                     raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
             elif self._eeps is not None and self._egpye is None:
+                elp = self._elp
 #                ekk = Noise_Kernel(float(np.mean(aye)))
                 ekk = copy.copy(self._ekk)
-                (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
+                (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                 self._ekk = copy.copy(ekk)
-            if isinstance(ekk,_Kernel):
+            if isinstance(self._ekk,_Kernel):
                 xntest = self._xx.copy() + 1.0e-8
-                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
                 self._egpye = aye.copy()
         else:
             raise ValueError('Check input y-errors to make sure they are valid.')
@@ -4946,6 +4954,7 @@ class GaussianProcessRegression1D(object):
             For details, see article: A. McHutchon, C.E. Rasmussen, 'Gaussian Process Training with Input Noise' (2011)
 
         :arg xnew: array. Vector of x-values at which the predicted fit will be evaluated.
+
         :kwarg hsgp_flag: bool. Set as true to perform Gaussian Process regression fit with variable y-errors. Default is :code:`True`. (optional)
 
         :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. Default is :code:`False`. (optional)
@@ -5072,7 +5081,8 @@ class GaussianProcessRegression1D(object):
             self._dvarF = copy.deepcopy(dvarF) if dvarF is not None else None
             self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else None
             ddfac = copy.deepcopy(self._ddbarE) if self._ddbarE is not None else 0.0
-            self._dvarN = np.diag(2.0 * (np.power(self._dbarE,2.0) + np.abs(self._barE * ddfac))) if self._dbarE is not None else None
+#            self._dvarN = np.diag(2.0 * (np.power(self._dbarE,2.0) + np.abs(self._barE * ddfac))) if self._dbarE is not None else None
+            self._dvarN = np.diag(np.power(self._dbarE,2.0)) if self._dbarE is not None else None
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
 
@@ -5080,7 +5090,7 @@ class GaussianProcessRegression1D(object):
             warnings.filterwarnings("default",category=RuntimeWarning)
 
 
-    def sample_GP(self,nsamples,actual_noise=False,simple_out=False):
+    def sample_GP(self,nsamples,actual_noise=False,without_noise=False,simple_out=False):
         """
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
@@ -5088,7 +5098,9 @@ class GaussianProcessRegression1D(object):
 
         :arg nsamples: int. Number of samples to draw from the posterior distribution.
 
-        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
+        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance as actual Gaussian noise. Only operates on diagonal elements. (optional)
+
+        :kwarg without_noise: bool. Specifies complete exclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
 
         :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation. (optional)
 
@@ -5109,9 +5121,10 @@ class GaussianProcessRegression1D(object):
 
         samples = None
         if ns > 0:
+            noise_flag = actual_noise if not without_noise else False
             mu = self.get_gp_mean()
-            var = self.get_gp_variance(noise_flag=actual_noise)
-            mult_flag = not actual_noise
+            var = self.get_gp_variance(noise_flag=noise_flag)
+            mult_flag = not actual_noise if not without_noise else False
             mult = self.get_gp_std(noise_flag=mult_flag) / self.get_gp_std(noise_flag=False)
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
@@ -5128,7 +5141,7 @@ class GaussianProcessRegression1D(object):
         return samples
 
 
-    def sample_GP_derivative(self,nsamples,actual_noise=False,simple_out=False):
+    def sample_GP_derivative(self,nsamples,actual_noise=False,without_noise=False,simple_out=False):
         """
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
@@ -5136,7 +5149,9 @@ class GaussianProcessRegression1D(object):
 
         :arg nsamples: int. Number of samples to draw from the posterior distribution.
 
-        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
+        :kwarg actual_noise: bool. Specifies inclusion of noise term in returned variance as actual Gaussian noise. Only operates on diagonal elements. (optional)
+
+        :kwarg without_noise: bool. Specifies complete exclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
 
         :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation. (optional)
 
@@ -5157,9 +5172,10 @@ class GaussianProcessRegression1D(object):
 
         samples = None
         if ns > 0:
+            noise_flag = actual_noise if not without_noise else False
             mu = self.get_gp_drv_mean()
-            var = self.get_gp_drv_variance(noise_flag=actual_noise)
-            mult_flag = not actual_noise
+            var = self.get_gp_drv_variance(noise_flag=noise_flag)
+            mult_flag = not actual_noise if not without_noise else False
             mult = self.get_gp_drv_std(noise_flag=mult_flag) / self.get_gp_drv_std(noise_flag=False)
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
@@ -5335,7 +5351,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
     :kwarg hyp_opt_gain: float. Gain value on the hyperparameter optimizer, expert use only. (optional)
     """
 
-    def __init__(self,kernel,xdata,ydata,yerr,xerr=None,kernel_bounds=None,reg_par=1.0,epsilon=1.0e-2,num_restarts=0,hyp_opt_gain=1.0e-2):
+    def __init__(self,kernel,xdata,ydata,yerr,xerr=None,kernel_bounds=None,reg_par=1.0,epsilon=1.0e-2,num_restarts=0,hyp_opt_gain=1.0e-2,include_noise=True):
         """
         Defines customized :code:`GaussianProcessRegression1D` instance with
         a pre-defined common settings for both data fit and error fit. Input
@@ -5362,6 +5378,8 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
         :kwarg hyp_opt_gain: float. Gain value on the hyperparameter optimizer, expert use only. (optional)
 
+        :kwarg include_noise: bool. Specifies inclusion of Gaussian noise term in returned variance. Only operates on diagonal elements. (optional)
+
         :returns: none.
         """
         super(SimplifiedGaussianProcessRegression1D,self).__init__()
@@ -5376,6 +5394,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
         self._perform_heterogp = False if self._ye is None else True
         self._perform_nigp = False if self._xe is None else True
+        self._include_noise = True if include_noise else False
 
         if self._perform_heterogp:
             error_length = 5.0 * (np.nanmax(self._xx) - np.nanmin(self._xx)) / float(self._xx.size) if self._xx is not None else 5.0e-1
@@ -5408,10 +5427,10 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
             self.set_search_parameters(epsilon='none')
             self.set_error_search_parameters(epsilon='none')
         self.GPRFit(xnew,hsgp_flag=self._perform_heterogp,nigp_flag=self._perform_nigp,nrestarts=nrestarts)
-        return self.get_gp_results()
+        return self.get_gp_results(noise_flag=self._include_noise)
 
 
-    def sample(self,x,derivative=False):
+    def sample(self,xnew,derivative=False):
         """
         Provides a more intuitive function for sampling the
         predictive distribution. Only provides one sample
@@ -5425,7 +5444,8 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         :returns: array. Vector of y-values corresponding to a random sample of the GPR predictive distribution.
         """
         self.__call__(xnew)
-        output = self.sample_GP(1,actual_noise=False) if not derivative else self.sample_GP_derivative(1,actual_noise=False)
+        remove_noise = not self._include_noise
+        output = self.sample_GP(1,actual_noise=False,without_noise=remove_noise) if not derivative else self.sample_GP_derivative(1,actual_noise=False,without_noise=remove_noise)
         return output
 
 
