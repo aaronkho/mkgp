@@ -11,17 +11,15 @@ Installation is **mandatory** for this package!
 For first time users, it is strongly recommended to use the GUI
 developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
-by using the following on the command line:
+by using the following on the command line::
 
-.. code-block:: console
     pip install [--user] GPR1D[guis]
 
 Use the :code:`--user` flag if you do not have root access on the system
 that you are working on. If you have already cloned the
 repository, enter the top level of the repository directory and
-use the following instead:
+use the following instead::
 
-.. code-block:: console
     pip install [--user] -e .[guis]
 
 Removal of the :code:`[guis]` portion will no longer check for
@@ -58,9 +56,8 @@ proper channels in the GitLab repository.
 *Important note for users!*
 
 The following runtime warnings are common within this routine,
-but they are filtered out by default:
+but they are filtered out by default::
 
-.. code-block:: console
     RuntimeWarning: overflow encountered in double_scalars
     RuntimeWarning: invalid value encountered in true_divide
     RuntimeWarning: invalid value encountered in sqrt
