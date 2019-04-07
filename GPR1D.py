@@ -4826,8 +4826,8 @@ class GaussianProcessRegression1D(object):
             aye = np.full(ye.shape,np.nanmax([0.2 * np.mean(np.abs(ye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
 #            dye = copy.deepcopy(self._dye)
 #            adye = np.full(dye.shape,np.nanmax([0.2 * np.mean(np.abs(dye)),1.0e-3 * np.nanmax(np.abs(self._dyy))])) if dye is not None else None
-            if adye is not None:
-                adye[adye < 1.0e-2] = 1.0e-2
+#            if adye is not None:
+#                adye[adye < 1.0e-2] = 1.0e-2
             if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None:
                 elp = self._elp
                 ekk = copy.copy(self._ekk)
