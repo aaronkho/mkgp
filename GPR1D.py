@@ -3157,13 +3157,13 @@ class GaussianProcessRegression1D(object):
             Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        rxx = self._xx
-        ryy = self._yy
-        rxe = self._xe
-        rye = self._ye
-        rdxx = self._dxx
-        rdyy = self._dyy
-        rdye = self._dye
+        rxx = copy.deepcopy(self._xx)
+        ryy = copy.deepcopy(self._yy)
+        rxe = copy.deepcopy(self._xe)
+        rye = copy.deepcopy(self._ye)
+        rdxx = copy.deepcopy(self._dxx)
+        rdyy = copy.deepcopy(self._dyy)
+        rdye = copy.deepcopy(self._dye)
         return (rxx,ryy,rxe,rye,rdxx,rdyy,rdye)
 
 
@@ -3182,15 +3182,22 @@ class GaussianProcessRegression1D(object):
             Vectors in order of x-values, y-values, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
         """
 
-        pye = self._ye if self._gpye is None else self._gpye
-        lb = -1.0e50 if self._lb is None else self._lb
-        ub = 1.0e50 if self._ub is None else self._ub
-        cn = 5.0e-3 if self._cn is None else self._cn
-        (pxx,pyy,pxe,cye,nn) = self._condition_data(self._xx,self._yy,self._xe,pye,lb,ub,cn)
+        pxx = copy.deepcopy(self._xx)
+        pyy = copy.deepcopy(self._yy)
+        pye = copy.deepcopy(self._ye)
+        if isinstance(pxx,np.ndarray) and isinstance(pyy,np.ndarray):
+            rxe = self._xe if self._xe is not None else np.zeros(pxx.shape)
+            rye = self._ye if self._gpye is None else self._gpye
+            if rye is None:
+                rye = np.zeros(pyy.shape)
+            lb = -1.0e50 if self._lb is None else self._lb
+            ub = 1.0e50 if self._ub is None else self._ub
+            cn = 5.0e-3 if self._cn is None else self._cn
+            (pxx,pxe,pyy,pye,nn) = self._condition_data(self._xx,rxe,self._yy,rye,lb,ub,cn)
         # Actually these should be conditioned as well (for next version?)
-        dxx = self._dxx
-        dyy = self._dyy
-        dye = self._dye
+        dxx = copy.deepcopy(self._dxx)
+        dyy = copy.deepcopy(self._dyy)
+        dye = copy.deepcopy(self._dye)
         return (pxx,pyy,pye,dxx,dyy,dye)
 
 
