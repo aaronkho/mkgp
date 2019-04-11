@@ -33,7 +33,7 @@ class RunTests(Command):
 
 setup(
     name = 'GPR1D',
-    version = '1.1.1',
+    version = '1.2.0',
     description = 'Classes for Gaussian Process Regression fitting of 1D data with errorbars.',
     long_description = long_description,
     url = 'https://gitlab.com/aaronkho/GPR1D.git',
