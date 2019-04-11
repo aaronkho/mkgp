@@ -4874,7 +4874,8 @@ class GaussianProcessRegression1D(object):
 #                (elml,ekk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=ekk,regpar=elp,ydata=ye,yerr=aye,dydata=dye,dyerr=adye,epsilon=self._eeps,method=self._eopm,spars=self._eopp,sdiff=self._edh))
                 self._ekk = copy.copy(ekk)
             if isinstance(self._ekk,_Kernel):
-                xntest = self._xx.copy() + 1.0e-8
+                epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.size > 1 else 1.0e-8
+                xntest = self._xx.copy() + epsx
                 self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
 #                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dydata=dye,dyerr=adye,epsilon='None'))
                 self._egpye = aye.copy()
@@ -4942,7 +4943,8 @@ class GaussianProcessRegression1D(object):
             else:
                 (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest))
             if isinstance(nkk,_Kernel):
-                xntest = self._xx.copy() + 1.0e-8
+                epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.size > 1 else 1.0e-8
+                xntest = self._xx.copy() + epsx
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
                 cxe = self._xe.copy()
                 cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
@@ -4988,6 +4990,7 @@ class GaussianProcessRegression1D(object):
             nr = int(nrestarts)
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
+        oxn = copy.deepcopy(xn)
 
         if not self._fwarn:
             warnings.filterwarnings("ignore",category=RuntimeWarning)
@@ -5009,6 +5012,20 @@ class GaussianProcessRegression1D(object):
             hsgp_flag = False
             nigp_flag = False
             self._gpye = self._ye.copy()
+
+        # These loops adjust overlapping values between raw data vector and requested prediction vector, to avoid NaN values in final prediction
+        if self._xx is not None:
+            epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.size > 1 else 1.0e-6 * (np.nanmax(self._xx) - np.nanmin(self._xx))
+            for xi in np.arange(0,xn.size):
+                for rxi in np.arange(0,self._xx.size):
+                    if xn[xi] == self._xx[rxi]:
+                        xn[xi] = xn[xi] + epsx
+        if self._dxx is not None:
+            epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.size > 1 else 1.0e-6 * (np.nanmax(self._dxx) - np.nanmin(self._dxx))
+            for xi in np.arange(0,xn.size):
+                for rxi in np.arange(0,self._dxx.size):
+                    if xn[xi] == self._dxx[rxi]:
+                        xn[xi] = xn[xi] + epsx
 
         if self._egpye is not None:
             edye = np.full(self._dye.shape,np.nanmax([0.2 * np.mean(np.abs(self._dye)),1.0e-3 * np.nanmax(np.abs(self._dyy))])) if self._dye is not None else None
@@ -5088,7 +5105,7 @@ class GaussianProcessRegression1D(object):
             estF = itemgetter(0)(self.__basic_fit(self._xx + 1.0e-10,kernel=nkk,epsilon='None',rtn_cov=True))
 
         if barF is not None and isinstance(nkk,_Kernel):
-            self._xF = copy.deepcopy(xn)
+            self._xF = copy.deepcopy(oxn)
             self._barF = copy.deepcopy(barF)
             self._varF = copy.deepcopy(varF) if varF is not None else None
             self._estF = copy.deepcopy(estF) if estF is not None else None
