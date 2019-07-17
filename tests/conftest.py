@@ -57,8 +57,13 @@ def product_kernel(linear_kernel):
     return GPR1D.Product_Kernel(linear_kernel,linear_kernel)
 
 @pytest.fixture(scope="module")
-def generic_gpr_object():
+def empty_gpr_object():
     return GPR1D.GaussianProcessRegression1D()
+
+@pytest.fixture(scope="module")
+def basic_setup_gpr_object():
+    gpr_object = GPR1D.GaussianProcessRegression1D()
+    return gpr_object
 
 #@pytest.fixture(scope="module")
 #def simplified_gp(rq_kernel):

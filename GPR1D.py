@@ -3337,12 +3337,13 @@ class GaussianProcessRegression1D(object):
         """
 
         dvarF = self._dvarF
-        dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction) / self.get_gp_variance(noise_flag=False)
-        if dvarF is not None and self._dvarN is not None and noise_flag:
-            nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction,(float,int,np_itypes,np_utypes,np_ftypes)) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
-            dvarF = dvarmod * dvarF + nfac * self._dvarN
-        else:
-            dvarF = dvarmod * dvarF
+        if dvarF is not None:
+            dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction) / self.get_gp_variance(noise_flag=False)
+            if self._dvarN is not None and noise_flag:
+                nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction,(float,int,np_itypes,np_utypes,np_ftypes)) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
+                dvarF = dvarmod * dvarF + nfac * self._dvarN
+            else:
+                dvarF = dvarmod * dvarF
         return dvarF
 
 
@@ -3381,7 +3382,7 @@ class GaussianProcessRegression1D(object):
         """
 
         ra = self.get_gp_mean()
-        rb = self.get_gp_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_std(noise_flag=noise_flag,process_noise_fraction=process_noise_fraction)
+        rb = self.get_gp_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_std(noise_flag=noise_flag)
         rc = self.get_gp_drv_mean()
         rd = self.get_gp_drv_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_drv_std(noise_flag=noise_flag,process_noise_fraction=process_noise_fraction)
         return (ra,rb,rc,rd)
@@ -3483,7 +3484,7 @@ class GaussianProcessRegression1D(object):
         return (kname,kpars,krpar)
 
 
-    def get_error_kernel(self):
+    def get_gp_error_kernel(self):
         """
         Returns the optimized error kernel determined in the latest :code:`GPRFit()` call.
 
@@ -3565,7 +3566,7 @@ class GaussianProcessRegression1D(object):
         return sigE
 
 
-    def get_error_function(self,xnew):
+    def eval_error_function(self,xnew):
         """
         Returns the error values used in heteroscedastic GPR, evaluated at the input x-values,
         using the error kernel determined in the latest :code:`GPRFit()` call.
