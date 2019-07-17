@@ -1191,8 +1191,8 @@ class Constant_Kernel(_Kernel):
 
 class Noise_Kernel(_Kernel):
     """
-    Noise Kernel: adds a user-defined degree of expected noise in the GPR regression, emulates an
-    assumed fit error level.
+    Noise Kernel: adds a user-defined degree of expected noise in the GPR regression, emulates a
+    constant assumed fit noise level.
 
     .. note::
 
@@ -2507,7 +2507,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
     :kwarg gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
 
-    :kwarg mf: float. Constant indicating lower limit for height-to-base ratio, to improve stability.
+    :kwarg mf: float. Constant indicating upper limit for height-to-base length scale ratio, to improve stability.
     """
 
     def __calc_warp(self,zz,der=0,hder=None):
@@ -2569,13 +2569,13 @@ class IG_WarpingFunction(_WarpingFunction):
 
         :kwarg lb: float. Hyperparameter representing base length scale.
 
-        :kwarg gh: float. Hyperparameter representing minimal length scale.
+        :kwarg gh: float. Hyperparameter representing height of Gaussian envelope adjusting the length scale.
 
         :kwarg gs: float. Hyperparameter indicating width of Gaussian envelope adjusting the length scale.
 
-        :kwarg gm: float. Constant indicating location of minimal length scale.
+        :kwarg gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
 
-        :kwarg mf: float. Constant indicating lower limit for ratio of minimal-to-base length scale, to improve stability.
+        :kwarg mf: float. Constant indicating upper limit for height-to-base length scale ratio, to improve stability.
 
         :returns: none.
         """
@@ -3275,6 +3275,7 @@ class GaussianProcessRegression1D(object):
         return self._barF
 
 
+    # TODO: Place process noise fraction on GPRFit() level and remove the argument from these functions, currently introduces inconsistencies in statistics
     def get_gp_variance(self,noise_flag=True,noise_mult=None):
         """
         Returns the full covariance matrix of the y-values computed in the latest
@@ -3323,29 +3324,29 @@ class GaussianProcessRegression1D(object):
         return self._dbarF
 
 
-    def get_gp_drv_variance(self,noise_flag=True,noise_mult=None):
+    def get_gp_drv_variance(self,noise_flag=True,process_noise_fraction=None):
         """
         Returns the full covariance matrix of the dy/dx-values computed in the latest
         :code:`GPRFit()` call.
 
         :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variance. Only operates on diagonal elements. (optional)
 
-        :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
+        :kwarg process_noise_fraction: float. Specify split between process noise and observation noise in data, must be between zero and one. (optional)
 
         :returns: array. 2D meshgrid array containing full covariance matrix for predicted dy/dx-values from fit, if requested in fit call.
         """
 
         dvarF = self._dvarF
-        dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=noise_mult) / self.get_gp_variance(noise_flag=False)
+        dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction) / self.get_gp_variance(noise_flag=False)
         if dvarF is not None and self._dvarN is not None and noise_flag:
-            nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult,(float,int,np_itypes,np_utypes,np_ftypes)) and float(noise_mult) >= 0.0 else 1.0
+            nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction,(float,int,np_itypes,np_utypes,np_ftypes)) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
             dvarF = dvarmod * dvarF + nfac * self._dvarN
         else:
             dvarF = dvarmod * dvarF
         return dvarF
 
 
-    def get_gp_drv_std(self,noise_flag=True):
+    def get_gp_drv_std(self,noise_flag=True,process_noise_fraction=None):
         """
         Returns only the rooted diagonal elements of the covariance matrix of the 
         dy/dx-values computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma
@@ -3353,17 +3354,19 @@ class GaussianProcessRegression1D(object):
 
         :kwarg noise_flag: bool. Specifies inclusion of noise term in returned 1 sigma errors. (optional)
 
+        :kwarg process_noise_fraction: float. Specify split between process noise and observation noise in data, must be between zero and one. (optional)
+
         :returns: array. 1D array containing 1 sigma errors of predicted dy/dx-values from fit, if requested in fit call.
         """
 
         dsigF = None
-        dvarF = self.get_gp_drv_variance(noise_flag=noise_flag)
+        dvarF = self.get_gp_drv_variance(noise_flag=noise_flag,process_noise_fraction=process_noise_fraction)
         if dvarF is not None:
             dsigF = np.sqrt(np.diag(dvarF))
         return dsigF
 
 
-    def get_gp_results(self,rtn_cov=False,noise_flag=True):
+    def get_gp_results(self,rtn_cov=False,noise_flag=True,process_noise_fraction=None):
         """
         Returns all common predicted values computed in the latest :code:`GPRFit()` call.
 
@@ -3371,14 +3374,16 @@ class GaussianProcessRegression1D(object):
 
         :kwarg noise_flag: bool. Specifies inclusion of noise term in returned variances or errors. (optional)
 
+        :kwarg process_noise_fraction: float. Specify split between process noise and observation noise in data, must be between zero and one. (optional)
+
         :returns: (array, array, array, array).
             Vectors in order of y-values, y-errors, dy/dx-values, dy/dx-errors.
         """
 
         ra = self.get_gp_mean()
-        rb = self.get_gp_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_std(noise_flag=noise_flag)
+        rb = self.get_gp_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_std(noise_flag=noise_flag,process_noise_fraction=process_noise_fraction)
         rc = self.get_gp_drv_mean()
-        rd = self.get_gp_drv_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_drv_std(noise_flag=noise_flag)
+        rd = self.get_gp_drv_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_drv_std(noise_flag=noise_flag,process_noise_fraction=process_noise_fraction)
         return (ra,rb,rc,rd)
 
 
