@@ -148,6 +148,32 @@ class _Kernel(object):
         return k_out
 
 
+    def __eq__(self,other):
+        """
+	Custom equality operator. Compares name, hyperparameters and constants.
+
+        :arg other: obj. Any other :code:`_Kernel` class instance.
+
+        :return: bool. Indicates whether the two objects are equal to each other.
+        """
+        if not isinstance(other,_Kernel):
+            raise NotImplementedError('Cannot compare equality of Kernel object to a non-Kernel object.')
+        if self.name is None or other.name is None:
+            raise TypeError('Cannot compare equality of non-implemented Kernel objects')
+        return self.name == other.name and np.all(np.isclose(self.hyperparameters,other.hyperparameters)) and np.all(np.isclose(self.constants,other.constants))
+
+
+    def __ne__(self,other):
+        """
+	Custom inequality operator. Compares name, hyperparameters and constants.
+
+        :arg other: obj. Any other :code:`_Kernel` class instance.
+
+        :return: bool. Indicates whether the two objects are not equal to each other.
+        """
+        return not self.__eq__(other)
+
+
     def enforce_bounds(self,value=True):
         """
         Sets a flag to enforce the given hyperparameter bounds.
@@ -627,6 +653,32 @@ class _WarpingFunction(object):
         return k_out
 
 
+    def __eq__(self,other):
+        """
+	Custom equality operator. Compares name, hyperparameters and constants.
+
+        :arg other: obj. Any other :code:`_WarpingFunction` class instance.
+
+        :return: bool. Indicates whether the two objects are equal to each other.
+        """
+        if not isinstance(other,_Kernel):
+            raise NotImplementedError('Cannot compare equality of WarpingFunction object to a non-WarpingFunction object.')
+        if self.name is None or other.name is None:
+            raise TypeError('Cannot compare equality of non-implemented WarpingFunction objects')
+        return self.name == other.name and np.all(np.isclose(self.hyperparameters,other.hyperparameters)) and np.all(np.isclose(self.constants,other.constants))
+
+
+    def __ne__(self,other):
+        """
+	Custom inequality operator. Compares name, hyperparameters and constants.
+
+        :arg other: obj. Any other :code:`_WarpingFunction` class instance.
+
+        :return: bool. Indicates whether the two objects are not equal to each other.
+        """
+        return not self.__eq__(other)
+
+
     def enforce_bounds(self,value=True):
         """
         Sets a flag to enforce the given hyperparameter bounds.
@@ -1096,6 +1148,8 @@ class Constant_Kernel(_Kernel):
         if der == 0:
             if hder is None:
                 covm = c_hyp * np.ones(rr.shape)
+            elif hder == 0:
+                covm = np.ones(rr.shape)
         return covm
 
 
@@ -5581,10 +5635,10 @@ def KernelReconstructor(name,pars=None):
     if isinstance(kernel,_Kernel) and pvec is not None:
         nhyp = kernel.hyperparameters.size
         ncst = kernel.constants.size
-        if pvec.size >= nhyp:
-            theta = pvec[:nhyp] if pvec.size > nhyp else pvec.copy()
-            kernel.hyperparameters = theta
         if ncst > 0 and pvec.size >= (nhyp + ncst):
             csts = pvec[nhyp:nhyp+ncst] if pvec.size > (nhyp + ncst) else pvec[nhyp:]
             kernel.constants = csts
+        if pvec.size >= nhyp:
+            theta = pvec[:nhyp] if pvec.size > nhyp else pvec.copy()
+            kernel.hyperparameters = theta
     return kernel
