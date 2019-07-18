@@ -78,20 +78,20 @@ class TestGPRUninitialized(object):
         assert empty_gpr_object.eval_error_function([0.0]) is None
 
 
-#@pytest.mark.usefixtures("basic_setup_gpr_object")
+#@pytest.mark.usefixtures("basic_gpr_object")
 #class TestGPREvaluation(object):
 
-#@pytest.mark.usefixtures("basic_setup_gpr_object")
+#@pytest.mark.usefixtures("basic_gpr_object")
 #class TestGPRSampling(object):
 
-#@pytest.mark.usefixtures("basic_setup_gpr_object","simplified_gpr_object")
+#@pytest.mark.usefixtures("basic_gpr_object","simplified_gpr_object")
 #class TestGPRSimplifiedVersion(object):
 
-#@pytest.mark.usefixtures("advanced_setup_gpr_object")
+#@pytest.mark.usefixtures("advanced_gpr_object")
 #class TestGPROptimization(object):
 
-#@pytest.mark.usefixtures("advanced_setup_gpr_object")
+#@pytest.mark.usefixtures("advanced_gpr_object")
 #class TestGPRWithHeteroscedasticError(object):
 
-#@pytest.mark.usefixtures("advanced_setup_gpr_object")
+#@pytest.mark.usefixtures("advanced_gpr_object")
 #class TestGPRWithNoisyInput(object):

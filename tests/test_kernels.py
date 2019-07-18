@@ -19,6 +19,40 @@ def check_kernel_hyperparameter_derivatives(kernel,x1,x2,comparison):
     return np.all(hderiv_tests)
 
 
+@pytest.mark.usefixtures("empty_warping_function","empty_kernel","empty_operator_kernel")
+class TestBaseClasses(object):
+
+    def test_empty_warping_function_defaults(self,empty_warping_function):
+        assert (empty_warping_function.name,
+                empty_warping_function.hyperparameters.size,
+                empty_warping_function.constants.size,
+                empty_warping_function.bounds,
+                empty_warping_function.is_hderiv_implemented()) == ("None",0,0,None,False)
+
+    def test_eval_empty_warping_function(self,empty_warping_function):
+        pytest.raises(NotImplementedError,empty_warping_function,[0.0])
+
+    def test_empty_kernel_defaults(self,empty_kernel):
+        assert (empty_kernel.name,
+                empty_kernel.hyperparameters.size,
+                empty_kernel.constants.size,
+                empty_kernel.bounds,
+                empty_kernel.is_hderiv_implemented()) == ("None",0,0,None,False)
+
+    def test_eval_empty_kernel(self,empty_kernel):
+        pytest.raises(NotImplementedError,empty_kernel,[0.0],[0.0])
+
+    def test_empty_operator_kernel_defaults(self,empty_operator_kernel):
+        assert (empty_operator_kernel.name,
+                empty_operator_kernel.hyperparameters.size,
+                empty_operator_kernel.constants.size,
+                empty_operator_kernel.bounds,
+                empty_operator_kernel.is_hderiv_implemented()) == ("None()",0,0,None,False)
+
+    def test_eval_empty_operator_kernel(self,empty_operator_kernel):
+        pytest.raises(NotImplementedError,empty_operator_kernel,[0.0],[0.0])
+
+
 @pytest.mark.usefixtures("se_kernel","gibbs_inverse_gaussian_kernel","sum_kernel")
 class TestAutoKernelCreation(object):
 
@@ -77,7 +111,7 @@ class TestConstantKernel(object):
             assert check_kernel_hyperparameter_derivatives(constant_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,constant_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,constant_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("noise_kernel")
@@ -107,7 +141,7 @@ class TestNoiseKernel(object):
             assert check_kernel_hyperparameter_derivatives(noise_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,noise_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,noise_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("linear_kernel")
@@ -137,7 +171,7 @@ class TestLinearKernel(object):
             assert check_kernel_hyperparameter_derivatives(linear_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,linear_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,linear_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("poly_order_kernel")
@@ -169,7 +203,7 @@ class TestPolyOrderKernel(object):
             assert check_kernel_hyperparameter_derivatives(poly_order_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,poly_order_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,poly_order_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("se_kernel")
@@ -201,7 +235,7 @@ class TestSquareExponentialKernel(object):
             assert check_kernel_hyperparameter_derivatives(se_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,se_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,se_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("rq_kernel")
@@ -234,7 +268,7 @@ class TestRationalQuadraticKernel(object):
             assert check_kernel_hyperparameter_derivatives(rq_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,rq_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,rq_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("matern_hi_kernel")
@@ -266,7 +300,7 @@ class TestMaternHalfIntegerKernel(object):
             assert check_kernel_hyperparameter_derivatives(matern_hi_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,matern_hi_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,matern_hi_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("gibbs_constant_kernel")
@@ -298,7 +332,7 @@ class TestGibbsKernelWithConstant(object):
             assert check_kernel_hyperparameter_derivatives(gibbs_constant_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,gibbs_constant_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,gibbs_constant_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("gibbs_inverse_gaussian_kernel")
@@ -333,7 +367,7 @@ class TestGibbsKernelWithInverseGaussian(object):
             assert check_kernel_hyperparameter_derivatives(gibbs_inverse_gaussian_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,gibbs_inverse_gaussian_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,gibbs_inverse_gaussian_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("sum_kernel")
@@ -366,7 +400,7 @@ class TestSumOperationKernel(object):
             assert check_kernel_hyperparameter_derivatives(sum_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,sum_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,sum_kernel,**kwargs)
 
 
 @pytest.mark.usefixtures("product_kernel")
@@ -398,4 +432,4 @@ class TestProductOperationKernel(object):
             assert check_kernel_hyperparameter_derivatives(product_kernel,self.x1,self.x2,self.ref_hdcov)
         else:
             kwargs = {"x1": self.x1,"x2": self.x2,"hder": 0}
-            pytest.raises(NotImplementedError,product_kernel(),**kwargs)
+            pytest.raises(NotImplementedError,product_kernel,**kwargs)
