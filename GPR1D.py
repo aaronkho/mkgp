@@ -156,11 +156,13 @@ class _Kernel(object):
 
         :return: bool. Indicates whether the two objects are equal to each other.
         """
-        if not isinstance(other,_Kernel):
-            raise NotImplementedError('Cannot compare equality of Kernel object to a non-Kernel object.')
-        if self.name is None or other.name is None:
-            raise TypeError('Cannot compare equality of non-implemented Kernel objects')
-        return self.name == other.name and np.all(np.isclose(self.hyperparameters,other.hyperparameters)) and np.all(np.isclose(self.constants,other.constants))
+        status = False
+        if isinstance(other,_Kernel):
+            if self.name == other.name:
+                shyp = np.all(np.isclose(self.hyperparameters,other.hyperparameters))
+                scst = np.all(np.isclose(self.constants,other.constants))
+                status = self.hyperparameters.size == other.hyperparameters.size and self.constants.size == other.constants.size and shyp and scst
+        return status
 
 
     def __ne__(self,other):
@@ -661,11 +663,13 @@ class _WarpingFunction(object):
 
         :return: bool. Indicates whether the two objects are equal to each other.
         """
-        if not isinstance(other,_Kernel):
-            raise NotImplementedError('Cannot compare equality of WarpingFunction object to a non-WarpingFunction object.')
-        if self.name is None or other.name is None:
-            raise TypeError('Cannot compare equality of non-implemented WarpingFunction objects')
-        return self.name == other.name and np.all(np.isclose(self.hyperparameters,other.hyperparameters)) and np.all(np.isclose(self.constants,other.constants))
+        status = False
+        if isinstance(other,_WarpingFunction):
+            if self.name == other.name:
+                shyp = np.all(np.isclose(self.hyperparameters,other.hyperparameters))
+                scst = np.all(np.isclose(self.constants,other.constants))
+                status = self.hyperparameters.size == other.hyperparameters.size and self.constants.size == other.constants.size and shyp and scst
+        return status
 
 
     def __ne__(self,other):
@@ -2766,6 +2770,58 @@ class GaussianProcessRegression1D(object):
         self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
 
+    def __eq__(self,other):
+        """
+        Custom equality operator, only compares input data due to statistical
+        variance of outputs.
+
+        :arg other: object. Another :code:`GaussianProcessRegression1D` object.
+
+        :returns: bool. Indicates whether the two objects have identical inputs.
+        """
+
+        status = False
+        if isinstance(other,GaussianProcessRegression1D):
+            skk = self._kk.name == other._kk.name if self._kk is not None and other._kk is not None else self._kk == other._kk
+            skb = np.all(np.isclose(self._kb,other._kb)) if self._kb is not None and other._kb is not None else np.all(np.atleast_1d(self._kb == other._kb))
+            seps = np.isclose(self._eps,other._eps) if self._eps is not None and other._eps is not None else self._eps == other._eps
+            sekk = self._ekk.name == other._ekk.name if self._ekk is not None and other._ekk is not None else self._ekk == other._ekk
+            sekb = np.all(np.isclose(self._ekb,other._ekb)) if self._ekb is not None and other._ekb is not None else np.all(np.atleast_1d(self._ekb == other._ekb))
+            seeps = np.isclose(self._eeps,other._eeps) if self._eeps is not None and other._eeps is not None else self._eeps == other._eeps
+            sxx = np.all(np.isclose(self._xx,other._xx)) if self._xx is not None and other._xx is not None else np.all(np.atleast_1d(self._xx == other._xx))
+            sxe = np.all(np.isclose(self._xe,other._xe)) if self._xe is not None and other._xe is not None else np.all(np.atleast_1d(self._xe == other._xe))
+            syy = np.all(np.isclose(self._yy,other._yy)) if self._yy is not None and other._yy is not None else np.all(np.atleast_1d(self._yy == other._yy))
+            sye = np.all(np.isclose(self._ye,other._ye)) if self._ye is not None and other._ye is not None else np.all(np.atleast_1d(self._ye == other._ye))
+            sdxx = np.all(np.isclose(self._dxx,other._dxx)) if self._dxx is not None and other._dxx is not None else np.all(np.atleast_1d(self._dxx == other._dxx))
+            sdyy = np.all(np.isclose(self._dyy,other._dyy)) if self._dyy is not None and other._dyy is not None else np.all(np.atleast_1d(self._dyy == other._dyy))
+            sdye = np.all(np.isclose(self._dye,other._dye)) if self._dye is not None and other._dye is not None else np.all(np.atleast_1d(self._dye == other._dye))
+            slb = np.isclose(self._lb,other._lb) if self._lb is not None and other._lb is not None else self._lb == other._lb
+            sub = np.isclose(self._ub,other._ub) if self._ub is not None and other._ub is not None else self._ub == other._ub
+            scn = np.isclose(self._cn,other._cn) if self._cn is not None and other._cn is not None else self._cn == other._cn
+            #print(skk,skb,seps,sekk,sekb,seeps,sxx,sxe,sye,sdxx,sdyy,sdye,slb,sub,scn)
+            status = skk and skb and seps and sekk and sekb and seeps and \
+                     sxx and sxe and syy and sye and sdxx and sdyy and sdye and \
+                     np.isclose(self._lp,other._lp) and np.isclose(self._elp,other._elp) and \
+                     slb and sub and scn and \
+                     (self._opm == other._opm and np.all(np.isclose(self._opp,other._opp))) and \
+                     (self._eopm == other._eopm and np.all(np.isclose(self._eopp,other._eopp)))
+            
+        return status
+
+
+    def __ne__(self,other):
+        """
+        Custom inequality operator, only compares input data due to statistical
+        variance of outputs.
+
+        :arg other: object. Another :code:`GaussianProcessRegression1D` object.
+
+        :returns: bool. Indicates whether the two objects do not have identical inputs.
+        """
+
+        return not self.__eq__(other)
+
+
     def set_kernel(self,kernel=None,kbounds=None,regpar=None):
         """
         Specify the kernel that the Gaussian process regression will be performed with.
@@ -3202,6 +3258,27 @@ class GaussianProcessRegression1D(object):
         self._fwarn = True if flag else False
 
 
+    def reset_error_kernel(self):
+        """
+        Resets error kernel and associated settings to an empty
+        state. Primarily used for setting up identical objects
+        for comparison and testing purposes.
+
+        :returns: none.
+        """
+
+        self._ekk = None
+        self._ekb = None
+        self._elp = 6.0
+        self._enr = None
+        self._eeps = None
+        self._eopm = 'grad'
+        self._eopp = np.array([1.0e-5])
+        self._edh = 1.0e-2
+        self._gpye = None
+        self._egpye = None
+
+
     def get_raw_data(self):
         """
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
@@ -3263,6 +3340,26 @@ class GaussianProcessRegression1D(object):
         """
 
         return self._xF
+
+
+    def get_gp_regpar(self):
+        """
+        Returns the regularization parameter value used in the latest :code:`GPRFit()` call.
+
+        :returns: float. Regularization parameter value used in cost function evaluation.
+        """
+
+        return self._lp
+
+
+    def get_gp_error_regpar(self):
+        """
+        Returns the regularization parameter value used for error function fitting in the latest :code:`GPRFit()` call.
+
+        :returns: float. Regularization parameter value used in cost function evaluation for error function fitting.
+        """
+
+        return self._elp
 
 
     def get_gp_mean(self):
@@ -3338,7 +3435,10 @@ class GaussianProcessRegression1D(object):
 
         dvarF = self._dvarF
         if dvarF is not None:
-            dvarmod = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction) / self.get_gp_variance(noise_flag=False)
+            dvar_numer = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction)
+            dvar_denom = self.get_gp_variance(noise_flag=False)
+            dvar_denom[dvar_denom == 0.0] = 1.0
+            dvarmod = dvar_numer / dvar_denom
             if self._dvarN is not None and noise_flag:
                 nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction,(float,int,np_itypes,np_utypes,np_ftypes)) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
                 dvarF = dvarmod * dvarF + nfac * self._dvarN
@@ -3566,7 +3666,7 @@ class GaussianProcessRegression1D(object):
         return sigE
 
 
-    def eval_error_function(self,xnew):
+    def eval_error_function(self,xnew,enforce_positive=True):
         """
         Returns the error values used in heteroscedastic GPR, evaluated at the input x-values,
         using the error kernel determined in the latest :code:`GPRFit()` call.
@@ -3579,6 +3679,8 @@ class GaussianProcessRegression1D(object):
 
         :arg xnew: array. Vector of x-values at which the predicted error function should be evaluated at.
 
+        :kwarg enforce_positive: bool. Returns of absolute values of the error function if :code:`True`.
+
         :returns: array. Vecotr of predicted y-errors from the fit using the error kernel.
         """
 
@@ -3590,6 +3692,8 @@ class GaussianProcessRegression1D(object):
         barE = None
         if xn is not None and self._gpye is not None and self._egpye is not None:
             barE = itemgetter(0)(self.__basic_fit(xn,kernel=self._ekk,ydata=self._gpye,yerr=self._egpye,epsilon='None'))
+            if enforce_positive:
+                barE = np.abs(barE)
         return barE
 
 
@@ -3669,7 +3773,8 @@ class GaussianProcessRegression1D(object):
         #    3rd term: Penalty for the size of given data set
         lml = -0.5 * np.dot(yf.T,alpha) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xf.size * np.log(2.0 * np.pi)
 
-        # Log-marginal-likelihood of the null hypothesis, can be used as a normalization factor for general goodness-of-fit metric
+        # Log-marginal-likelihood of the null hypothesis (constant at mean value),
+        # can be used as a normalization factor for general goodness-of-fit metric
         zfilt = (np.abs(yef) < 1.0e-10)
         yef[zfilt] = 1.0e-10
         lmlz = -0.5 * np.sum(np.power(yf / yef,2.0)) - lp * np.sum(np.log(yef)) - 0.5 * xf.size * np.log(2.0 * np.pi)
@@ -4730,6 +4835,7 @@ class GaussianProcessRegression1D(object):
         barF = None
         errF = None
         lml = None
+        lmlz = None
         nkk = None
         if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk,_Kernel):
             # Remove all data and associated data that contain NaNs
@@ -4772,7 +4878,6 @@ class GaussianProcessRegression1D(object):
                 elif opm == 'grad' and opp.size > 0:
                     (nkk,lml) = self._gp_grad_optimizer(nkk,lp,xx,yy,ye,dxx,dyy,dye,eps,opp[0],dh)
             (barF,varF,lml,lmlz) = self._gp_base_alg(xn,nkk,lp,xx,yy,ye,dxx,dyy,dye,dd)
-#            lmlz = -0.5 * np.sum(np.power(yy / ye,2.0)) - lp * np.sum(np.log(ye)) - 0.5 * xf.size * np.log(2.0 * np.pi)
             barF = barF * sc if do_drv else barF * sc + myy
             varF = varF * sc**2.0
             errF = varF if rtn_cov else np.sqrt(np.diag(varF))
@@ -4936,8 +5041,9 @@ class GaussianProcessRegression1D(object):
             if isinstance(self._ekk,_Kernel):
                 epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.size > 1 else 1.0e-8
                 xntest = self._xx.copy() + epsx
-                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
+                tgpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dxdata='None',dydata='None',dyerr='None',epsilon='None'))
 #                self._gpye = itemgetter(0)(self.__basic_fit(xntest,kernel=self._ekk,regpar=self._elp,ydata=ye,yerr=aye,dydata=dye,dyerr=adye,epsilon='None'))
+                self._gpye = np.abs(tgpye)
                 self._egpye = aye.copy()
         else:
             raise ValueError('Check input y-errors to make sure they are valid.')
@@ -5012,6 +5118,7 @@ class GaussianProcessRegression1D(object):
                 cxe[nfilt] = 0.0
                 cye[nfilt] = 0.0
                 self._gpye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
+                self._egpye = np.full(cye.shape,np.nanmax([0.2 * np.mean(np.abs(self._gpye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
 
@@ -5072,6 +5179,7 @@ class GaussianProcessRegression1D(object):
             hsgp_flag = False
             nigp_flag = False
             self._gpye = self._ye.copy()
+            self._egpye = None
 
         # These loops adjust overlapping values between raw data vector and requested prediction vector, to avoid NaN values in final prediction
         if self._xx is not None:
@@ -5122,7 +5230,7 @@ class GaussianProcessRegression1D(object):
 #                    ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
 #            self._ddbarE = ddbarE.copy()
         else:
-            self._gpye = np.full(xn.shape,np.sqrt(np.mean(np.power(self._gpye,2.0)))) if self._gpye is not None else None
+            self._gpye = np.full(xn.shape,np.sqrt(np.nanmean(np.power(self._ye,2.0)))) if self._ye is not None else None
             self._barE = copy.deepcopy(self._gpye) if self._gpye is not None else None
             self._varE = np.zeros(xn.shape) if self._barE is not None else None
             self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
@@ -5175,8 +5283,8 @@ class GaussianProcessRegression1D(object):
             (dbarF,dvarF) = itemgetter(0,1)(self.__basic_fit(xn,do_drv=True,rtn_cov=True))
             self._dbarF = copy.deepcopy(dbarF) if dbarF is not None else None
             self._dvarF = copy.deepcopy(dvarF) if dvarF is not None else None
-            self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else None
-            self._dvarN = np.diag(np.power(self._dbarE,2.0)) if self._dbarE is not None else None
+            self._varN = np.diag(np.power(self._barE,2.0)) if self._barE is not None else np.diag(np.zeros(self._xF.shape))
+            self._dvarN = np.diag(np.power(self._dbarE,2.0)) if self._dbarE is not None else np.diag(np.zeros(self._xF.shape))
 
             # It seems that the second derivative term is not necessary, should be used to refine the mathematics!
 #            ddfac = copy.deepcopy(self._ddbarE) if self._ddbarE is not None else 0.0
@@ -5227,8 +5335,8 @@ class GaussianProcessRegression1D(object):
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
             if samples is not None and simple_out:
-                mean = np.mean(samples,axis=0)
-                std = np.std(samples,axis=0)
+                mean = np.nanmean(samples,axis=0)
+                std = np.nanstd(samples,axis=0)
                 samples = np.vstack((mean,std))
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
@@ -5278,8 +5386,8 @@ class GaussianProcessRegression1D(object):
             samples = spst.multivariate_normal.rvs(mean=mu,cov=var,size=ns)
             samples = mult * (samples - mu) + mu
             if samples is not None and simple_out:
-                mean = np.mean(samples,axis=0)
-                std = np.std(samples,axis=0)
+                mean = np.nanmean(samples,axis=0)
+                std = np.nanstd(samples,axis=0)
                 samples = np.vstack((mean,std))
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
@@ -5490,7 +5598,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         self.set_kernel(kernel=kernel,kbounds=kernel_bounds,regpar=reg_par)
         self.set_search_parameters(epsilon=epsilon,method='adam',spars=[sg,0.4,0.8])
 
-        self._perform_heterogp = False if self._ye is None else True
+        self._perform_heterogp = False if isinstance(yerr,(float,int,np_itypes,np_utypes,np_ftypes)) or self._ye is None else True
         self._perform_nigp = False if self._xe is None else True
         self._include_noise = True if include_noise else False
 
