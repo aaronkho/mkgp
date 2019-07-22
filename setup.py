@@ -54,7 +54,7 @@ setup(
     install_requires = ['numpy>=1.13', 'scipy>=0.17'],
     extras_require = {
         'scripts': ['matplotlib'],
-        'guis': ['matplotlib', 'PyQt4'],
+        'guis': ['matplotlib'],
         'test': ['coverage', 'pytest', 'pytest-cov'],
     },
     cmdclass = {'test': RunTests},
