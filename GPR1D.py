@@ -2764,8 +2764,11 @@ class GaussianProcessRegression1D(object):
         self._dvarE = None
         self._varN = None
         self._dvarN = None
+        self._gpxe = None
         self._gpye = None
         self._egpye = None
+        self._nikk = None
+        self._niekk = None
         self._fwarn = False
         self._opopts = ['grad','mom','nag','adagrad','adadelta','adam','adamax','nadam']
 
@@ -2878,91 +2881,79 @@ class GaussianProcessRegression1D(object):
         :returns: none.
         """
 
+        altered = False
         if isinstance(xdata,(list,tuple)) and len(xdata) > 0:
             self._xx = np.array(xdata).flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(xdata,np.ndarray) and xdata.size > 0:
             self._xx = xdata.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(xerr,(list,tuple)) and len(xerr) > 0:
             self._xe = np.array(xerr).flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(xerr,np.ndarray) and xerr.size > 0:
             self._xe = xerr.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(xerr,str):
             self._xe = None
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(ydata,(list,tuple)) and len(ydata) > 0:
             self._yy = np.array(ydata).flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(ydata,np.ndarray) and ydata.size > 0:
             self._yy = ydata.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(yerr,(list,tuple)) and len(yerr) > 0:
             self._ye = np.array(yerr).flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(yerr,np.ndarray) and yerr.size > 0:
             self._ye = yerr.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(yerr,str):
             self._ye = None
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(dxdata,(list,tuple)) and len(dxdata) > 0:
             temp = np.array([])
             for item in dxdata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dxx = temp.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dxdata,np.ndarray) and dxdata.size > 0:
             self._dxx = dxdata.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dxdata,str):
             self._dxx = None
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(dydata,(list,tuple)) and len(dydata) > 0:
             temp = np.array([])
             for item in dydata:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dyy = temp.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dydata,np.ndarray) and dydata.size > 0:
             self._dyy = dydata.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dydata,str):
             self._dyy = None
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(dyerr,(list,tuple)) and len(dyerr) > 0:
             temp = np.array([])
             for item in dyerr:
                 temp = np.append(temp,item) if item is not None else np.append(temp,np.NaN)
             self._dye = temp.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dyerr,np.ndarray) and dyerr.size > 0:
             self._dye = dyerr.flatten()
-            self._gpye = None
-            self._egpye = None
+            altered = True
         elif isinstance(dyerr,str):
             self._dye = None
+            altered = True
+        if altered:
+            self._gpxe = None
             self._gpye = None
             self._egpye = None
+            self._nikk = None
+            self._niekk = None
 
 
     def set_conditioner(self,condnum=None,lbound=None,ubound=None):
@@ -3011,10 +3002,10 @@ class GaussianProcessRegression1D(object):
         :returns: none.
         """
 
+        altered = False
         if isinstance(kernel,_Kernel):
             self._ekk = copy.copy(kernel)
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(self._ekk,_Kernel):
             kh = np.log10(self._ekk.hyperparameters)
             if isinstance(kbounds,(list,tuple,np.ndarray)):
@@ -3028,15 +3019,19 @@ class GaussianProcessRegression1D(object):
                 else:
                     kb = None
                 self._ekb = kb
-                self._gpye = None
-                self._egpye = None
                 self._ekk.bounds = np.power(10.0,self._ekb)
+                altered = True
         if isinstance(regpar,(float,int,np_itypes,np_utypes,np_ftypes)) and float(regpar) > 0.0:
             self._elp = float(regpar)
-            self._gpye = None
-            self._egpye = None
+            altered = True
         if isinstance(nrestarts,(float,int,np_itypes,np_utypes,np_ftypes)):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
+        if altered:
+            self._gpxe = None
+            self._gpye = None
+            self._egpye = None
+            self._nikk = None
+            self._niekk = None
 
 
     def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None,maxiter=None):
@@ -3275,8 +3270,10 @@ class GaussianProcessRegression1D(object):
         self._eopm = 'grad'
         self._eopp = np.array([1.0e-5])
         self._edh = 1.0e-2
+        self._gpxe = None
         self._gpye = None
         self._egpye = None
+        self._nikk = None
 
 
     def get_raw_data(self):
@@ -5049,7 +5046,7 @@ class GaussianProcessRegression1D(object):
             raise ValueError('Check input y-errors to make sure they are valid.')
 
 
-    def make_NIGP_errors(self,nrestarts=0):
+    def make_NIGP_errors(self,nrestarts=0,hsgp_flag=False):
         """
         Calculates a vector of modified y-errors based on input x-errors and a test model
         gradient, for use inside a noisy input GPR execution.
@@ -5067,7 +5064,17 @@ class GaussianProcessRegression1D(object):
             implementation, it was decided that this approximation was good enough for the
             uses of the current implementation. (v >= 1.0.1)
 
+        .. warning::
+
+            The results of this function may be washed away by the heteroscedastic GP
+            implementation due to the fact that the y-error modifications are included
+            when fitting the error kernel. This can be addressed in the future by
+            separating the contributions due to noisy input and due to heteroscedastic
+            GP, with a separate noise kernel for each.
+
         :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
+
+        :kwarg hsgp_flag: bool. Indicates Gaussian Process regression fit with variable y-errors. (optional)
 
         :returns: none.
         """
@@ -5081,22 +5088,11 @@ class GaussianProcessRegression1D(object):
             nlml = None
             nkk = None
             xntest = np.array([0.0])
-            if self._kk.bounds is not None and nr > 0:
-                tkk = copy.copy(self._kk)
-                kkvec = []
-                lmlvec = []
-                try:
-                    (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
-                    kkvec.append(copy.copy(tkk))
-                    lmlvec.append(tlml)
-                except ValueError:
-                    kkvec.append(None)
-                    lmlvec.append(np.NaN)
-                for ii in np.arange(0,nr):
-#                    kb = self._kb
-                    kb = np.log10(self._kk.bounds)
-                    theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
-                    tkk.hyperparameters = np.power(10.0,theta)
+            if not isinstance(self._nikk,_Kernel):
+                if self._kk.bounds is not None and nr > 0:
+                    tkk = copy.copy(self._kk)
+                    kkvec = []
+                    lmlvec = []
                     try:
                         (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
                         kkvec.append(copy.copy(tkk))
@@ -5104,21 +5100,39 @@ class GaussianProcessRegression1D(object):
                     except ValueError:
                         kkvec.append(None)
                         lmlvec.append(np.NaN)
-                imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
-                (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
+                    for ii in np.arange(0,nr):
+#                        kb = self._kb
+                        kb = np.log10(self._kk.bounds)
+                        theta = np.abs(kb[1,:] - kb[0,:]).flatten() * np.random.random_sample((kb.shape[1],)) + np.nanmin(kb,axis=0).flatten()
+                        tkk.hyperparameters = np.power(10.0,theta)
+                        try:
+                            (tlml,tkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=tkk))
+                            kkvec.append(copy.copy(tkk))
+                            lmlvec.append(tlml)
+                        except ValueError:
+                            kkvec.append(None)
+                            lmlvec.append(np.NaN)
+                    imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
+                    (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest,kernel=kkvec[imax],epsilon='None'))
+                else:
+                    (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest))
             else:
-                (nlml,nkk) = itemgetter(2,4)(self.__basic_fit(xntest))
+                nkk = copy.copy(self._nikk)
             if isinstance(nkk,_Kernel):
+                self._nikk = copy.copy(nkk)
                 epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.size > 1 else 1.0e-8
                 xntest = self._xx.copy() + epsx
                 dbarF = itemgetter(0)(self.__basic_fit(xntest,kernel=nkk,do_drv=True))
+#                cxe = self._xe.copy()
+#                cxe[np.isnan(cxe)] = 0.0
+#                self._gpxe = np.abs(cxe * dbarF)
                 cxe = self._xe.copy()
                 cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
                 nfilt = np.any([np.isnan(cxe),np.isnan(cye)],axis=0)
                 cxe[nfilt] = 0.0
                 cye[nfilt] = 0.0
                 self._gpye = np.sqrt(cye**2.0 + (cxe * dbarF)**2.0)
-                self._egpye = np.full(cye.shape,np.nanmax([0.2 * np.mean(np.abs(self._gpye)),1.0e-3 * np.nanmax(np.abs(self._yy))]))
+                self._egpye = np.full(cye.shape,np.nanmax([0.2 * np.mean(np.abs(self._gpye)),1.0e-3 * np.nanmax(np.abs(self._yy))])) if not hsgp_flag else self._egpye
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
 
@@ -5137,10 +5151,9 @@ class GaussianProcessRegression1D(object):
 
         :arg xnew: array. Vector of x-values at which the predicted fit will be evaluated.
 
-        :kwarg hsgp_flag: bool. Set as true to perform Gaussian Process regression fit with variable y-errors. Default is :code:`True`. (optional)
+        :kwarg hsgp_flag: bool. Set as true to perform Gaussian Process regression fit with proper propagation of y-errors. Default is :code:`True`. (optional)
 
-        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit accounting for input x-errors. Default is :code:`False`. (optional)
-                          **Recommended** only to use with :code:`hsgp_flag = True`!
+        :kwarg nigp_flag: bool. Set as true to perform Gaussian Process regression fit with proper propagation of x-errors. Default is :code:`False`. (optional)
 
         :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
@@ -5168,13 +5181,10 @@ class GaussianProcessRegression1D(object):
         lmlz = None
         nkk = None
         estF = None
+        if nigp_flag:
+            self.make_NIGP_errors(nr,hsgp_flag=hsgp_flag)
         if hsgp_flag:
             self.make_HSGP_errors()
-        if nigp_flag:
-            self.make_NIGP_errors(nr)
-            if hsgp_flag:
-                self._egpye = None
-                self.make_HSGP_errors()
         if self._gpye is None:
             hsgp_flag = False
             nigp_flag = False

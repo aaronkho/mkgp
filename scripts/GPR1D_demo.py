@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import inspect
 from operator import itemgetter
 import numpy as np
 
@@ -62,7 +63,7 @@ def run_demo():
 
     # Define a kernel to fit the data itself
     #     Rational quadratic kernel is usually robust enough for general fitting
-    kernel = GPR1D.RQ_Kernel(1.0e0,1.0e0,1.0e1)
+    kernel = GPR1D.RQ_Kernel(1.0e0,1.0e0,5.0e0)
 
     # This is only necessary if using kernel restart option on the data fitting
     kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,5.0e0],[1.0e1,1.0e0,2.0e1]])
@@ -70,15 +71,19 @@ def run_demo():
     # Define a kernel to fit the given y-errors, needed for rigourous estimation of fit error including data error
     #     Typically a simple rational quadratic kernel is sufficient given a high regularization parameter (specified later)
     #     Here, the RQ kernel is summed with a noise kernel for extra robustness and to demonstrate how to use operator kernels
-    error_kernel = GPR1D.RQ_Kernel(1.0e0,1.0e0,1.0e0)
+    error_kernel = GPR1D.RQ_Kernel(1.0e-1,1.0e0,5.0e0)
 
     # Again, this is only necessary if using kernel restart option on the error fitting
-    error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e-1,],[1.0e1,1.0e0,1.0e1]])
+    error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1,1.0e-1,1.0e0,],[1.0e1,1.0e0,1.0e1]])
 
 
     # GPR fit using y-errors only as weights
     #     Create class object to store raw data, kernels, and settings
     gpr_object = GPR1D.GaussianProcessRegression1D()
+
+    # Print source location for reference, in case of multiple installations
+    location = inspect.getsourcefile(type(gpr_object))
+    print("Using GPR1D definition from: %s" % (os.path.dirname(location) + '/'))
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     gpr_object.set_kernel(kernel=kernel,kbounds=kernel_hyppar_bounds,regpar=1.0)
@@ -117,7 +122,7 @@ def run_demo():
     hsgpr_object.set_kernel(kernel=kernel,kbounds=kernel_hyppar_bounds,regpar=1.0)
 
     #     Define the kernel and regularization parameter to be used in the error fitting routine
-    hsgpr_object.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=10.0)
+    hsgpr_object.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=2.0)
 
     #     Define the raw data and associated errors to be fitted
     hsgpr_object.set_raw_data(xdata=raw_x_values,ydata=raw_y_values,yerr=raw_y_errors,xerr=raw_x_errors, \
@@ -151,7 +156,7 @@ def run_demo():
     #     Procedure is nearly identical to above, except for the addition of an extra option
     nigpr_object = GPR1D.GaussianProcessRegression1D()
     nigpr_object.set_kernel(kernel=kernel,kbounds=kernel_hyppar_bounds,regpar=1.0)
-    nigpr_object.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=10.0)
+    nigpr_object.set_error_kernel(kernel=error_kernel,kbounds=error_kernel_hyppar_bounds,regpar=2.0)
     nigpr_object.set_raw_data(xdata=raw_x_values,ydata=raw_y_values,yerr=raw_y_errors,xerr=raw_x_errors, \
                               dxdata=[0.0],dydata=[0.0],dyerr=[0.0])
     nigpr_object.set_search_parameters(epsilon=1.0e-2)
