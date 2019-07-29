@@ -3336,7 +3336,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. Vector of x-values corresponding to predicted y-values.
         """
 
-        return self._xF
+        return copy.deepcopy(self._xF)
 
 
     def get_gp_regpar(self):
@@ -3366,7 +3366,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. Vector of predicted y-values from fit.
         """
 
-        return self._barF
+        return copy.deepcopy(self._barF)
 
 
     # TODO: Place process noise fraction on GPRFit() level and remove the argument from these functions, currently introduces inconsistencies in statistics
@@ -3382,7 +3382,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
         """
 
-        varF = self._varF
+        varF = copy.deepcopy(self._varF)
         if varF is not None and self._varN is not None and noise_flag:
             nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult,(float,int,np_itypes,np_utypes,np_ftypes)) and float(noise_mult) >= 0.0 else 1.0
             varF = varF + nfac * self._varN
@@ -3415,7 +3415,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. Vector of predicted dy/dx-values from fit, if requested in fit call.
         """
 
-        return self._dbarF
+        return copy.deepcopy(self._dbarF)
 
 
     def get_gp_drv_variance(self,noise_flag=True,process_noise_fraction=None):
@@ -3430,7 +3430,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. 2D meshgrid array containing full covariance matrix for predicted dy/dx-values from fit, if requested in fit call.
         """
 
-        dvarF = self._dvarF
+        dvarF = copy.deepcopy(self._dvarF)
         if dvarF is not None:
             dvar_numer = self.get_gp_variance(noise_flag=noise_flag,noise_mult=process_noise_fraction)
             dvar_denom = self.get_gp_variance(noise_flag=False)
@@ -3622,7 +3622,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. Vector of predicted y-values from fit.
         """
 
-        return self._barE
+        return copy.deepcopy(self._barE)
 
 
     def get_error_gp_variance(self):
@@ -3639,7 +3639,7 @@ class GaussianProcessRegression1D(object):
         :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
         """
 
-        return self._varE
+        return copy.deepcopy(self._varE)
 
 
     def get_error_gp_std(self):

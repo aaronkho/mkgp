@@ -11,6 +11,14 @@ def check_gp_results(results,cmean=None,cstd=None,cdmean=None,cdstd=None,rtol=1.
               np.all(np.isclose(cstd,results[1],rtol=rtol,atol=atol)) if cstd is not None else True,
               np.all(np.isclose(cdmean,results[2],rtol=rtol,atol=atol)) if cdmean is not None else True,
               np.all(np.isclose(cdstd,results[3],rtol=rtol,atol=atol)) if cdstd is not None else True]
+    #print(np.all(np.isclose(cmean,results[0],rtol=rtol,atol=atol)))
+    #print(np.all(np.isclose(cstd,results[1],rtol=rtol,atol=atol)))
+    #print(np.all(np.isclose(cdmean,results[2],rtol=rtol,atol=atol)))
+    #print(np.all(np.isclose(cdstd,results[3],rtol=rtol,atol=atol)))
+    #print(np.isclose(cmean,results[0],rtol=rtol,atol=atol))
+    #print(np.isclose(cstd,results[1],rtol=rtol,atol=atol))
+    #print(np.isclose(cdmean,results[2],rtol=rtol,atol=atol))
+    #print(np.isclose(cdstd,results[3],rtol=rtol,atol=atol))
     return np.all(checks)
 
 
