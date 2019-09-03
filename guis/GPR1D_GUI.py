@@ -1499,6 +1499,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
 
     def _load_data(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', '', 'Text files (*.txt);;All files (*)')
+        if pyqtversion.startswith('5'):
+            filename = filename[0]
         if filename:
             with open(filename,'r') as ff:
                 for tline in ff:
@@ -1924,6 +1926,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
         self._clean_data()
         if self.DataTable.rowCount() > 0:
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As...', '', 'Text files (*.txt);;All files (*)')
+            if pyqtversion.startswith('5'):
+                filename = filename[0]
             if filename:
                 ff = open(filename,'w')
                 ff.write("%15s%15s%15s%15s\n" % ("X","Y","Y Err.","X Err."))
@@ -1954,6 +1958,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
     def _save_fit_data(self):
         if self.gpr.get_gp_x() is not None:
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save As...', '', 'Text files (*.txt);;All files (*)')
+            if pyqtversion.startswith('5'):
+                filename = filename[0]
             if filename:
                 xfit = self.gpr.get_gp_x()
                 yfit = self.gpr.get_gp_mean()
