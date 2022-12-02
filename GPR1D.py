@@ -5215,7 +5215,7 @@ class GaussianProcessRegression1D(object):
         if self._gpye is None:
             hsgp_flag = False
             nigp_flag = False
-            self._gpye = self._ye.copy()
+            self._gpye = copy.deepcopy(self._ye)
             self._egpye = None
 
         # These loops adjust overlapping values between raw data vector and requested prediction vector, to avoid NaN values in final prediction
