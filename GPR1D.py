@@ -3754,27 +3754,44 @@ class GaussianProcessRegression1D(object):
         KKh2 = kk(x1h2,x2h2,der=-1)
         KKd = kk(x1d,x2d,der=2)
         KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
-        LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
-        alpha = spla.cho_solve((LL,True),yf)
         ksb = kk(xs1,xs2,der=-dd) if dd == 1 else kk(xs1,xs2,der=dd)
         ksh = kk(xs1h,xs2h,der=dd+1)
         ks = np.vstack((ksb,ksh))
-        vv = np.dot(LL.T,spla.cho_solve((LL,True),ks))
         kt = kk(xt1,xt2,der=2*dd)
+        kernel = KK + np.diag(yef**2.0)
+
+        cholesky_flag = True
+        if cholesky_flag:
+            LL = spla.cholesky(kernel,lower=True)
+            alpha = spla.cho_solve((LL,True),yf)
+            kv = spla.cho_solve((LL,True),ks)
+            #vv = np.dot(LL.T,spla.cho_solve((LL,True),ks))
+            #kvs = np.dot(vv.T,vv)
+            ldet = 2.0 * np.sum(np.log(np.diag(LL)))
+        else:
+            alpha = spla.solve(kernel,yf)
+            kv = spla.solve(kernel,ks)
+            #kvs = np.dot(ks.T,kv)
+            ldet = np.log(spla.det(kernel))
+
         barF = np.dot(ks.T,alpha)          # Mean function
-        varF = kt - np.dot(vv.T,vv)        # Variance of mean function
+        varF = kt - np.dot(ks.T,kv)        # Variance of mean function
 
         # Log-marginal-likelihood provides an indication of how statistically well the fit describes the training data
         #    1st term: Describes the goodness of fit for the given data
         #    2nd term: Penalty for complexity / simplicity of the covariance function
         #    3rd term: Penalty for the size of given data set
-        lml = -0.5 * np.dot(yf.T,alpha) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xf.size * np.log(2.0 * np.pi)
+        lml = -0.5 * np.dot(yf.T,alpha) - 0.5 * lp * ldet - 0.5 * xf.size * np.log(2.0 * np.pi)
 
         # Log-marginal-likelihood of the null hypothesis (constant at mean value),
         # can be used as a normalization factor for general goodness-of-fit metric
-        zfilt = (np.abs(yef) < 1.0e-10)
-        yef[zfilt] = 1.0e-10
-        lmlz = -0.5 * np.sum(np.power(yf / yef,2.0)) - lp * np.sum(np.log(yef)) - 0.5 * xf.size * np.log(2.0 * np.pi)
+        zfilt = (np.abs(yef) >= 1.0e-10)
+        yft = [0.0]
+        yeft = [0.0]
+        if np.any(zfilt):
+            yft = np.power(yf[zfilt] / yef[zfilt], 2.0)
+            yeft = 2.0 * np.log(yef[zfilt])
+        lmlz = -0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi)
 
         return (barF,varF,lml,lmlz)
 
@@ -3934,8 +3951,15 @@ class GaussianProcessRegression1D(object):
         KKh2 = kk(x1h2,x2h2,der=-1)
         KKd = kk(x1d,x2d,der=2)
         KK = np.vstack((np.hstack((KKb,KKh2)),np.hstack((KKh1,KKd))))
-        LL = spla.cholesky(KK + np.diag(yef**2.0),lower=True)
-        alpha = spla.cho_solve((LL,True),yf)
+        kernel = KK + np.diag(yef**2.0)
+
+        cholesky_flag = True
+        if cholesky_flag:
+            LL = spla.cholesky(kernel,lower=True)
+            alpha = spla.cho_solve((LL,True),yf)
+        else:
+            alpha = spla.solve(kernel,yf)
+
         gradlml = np.zeros(theta.shape).flatten()
         for ii in np.arange(0,theta.size):
             HHb = kk(x1,x2,der=0,hder=ii)
@@ -3944,7 +3968,10 @@ class GaussianProcessRegression1D(object):
             HHd = kk(x1d,x2d,der=2,hder=ii)
             HH = np.vstack((np.hstack((HHb,HHh2)),np.hstack((HHh1,HHd))))
             PP = np.dot(alpha.T,HH)
-            QQ = spla.cho_solve((LL,True),HH)
+            if cholesky_flag:
+                QQ = spla.cho_solve((LL,True),HH)
+            else:
+                QQ = spla.solve(kernel,HH)
             gradlml[ii] = 0.5 * np.dot(PP,alpha) - 0.5 * lp * np.sum(np.diag(QQ))
 
         return gradlml
@@ -5188,7 +5215,7 @@ class GaussianProcessRegression1D(object):
         if self._gpye is None:
             hsgp_flag = False
             nigp_flag = False
-            self._gpye = self._ye.copy()
+            self._gpye = copy.deepcopy(self._ye)
             self._egpye = None
 
         # These loops adjust overlapping values between raw data vector and requested prediction vector, to avoid NaN values in final prediction
