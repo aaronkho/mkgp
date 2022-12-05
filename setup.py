@@ -33,7 +33,7 @@ class RunTests(Command):
 
 setup(
     name = 'GPR1D',
-    version = '1.2.1',
+    version = '1.3.0',
     description = 'Classes for Gaussian Process Regression fitting of 1D data with errorbars.',
     long_description = long_description,
     url = 'https://gitlab.com/aaronkho/GPR1D.git',
@@ -46,9 +46,10 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5'
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7'
     ],
-    keywords = 'gaussian process regression, 1D data fitting, regression analysis, kriging',
+    keywords = 'gaussian process regression, 1D data fitting, regression analysis, kriging, noisy input, heteroscedastic error',
     py_modules = ['GPR1D'],
     scripts = ['scripts/GPR1D_demo.py', 'guis/GPR1D_GUI.py'],
     install_requires = ['numpy>=1.13', 'scipy>=0.17'],
