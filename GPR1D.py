@@ -3506,6 +3506,21 @@ class GaussianProcessRegression1D(object):
         return self._nulllml
 
 
+    def get_gp_r2(self):
+        """
+        Calculates the R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()` call.
+
+        :returns: float. R-squared value.
+        """
+        r2 = None
+        if self._xF is not None and self._estF is not None:
+            myy = np.nanmean(self._yy)
+            sstot = np.sum(np.power(self._yy - myy,2.0))
+            ssres = np.sum(np.power(self._yy - self._estF,2.0))
+            r2 = 1.0 - (ssres / sstot)
+        return r2
+
+
     def get_gp_adjusted_r2(self):
         """
         Calculates the adjusted R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()`
