@@ -1,12 +1,11 @@
-"""
+r"""
 Classes for Gaussian Process Regression fitting of 1D data with errorbars. Built in Python 3.x, adapted to be Python 2.x compatible.
 
 These classes were developed by Aaron Ho [1].
 
-[1] A. Ho, J. Citrin, C. Bourdelle, Y. Camenen, F. Felici, M. Maslov, K.L. Van De Plassche, H. Weisen, and JET,
-in
-IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis (Boston, MA, 2017),
-`<https://nucleus.iaea.org/sites/fusionportal/Shared\ Documents/Fusion\ Data\ Processing\ 2nd/31.05/Ho.pdf>`_
+[1] A. Ho, J. Citrin, C. Bourdelle, Y. Camenen, F. Felici, M. Maslov, K.L. Van De Plassche, H. Weisen, and JET Contributors
+    IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis, Boston, MA (2017)
+    `<https://nucleus.iaea.org/sites/fusionportal/Shared\ Documents/Fusion\ Data\ Processing\ 2nd/31.05/Ho.pdf>`_
 
 """
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
@@ -36,7 +35,7 @@ __all__ = ['Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operato
 
 
 class _Kernel(object):
-    """
+    r"""
     Base class to be inherited by **ALL** kernel implementations in order for type checks to succeed.
     Type checking done with :code:`isinstance(<object>,<this_module>._Kernel)`.
 
@@ -72,7 +71,7 @@ class _Kernel(object):
     """
 
     def __init__(self,name=None,func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
-        """
+        r"""
         Initializes the :code:`_Kernel` instance.
 
         .. note::
@@ -107,7 +106,7 @@ class _Kernel(object):
 
 
     def __call__(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Default class call function, evaluates the stored covariance function at the input values.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -149,7 +148,7 @@ class _Kernel(object):
 
 
     def __eq__(self,other):
-        """
+        r"""
 	Custom equality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_Kernel` class instance.
@@ -166,7 +165,7 @@ class _Kernel(object):
 
 
     def __ne__(self,other):
-        """
+        r"""
 	Custom inequality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_Kernel` class instance.
@@ -177,7 +176,7 @@ class _Kernel(object):
 
 
     def enforce_bounds(self,value=True):
-        """
+        r"""
         Sets a flag to enforce the given hyperparameter bounds.
 
         :kwarg value: bool. Boolean value to set the flag.
@@ -189,7 +188,7 @@ class _Kernel(object):
 
     @property
     def name(self):
-        """
+        r"""
         Returns the codename of the :code:`_Kernel` instance.
 
         :returns: str. Codename of the :code:`_Kernel` instance.
@@ -201,7 +200,7 @@ class _Kernel(object):
 
     @property
     def hyperparameters(self):
-        """
+        r"""
         Return the hyperparameters stored in the :code:`_Kernel` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_Kernel` class implementation.
@@ -215,7 +214,7 @@ class _Kernel(object):
 
     @property
     def constants(self):
-        """
+        r"""
         Return the constants stored in the :code:`_Kernel` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_Kernel` class implementation.
@@ -229,7 +228,7 @@ class _Kernel(object):
 
     @property
     def bounds(self):
-        """
+        r"""
         Return the hyperparameter search bounds stored in the :code:`_Kernel` instance.
 
         :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_Kernel` class implementation.
@@ -242,7 +241,7 @@ class _Kernel(object):
 
 
     def is_hderiv_implemented(self):
-        """
+        r"""
         Checks if the explicit hyperparameter derivative is implemented in the :code:`_Kernel` class implementation.
 
         :returns: bool. True if explicit hyperparameter derivative is implemented.
@@ -253,7 +252,7 @@ class _Kernel(object):
 
     @hyperparameters.setter
     def hyperparameters(self,theta):
-        """
+        r"""
         Set the hyperparameters stored in the :code:`_Kernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` implementation.
@@ -287,7 +286,7 @@ class _Kernel(object):
 
     @constants.setter
     def constants(self,consts):
-        """
+        r"""
         Set the constants stored in the :code:`_Kernel` instance.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
@@ -311,7 +310,7 @@ class _Kernel(object):
 
     @bounds.setter
     def bounds(self,bounds):
-        """
+        r"""
         Set the hyperparameter bounds stored in the :code:`_Kernel` instance.
 
         :arg bounds: 2D array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
@@ -340,7 +339,7 @@ class _Kernel(object):
 
 
 class _OperatorKernel(_Kernel):
-    """
+    r"""
     Base operator class to be inherited by **ALL** operator kernel implementations for custom get/set functions.
     Type checking done with :code:`isinstance(<object>,<this_module>._OperatorKernel)` if needed.
 
@@ -366,7 +365,7 @@ class _OperatorKernel(_Kernel):
     """
 
     def __init__(self,name="None",func=None,hderf=False,klist=None):
-        """
+        r"""
         Initializes the :code:`_OperatorKernel` instance.
 
         :kwarg name: str. Codename of :code:`_OperatorKernel` class implementation.
@@ -385,7 +384,7 @@ class _OperatorKernel(_Kernel):
 
     @property
     def name(self):
-        """
+        r"""
         Returns the codename of the :code:`_OperatorKernel` instance.
 
         :returns: str. Codename of the :code:`_OperatorKernel` instance.
@@ -402,7 +401,7 @@ class _OperatorKernel(_Kernel):
 
     @property
     def basename(self):
-        """
+        r"""
         Returns the base codename of the :code:`_OperatorKernel` instance.
 
         :returns: str. Base codename of the :code:`_OperatorKernel` instance.
@@ -414,7 +413,7 @@ class _OperatorKernel(_Kernel):
 
     @property
     def hyperparameters(self):
-        """
+        r"""
         Return the hyperparameters of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -428,7 +427,7 @@ class _OperatorKernel(_Kernel):
 
     @property
     def constants(self):
-        """
+        r"""
         Return the constants of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -442,7 +441,7 @@ class _OperatorKernel(_Kernel):
 
     @property
     def bounds(self):
-        """
+        r"""
         Return the hyperparameter bounds of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -458,7 +457,7 @@ class _OperatorKernel(_Kernel):
 
     @hyperparameters.setter
     def hyperparameters(self,theta):
-        """
+        r"""
         Set the hyperparameters stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -491,7 +490,7 @@ class _OperatorKernel(_Kernel):
 
     @constants.setter
     def constants(self,consts):
-        """
+        r"""
         Set the constants stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -524,7 +523,7 @@ class _OperatorKernel(_Kernel):
 
     @bounds.setter
     def bounds(self,bounds):
-        """
+        r"""
         Set the hyperparameter bounds stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
@@ -559,7 +558,7 @@ class _OperatorKernel(_Kernel):
 
 
 class _WarpingFunction(object):
-    """
+    r"""
     Base class to be inherited by **ALL** warping function implementations in order for type checks to succeed.
     Type checking done with :code:`isinstance(<object>,<this_module>._WarpingFunction)`.
 
@@ -600,7 +599,7 @@ class _WarpingFunction(object):
     """
 
     def __init__(self,name="None",func=None,hderf=False,hyps=None,csts=None,htags=None,ctags=None):
-        """
+        r"""
         Initializes the :code:`_WarpingFunction` instance.
 
         .. note::
@@ -635,7 +634,7 @@ class _WarpingFunction(object):
 
 
     def __call__(self,zz,der=0,hder=None):
-        """
+        r"""
         Default class call function, evaluates the stored warping function at the input values.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -656,7 +655,7 @@ class _WarpingFunction(object):
 
 
     def __eq__(self,other):
-        """
+        r"""
 	Custom equality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_WarpingFunction` class instance.
@@ -673,7 +672,7 @@ class _WarpingFunction(object):
 
 
     def __ne__(self,other):
-        """
+        r"""
 	Custom inequality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_WarpingFunction` class instance.
@@ -684,7 +683,7 @@ class _WarpingFunction(object):
 
 
     def enforce_bounds(self,value=True):
-        """
+        r"""
         Sets a flag to enforce the given hyperparameter bounds.
 
         :kwarg value: bool. Boolean value to set the flag.
@@ -696,7 +695,7 @@ class _WarpingFunction(object):
 
     @property
     def name(self):
-        """
+        r"""
         Returns the codename of the :code:`_WarpingFunction` instance.
 
         :returns: str. Codename of the :code:`_WarpingFunction` instance.
@@ -708,7 +707,7 @@ class _WarpingFunction(object):
 
     @property
     def hyperparameters(self):
-        """
+        r"""
         Return the hyperparameters stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -722,7 +721,7 @@ class _WarpingFunction(object):
 
     @property
     def constants(self):
-        """
+        r"""
         Return the constants stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -736,7 +735,7 @@ class _WarpingFunction(object):
 
     @property
     def bounds(self):
-        """
+        r"""
         Return the hyperparameter search bounds stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Hyperparameter bounds list, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -749,7 +748,7 @@ class _WarpingFunction(object):
 
 
     def is_hderiv_implemented(self):
-        """
+        r"""
         Checks if the explicit hyperparameter derivative is implemented in this :code:`_WarpingFunction` class implementation.
 
         :returns: bool. True if explicit hyperparameter derivative is implemented.
@@ -760,7 +759,7 @@ class _WarpingFunction(object):
 
     @hyperparameters.setter
     def hyperparameters(self,theta):
-        """
+        r"""
         Set the hyperparameters stored in the :code:`_WarpingFunction` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -794,7 +793,7 @@ class _WarpingFunction(object):
 
     @constants.setter
     def constants(self,consts):
-        """
+        r"""
         Set the constants stored in the :code:`_WarpingFunction` object.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -818,7 +817,7 @@ class _WarpingFunction(object):
 
     @bounds.setter
     def bounds(self,bounds):
-        """
+        r"""
         Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -851,7 +850,7 @@ class _WarpingFunction(object):
 # ****************************************************************************************************************************************
 
 class Sum_Kernel(_OperatorKernel):
-    """
+    r"""
     Sum Kernel: Implements the sum of two (or more) separate kernels.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
@@ -860,7 +859,7 @@ class Sum_Kernel(_OperatorKernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -885,7 +884,7 @@ class Sum_Kernel(_OperatorKernel):
 
 
     def __init__(self,*args,**kwargs):
-        """
+        r"""
         Initializes the :code:`Sum_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
@@ -911,7 +910,7 @@ class Sum_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -926,7 +925,7 @@ class Sum_Kernel(_OperatorKernel):
 
 
 class Product_Kernel(_OperatorKernel):
-    """
+    r"""
     Product Kernel: Implements the product of two (or more) separate kernels.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
@@ -935,7 +934,7 @@ class Product_Kernel(_OperatorKernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -978,7 +977,7 @@ class Product_Kernel(_OperatorKernel):
 
 
     def __init__(self,*args,**kwargs):
-        """
+        r"""
         Initializes the :code:`Product_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
@@ -1009,7 +1008,7 @@ class Product_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1024,7 +1023,7 @@ class Product_Kernel(_OperatorKernel):
 
 
 class Symmetric_Kernel(_OperatorKernel):
-    """
+    r"""
     1D Symmetric Kernel: Enforces even symmetry about zero for any given kernel. Although
     this class accepts multiple arguments, it only uses first :code:`_Kernel` argument.
 
@@ -1038,7 +1037,7 @@ class Symmetric_Kernel(_OperatorKernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1063,7 +1062,7 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
     def __init__(self,*args,**kwargs):
-        """
+        r"""
         Initializes the :code:`Symmetric_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be given flip symmetry. Must provide a minimum of 1.
@@ -1096,7 +1095,7 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current object, which can be modified without affecting the original.
@@ -1111,7 +1110,7 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
 class Constant_Kernel(_Kernel):
-    """
+    r"""
     Constant Kernel: always evaluates to a constant value, regardless of input pair.
 
     .. warning::
@@ -1125,7 +1124,7 @@ class Constant_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         .. warning::
@@ -1158,7 +1157,7 @@ class Constant_Kernel(_Kernel):
 
 
     def __init__(self,cv=1.0):
-        """
+        r"""
         Initializes the :code:`Constant_Kernel` instance.
 
         :kwarg cv: float. Constant value which kernel always evaluates to.
@@ -1175,7 +1174,7 @@ class Constant_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1194,7 +1193,7 @@ class Constant_Kernel(_Kernel):
 
 
 class Noise_Kernel(_Kernel):
-    """
+    r"""
     Noise Kernel: adds a user-defined degree of expected noise in the GPR regression, emulates a
     constant assumed fit noise level.
 
@@ -1207,7 +1206,7 @@ class Noise_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1 values at which to evaulate the covariance function.
@@ -1249,7 +1248,7 @@ class Noise_Kernel(_Kernel):
 
 
     def __init__(self,nv=1.0):
-        """
+        r"""
         Initializes the :code:`Noise_Kernel` instance.
 
         :kwarg nv: float. Hyperparameter representing the noise level.
@@ -1265,7 +1264,7 @@ class Noise_Kernel(_Kernel):
         super(Noise_Kernel,self).__init__("n",self.__calc_covm,True,hyps)
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1284,7 +1283,7 @@ class Noise_Kernel(_Kernel):
 
 
 class Linear_Kernel(_Kernel):
-    """
+    r"""
     Linear Kernel: Applies linear regression :code:`ax`, can be multiplied with itself
     for higher order pure polynomials.
 
@@ -1292,7 +1291,7 @@ class Linear_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1337,7 +1336,7 @@ class Linear_Kernel(_Kernel):
 
 
     def __init__(self,var=1.0):
-        """
+        r"""
         Initializes the :code:`Linear_Kernel` instance.
 
         :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
@@ -1354,7 +1353,7 @@ class Linear_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1373,7 +1372,7 @@ class Linear_Kernel(_Kernel):
 
 
 class Poly_Order_Kernel(_Kernel):
-    """
+    r"""
     Polynomial Order Kernel: Applies linear regression :code:`ax + b`, where :code:`b != 0`,
     can be multiplied with itself for higher order polynomials.
 
@@ -1383,7 +1382,7 @@ class Poly_Order_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1431,7 +1430,7 @@ class Poly_Order_Kernel(_Kernel):
 
 
     def __init__(self,var=1.0,cst=1.0):
-        """
+        r"""
         Initializes the :code:`Poly_Order_Kernel` instance.
 
         :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
@@ -1454,7 +1453,7 @@ class Poly_Order_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1474,7 +1473,7 @@ class Poly_Order_Kernel(_Kernel):
 
 
 class SE_Kernel(_Kernel):
-    """
+    r"""
     Square Exponential Kernel: Infinitely differentiable (ie. extremely smooth) covariance function.
 
     :kwarg var: float. Hyperparameter representing variability of model in y.
@@ -1483,7 +1482,7 @@ class SE_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1543,7 +1542,7 @@ class SE_Kernel(_Kernel):
 
 
     def __init__(self,var=1.0,ls=1.0):
-        """
+        r"""
         Initializes the :code:`SE_Kernel` instance.
 
         :kwarg var: float. Hyperparameter representing variability of model in y.
@@ -1566,7 +1565,7 @@ class SE_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1586,7 +1585,7 @@ class SE_Kernel(_Kernel):
 
 
 class RQ_Kernel(_Kernel):
-    """
+    r"""
     Rational Quadratic Kernel: Infinitely differentiable covariance function
     but provides higher tolerance for steep slopes than the squared exponential
     kernel. Mathematically equivalent to an infinite sum of squared exponential
@@ -1602,7 +1601,7 @@ class RQ_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1678,7 +1677,7 @@ class RQ_Kernel(_Kernel):
 
 
     def __init__(self,amp=1.0,ls=1.0,alpha=1.0):
-        """
+        r"""
         Initializes the :code:`RQ_Kernel` instance.
 
         :kwarg amp: float. Hyperparameter representing variability of model in y.
@@ -1706,7 +1705,7 @@ class RQ_Kernel(_Kernel):
         super(RQ_Kernel,self).__init__("RQ",self.__calc_covm,True,hyps)
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1727,7 +1726,7 @@ class RQ_Kernel(_Kernel):
 
 
 class Matern_HI_Kernel(_Kernel):
-    """
+    r"""
     Matern Kernel with Half-Integer Order Parameter: Only differentiable in
     orders less than given order parameter, :code:`nu`. Allows fit to retain
     more features at expense of volatility, but effectively becomes
@@ -1750,7 +1749,7 @@ class Matern_HI_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1829,7 +1828,7 @@ class Matern_HI_Kernel(_Kernel):
         return covm
 
     def __init__(self,amp=0.1,ls=0.1,nu=2.5):
-        """
+        r"""
         Initializes the :code:`Matern_HI_Kernel` instance.
 
         :kwarg amp: float. Hyperparameter representing variability of model in y.
@@ -1858,7 +1857,7 @@ class Matern_HI_Kernel(_Kernel):
         super(Matern_HI_Kernel,self).__init__("MH",self.__calc_covm,True,hyps,csts)
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -1879,7 +1878,7 @@ class Matern_HI_Kernel(_Kernel):
 
 
 class NN_Kernel(_Kernel):
-    """
+    r"""
     Neural Network Style Kernel: Implements a sigmoid covariance function similar
     to a perceptron (or neuron) in a neural network, good for strong discontinuities.
 
@@ -1898,7 +1897,7 @@ class NN_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1956,7 +1955,7 @@ class NN_Kernel(_Kernel):
 
 
     def __init__(self,nna=1.0,nno=1.0,nnv=1.0):
-        """
+        r"""
         Initializes the :code:`NN_Kernel` instance.
 
         :kwarg nna: float. Hyperparameter representing variability of model in y.
@@ -1985,7 +1984,7 @@ class NN_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -2006,7 +2005,7 @@ class NN_Kernel(_Kernel):
 
 
 class Gibbs_Kernel(_Kernel):
-    """
+    r"""
     Gibbs Kernel: Implements a Gibbs covariance function with variable length
     scale defined by an externally-defined warping function.
 
@@ -2025,7 +2024,7 @@ class Gibbs_Kernel(_Kernel):
     """
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        """
+        r"""
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -2234,7 +2233,7 @@ class Gibbs_Kernel(_Kernel):
 
     @property
     def wfuncname(self):
-        """
+        r"""
         Returns the codename of the stored :code:`_WarpingFunction` instance.
 
         :returns: str. Codename of the stored :code:`_WarpingFunction` instance.
@@ -2250,7 +2249,7 @@ class Gibbs_Kernel(_Kernel):
 
 
     def evaluate_wfunc(self,xx,der=0,hder=None):
-        """
+        r"""
         Evaluates the stored warping function at the specified values.
 
         :arg xx: array. Vector of x-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2272,7 +2271,7 @@ class Gibbs_Kernel(_Kernel):
 
 
     def __init__(self,var=1.0,wfunc=None):
-        """
+        r"""
         Initialize the :code:`Gibbs_Kernel` instance.
 
         :kwarg var: float. Hyperparameter representing variability of model in y.
@@ -2336,7 +2335,7 @@ class Gibbs_Kernel(_Kernel):
 
     @hyperparameters.setter
     def hyperparameters(self,theta):
-        """
+        r"""
         Set the hyperparameters stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
@@ -2361,7 +2360,7 @@ class Gibbs_Kernel(_Kernel):
 
     @constants.setter
     def constants(self,consts):
-        """
+        r"""
         Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
@@ -2386,7 +2385,7 @@ class Gibbs_Kernel(_Kernel):
 
     @bounds.setter
     def bounds(self,bounds):
-        """
+        r"""
         Set the hyperparameter bounds stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
@@ -2412,7 +2411,7 @@ class Gibbs_Kernel(_Kernel):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -2432,14 +2431,14 @@ class Gibbs_Kernel(_Kernel):
 
 
 class Constant_WarpingFunction(_WarpingFunction):
-    """
+    r"""
     Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
     
     :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
     """
 
     def __calc_warp(self,zz,der=0,hder=None):
-        """
+        r"""
         Implementation-specific warping function.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2464,7 +2463,7 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
     def __init__(self,cv=1.0):
-        """
+        r"""
         Initializes the :code:`Constant_WarpingFunction` instance.
 
         :kwarg cv: float. Hyperparameter representing constant value which warping function always evaluates to.
@@ -2481,7 +2480,7 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -2500,7 +2499,7 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
 class IG_WarpingFunction(_WarpingFunction):
-    """
+    r"""
     Inverse Gaussian Warping Function for Gibbs Kernel: localized variation of length-scale with variation limit.
 
     :kwarg lb: float. Hyperparameter representing base length scale.
@@ -2515,7 +2514,7 @@ class IG_WarpingFunction(_WarpingFunction):
     """
 
     def __calc_warp(self,zz,der=0,hder=None):
-        """
+        r"""
         Implementation-specific warping function.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2568,7 +2567,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
     def __init__(self,lb=1.0,gh=0.5,gs=1.0,gm=0.0,mf=0.6):
-        """
+        r"""
         Initializes the :code:`IG_WarpingFunction` instance.
 
         :kwarg lb: float. Hyperparameter representing base length scale.
@@ -2631,7 +2630,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @hyperparameters.setter
     def hyperparameters(self,theta):
-        """
+        r"""
         Set the hyperparameters stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -2649,7 +2648,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @constants.setter
     def constants(self,consts):
-        """
+        r"""
         Set the constants stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -2667,7 +2666,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @bounds.setter
     def bounds(self,bounds):
-        """
+        r"""
         Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
@@ -2685,7 +2684,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
     def __copy__(self):
-        """
+        r"""
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
@@ -2708,7 +2707,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
 class GaussianProcessRegression1D(object):
-    """
+    r"""
     Class containing variable containers, get/set functions, and fitting functions required to
     perform Gaussian process regressions on 1-dimensional data.
 
@@ -2719,7 +2718,7 @@ class GaussianProcessRegression1D(object):
     """
 
     def __init__(self):
-        """
+        r"""
         Defines the input and output containers used within the class, but they still requires instantiation.
         """
 
@@ -2774,7 +2773,7 @@ class GaussianProcessRegression1D(object):
 
 
     def __eq__(self,other):
-        """
+        r"""
         Custom equality operator, only compares input data due to statistical
         variance of outputs.
 
@@ -2813,7 +2812,7 @@ class GaussianProcessRegression1D(object):
 
 
     def __ne__(self,other):
-        """
+        r"""
         Custom inequality operator, only compares input data due to statistical
         variance of outputs.
 
@@ -2826,7 +2825,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_kernel(self,kernel=None,kbounds=None,regpar=None):
-        """
+        r"""
         Specify the kernel that the Gaussian process regression will be performed with.
 
         :kwarg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in fitting the data with Gaussian process regression.
@@ -2860,7 +2859,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_raw_data(self,xdata=None,ydata=None,xerr=None,yerr=None,dxdata=None,dydata=None,dyerr=None):
-        """
+        r"""
         Specify the raw data that the Gaussian process regression will be performed on.
         Performs some consistency checks between the input raw data to ensure validity.
 
@@ -2957,7 +2956,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_conditioner(self,condnum=None,lbound=None,ubound=None):
-        """
+        r"""
         Specify the parameters to ensure the condition number of the matrix is good,
         as well as set upper and lower bounds for the input data to be included.
 
@@ -2987,7 +2986,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_error_kernel(self,kernel=None,kbounds=None,regpar=None,nrestarts=None):
-        """
+        r"""
         Specify the kernel that the Gaussian process regression on the error function
         will be performed with.
 
@@ -3035,7 +3034,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None,maxiter=None):
-        """
+        r"""
         Specify the search parameters that the Gaussian process regression will use.
         Performs some consistency checks on input values to ensure validity.
 
@@ -3139,7 +3138,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_error_search_parameters(self,epsilon=None,method=None,spars=None,sdiff=None):
-        """
+        r"""
         Specify the search parameters that the Gaussian process regression will use for the error function.
         Performs some consistency checks on input values to ensure validity.
 
@@ -3239,7 +3238,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_warning_flag(self,flag=True):
-        """
+        r"""
         Specify the printing of runtime warnings within the
         hyperparameter optimization routine. The warnings are
         disabled by default but calling this function will
@@ -3254,7 +3253,7 @@ class GaussianProcessRegression1D(object):
 
 
     def reset_error_kernel(self):
-        """
+        r"""
         Resets error kernel and associated settings to an empty
         state. Primarily used for setting up identical objects
         for comparison and testing purposes.
@@ -3277,7 +3276,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_raw_data(self):
-        """
+        r"""
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
         without any internal processing.
 
@@ -3296,7 +3295,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_processed_data(self):
-        """
+        r"""
         Returns the input data passed into the latest :code:`GPRFit()` call,
         including all internal processing performed by that call.
 
@@ -3330,7 +3329,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_x(self):
-        """
+        r"""
         Returns the x-values used in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of x-values corresponding to predicted y-values.
@@ -3340,7 +3339,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_regpar(self):
-        """
+        r"""
         Returns the regularization parameter value used in the latest :code:`GPRFit()` call.
 
         :returns: float. Regularization parameter value used in cost function evaluation.
@@ -3350,7 +3349,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_error_regpar(self):
-        """
+        r"""
         Returns the regularization parameter value used for error function fitting in the latest :code:`GPRFit()` call.
 
         :returns: float. Regularization parameter value used in cost function evaluation for error function fitting.
@@ -3360,7 +3359,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_mean(self):
-        """
+        r"""
         Returns the y-values computed in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of predicted y-values from fit.
@@ -3371,7 +3370,7 @@ class GaussianProcessRegression1D(object):
 
     # TODO: Place process noise fraction on GPRFit() level and remove the argument from these functions, currently introduces inconsistencies in statistics
     def get_gp_variance(self,noise_flag=True,noise_mult=None):
-        """
+        r"""
         Returns the full covariance matrix of the y-values computed in the latest
         :code:`GPRFit()` call.
 
@@ -3390,7 +3389,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_std(self,noise_flag=True,noise_mult=None):
-        """
+        r"""
         Returns only the rooted diagonal elements of the covariance matrix of the y-values
         computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma error of fit.
 
@@ -3409,7 +3408,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_drv_mean(self):
-        """
+        r"""
         Returns the dy/dx-values computed in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of predicted dy/dx-values from fit, if requested in fit call.
@@ -3419,7 +3418,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_drv_variance(self,noise_flag=True,process_noise_fraction=None):
-        """
+        r"""
         Returns the full covariance matrix of the dy/dx-values computed in the latest
         :code:`GPRFit()` call.
 
@@ -3445,7 +3444,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_drv_std(self,noise_flag=True,process_noise_fraction=None):
-        """
+        r"""
         Returns only the rooted diagonal elements of the covariance matrix of the 
         dy/dx-values computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma
         error of fit.
@@ -3465,7 +3464,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_results(self,rtn_cov=False,noise_flag=True,process_noise_fraction=None):
-        """
+        r"""
         Returns all common predicted values computed in the latest :code:`GPRFit()` call.
 
         :kwarg rtn_cov: bool. Set as true to return the full predicted covariance matrix instead the 1 sigma errors. (optional)
@@ -3486,7 +3485,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_lml(self):
-        """
+        r"""
         Returns the log-marginal-likelihood of the latest :code:`GPRFit()` call.
 
         :returns: float. Log-marginal-likelihood value from fit.
@@ -3496,7 +3495,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_null_lml(self):
-        """
+        r"""
         Returns the log-marginal-likelihood for the null hypothesis, calculated by the latest :code:`GPRFit()` call.
         This value can be used to normalize the log-marginal-likelihood of the fit for a generalized goodness-of-fit metric.
 
@@ -3506,8 +3505,23 @@ class GaussianProcessRegression1D(object):
         return self._nulllml
 
 
-    def get_gp_adjusted_r2(self):
+    def get_gp_r2(self):
+        r"""
+        Calculates the R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()` call.
+
+        :returns: float. R-squared value.
         """
+        r2 = None
+        if self._xF is not None and self._estF is not None:
+            myy = np.nanmean(self._yy)
+            sstot = np.sum(np.power(self._yy - myy,2.0))
+            ssres = np.sum(np.power(self._yy - self._estF,2.0))
+            r2 = 1.0 - (ssres / sstot)
+        return r2
+
+
+    def get_gp_adjusted_r2(self):
+        r"""
         Calculates the adjusted R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()`
         call.
 
@@ -3525,7 +3539,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_generalized_r2(self):
-        """
+        r"""
         Calculates the Cox and Snell pseudo R-squared (coefficient of determination) using the results of the latest
         :code:`GPRFit()` call.
 
@@ -3543,7 +3557,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_input_kernel(self):
-        """
+        r"""
         Returns the original input kernel, with settings retained from before the
         hyperparameter optimization step.
 
@@ -3554,7 +3568,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_kernel(self):
-        """
+        r"""
         Returns the optimized kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: object. The :code:`_Kernel` instance from the latest :code:`GPRFit()` call, including optimized hyperparameters if fit was performed.
@@ -3564,7 +3578,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_kernel_details(self):
-        """
+        r"""
         Returns the data needed to save the optimized kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: (str, array, float).
@@ -3582,7 +3596,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_error_kernel(self):
-        """
+        r"""
         Returns the optimized error kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: object. The error :code:`_Kernel` instance from the latest :code:`GPRFit()` call, including optimized hyperparameters if fit was performed.
@@ -3592,7 +3606,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_error_kernel_details(self):
-        """
+        r"""
         Returns the data needed to save the optimized error kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: (str, array).
@@ -3610,7 +3624,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_error_gp_mean(self):
-        """
+        r"""
         Returns the fitted y-errors computed in the latest :code:`GPRFit()` call.
 
         .. warning::
@@ -3626,7 +3640,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_error_gp_variance(self):
-        """
+        r"""
         Returns the full covariance matrix of the fitted y-errors computed in the latest
         :code:`GPRFit()` call.
 
@@ -3643,7 +3657,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_error_gp_std(self):
-        """
+        r"""
         Returns only the rooted diagonal elements of the covariance matrix of the y-values
         computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma error of fit.
 
@@ -3664,7 +3678,7 @@ class GaussianProcessRegression1D(object):
 
 
     def eval_error_function(self,xnew,enforce_positive=True):
-        """
+        r"""
         Returns the error values used in heteroscedastic GPR, evaluated at the input x-values,
         using the error kernel determined in the latest :code:`GPRFit()` call.
 
@@ -3695,7 +3709,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_base_alg(self,xn,kk,lp,xx,yy,ye,dxx,dyy,dye,dd):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for 1-dimensional Gaussian process regression, with no
@@ -3797,7 +3811,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_brute_deriv1(self,xn,kk,lp,xx,yy,ye):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for brute-force first-order derivative of 1-dimensional Gaussian process regression.
@@ -3859,7 +3873,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_brute_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for brute-force computation of gradient of log-marginal-likelihood with respect to the
@@ -3905,7 +3919,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_grad_lml(self,kk,lp,xx,yy,ye,dxx,dyy,dye):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for computation of gradient of log-marginal-likelihood with respect to the hyperparameters
@@ -3978,7 +3992,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_grad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space.
@@ -4047,7 +4061,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_momentum_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters
@@ -4119,7 +4133,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_nesterov_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Nesterov-accelerated gradient ascent hyperparameter optimization algorithm with momentum,
@@ -4200,7 +4214,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adagrad_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive gradient ascent hyperparameter optimization algorithm, searches hyperparameters
@@ -4274,7 +4288,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adadelta_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,gam,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive gradient ascent hyperparameter optimization algorithm with decaying accumulation
@@ -4354,7 +4368,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters
@@ -4434,7 +4448,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adamax_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive moment estimation hyperparameter optimization algorithm with l-infinity, searches
@@ -4515,7 +4529,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_nadam_optimizer(self,kk,lp,xx,yy,ye,dxx,dyy,dye,eps,eta,b1,b2,dh):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Nesterov-accelerated adaptive moment estimation hyperparameter optimization algorithm,
@@ -4595,7 +4609,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _condition_data(self,xx,xe,yy,ye,lb,ub,cn):
-        """
+        r"""
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Conditions the input data to remove data points which are too close together, as
@@ -4661,7 +4675,7 @@ class GaussianProcessRegression1D(object):
 
 
     def __basic_fit(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,dxdata=None,dydata=None,dyerr=None,epsilon=None,method=None,spars=None,sdiff=None,do_drv=False,rtn_cov=False):
-        """
+        r"""
         **RESTRICTED ACCESS FUNCTION** - Can be called externally for testing if user is familiar with algorithm.
 
         Basic GP regression fitting routine, **recommended** to call this instead of the bare-bones functions
@@ -4911,7 +4925,7 @@ class GaussianProcessRegression1D(object):
 
 
     def __brute_derivative(self,xnew,kernel=None,regpar=None,xdata=None,ydata=None,yerr=None,rtn_cov=False):
-        """
+        r"""
         **RESTRICTED ACCESS FUNCTION** - Can be called externally for testing if user is familiar with algorithm.
 
         Brute-force numerical GP regression derivative routine, **recommended** to call this instead of bare-bones
@@ -5001,7 +5015,7 @@ class GaussianProcessRegression1D(object):
 
 
     def make_HSGP_errors(self):
-        """
+        r"""
         Calculates a vector of modified y-errors based on GPR fit of input y-errors,
         for use inside a heteroscedastic GPR execution.
 
@@ -5074,7 +5088,7 @@ class GaussianProcessRegression1D(object):
 
 
     def make_NIGP_errors(self,nrestarts=0,hsgp_flag=False):
-        """
+        r"""
         Calculates a vector of modified y-errors based on input x-errors and a test model
         gradient, for use inside a noisy input GPR execution.
 
@@ -5165,7 +5179,7 @@ class GaussianProcessRegression1D(object):
 
 
     def GPRFit(self,xnew,hsgp_flag=True,nigp_flag=False,nrestarts=None):
-        """
+        r"""
         Main GP regression fitting routine, **recommended** to call this after using set functions, instead of the
         :code:`__basic_fit()` function, as this adapts the method based on inputs, performs 1st derivative and
         saves output to class variables.
@@ -5334,7 +5348,7 @@ class GaussianProcessRegression1D(object):
 
 
     def sample_GP(self,nsamples,actual_noise=False,without_noise=False,simple_out=False):
-        """
+        r"""
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
         :code:`GPRFit()` method.
@@ -5385,7 +5399,7 @@ class GaussianProcessRegression1D(object):
 
 
     def sample_GP_derivative(self,nsamples,actual_noise=False,without_noise=False,simple_out=False):
-        """
+        r"""
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
         :code:`GPRFit()` method.
@@ -5436,7 +5450,7 @@ class GaussianProcessRegression1D(object):
 
 
     def MCMC_posterior_sampling(self,nsamples):
-        """
+        r"""
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters,
         using the log-marginal-likelihood as the acceptance criterion.
 
@@ -5558,7 +5572,7 @@ class GaussianProcessRegression1D(object):
 
 
 class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
-    """
+    r"""
     A simplified version of the main :code:`GaussianProcessRegression1D`
     class with pre-defined settings, only requiring the bare necessities
     to use for fitting. Although this class allows an entry point akin
@@ -5595,7 +5609,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
     """
 
     def __init__(self,kernel,xdata,ydata,yerr,xerr=None,kernel_bounds=None,reg_par=1.0,epsilon=1.0e-2,num_restarts=0,hyp_opt_gain=1.0e-2,include_noise=True):
-        """
+        r"""
         Defines customized :code:`GaussianProcessRegression1D` instance with
         a pre-defined common settings for both data fit and error fit. Input
         parameters reduced only to essentials and most crucial knobs for
@@ -5651,7 +5665,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
 
     def __call__(self,xnew):
-        """
+        r"""
         Defines a simplified fitting execution, *only* performs
         optimization on the *first* call. Subsequent calls
         merely evaluate the optimized fit at the input x-values.
@@ -5674,7 +5688,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
 
     def sample(self,xnew,derivative=False):
-        """
+        r"""
         Provides a more intuitive function for sampling the
         predictive distribution. Only provides one sample
         per call, unlike the more complex function in the
@@ -5693,7 +5707,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
 
 def KernelConstructor(name):
-    """
+    r"""
     Function to construct a kernel solely based on the kernel codename.
 
     .. note::
@@ -5716,51 +5730,51 @@ def KernelConstructor(name):
             rname = ''
             for jj in np.arange(0,len(links)):
                 rname = links[jj] if not bflag else rname + '-' + links[jj]
-                if re.search('\(',links[jj]):
+                if re.search(r'\(',links[jj]):
                     bflag = True
-                if re.search('\)',links[jj]):
+                if re.search(r'\)',links[jj]):
                     bflag = False
                 if not bflag:
                     names.append(rname)
             kklist = []
             for ii in np.arange(0,len(names)):
                 kklist.append(KernelConstructor(names[ii]))
-            if re.search('^Sum$',m.group(1)):
+            if re.search(r'^Sum$',m.group(1)):
                 kernel = Sum_Kernel(klist=kklist)
-            elif re.search('^Prod$',m.group(1)):
+            elif re.search(r'^Prod$',m.group(1)):
                 kernel = Product_Kernel(klist=kklist)
-            elif re.search('^Sym$',m.group(1)):
+            elif re.search(r'^Sym$',m.group(1)):
                 kernel = Symmetric_Kernel(klist=kklist)
         else:
-            if re.match('^C$',name):
+            if re.match(r'^C$',name):
                 kernel = Constant_Kernel()
-            elif re.match('^n$',name):
+            elif re.match(r'^n$',name):
                 kernel = Noise_Kernel()
-            elif re.match('^L$',name):
+            elif re.match(r'^L$',name):
                 kernel = Linear_Kernel()
-            elif re.match('^P$',name):
+            elif re.match(r'^P$',name):
                 kernel = Poly_Order_Kernel()
-            elif re.match('^SE$',name):
+            elif re.match(r'^SE$',name):
                 kernel = SE_Kernel()
-            elif re.match('^RQ$',name):
+            elif re.match(r'^RQ$',name):
                 kernel = RQ_Kernel()
-            elif re.match('^MH$',name):
+            elif re.match(r'^MH$',name):
                 kernel = Matern_HI_Kernel()
-            elif re.match('^NN$',name):
+            elif re.match(r'^NN$',name):
                 kernel = NN_Kernel()
-            elif re.match('^Gw',name):
-                wname = re.search('^Gw(.*)$',name).group(1)
+            elif re.match(r'^Gw',name):
+                wname = re.search(r'^Gw(.*)$',name).group(1)
                 wfunc = None
-                if re.match('^C$',wname):
+                if re.match(r'^C$',wname):
                     wfunc = Constant_WarpingFunction()
-                elif re.match('^IG$',wname):
+                elif re.match(r'^IG$',wname):
                     wfunc = IG_WarpingFunction()
                 kernel = Gibbs_Kernel(wfunc=wfunc)
     return kernel
 
 
 def KernelReconstructor(name,pars=None):
-    """
+    r"""
     Function to reconstruct any :code:`_Kernel` instance from its codename and parameter list,
     useful for saving only necessary data to represent a :code:`GaussianProcessRregression1D`
     instance.
