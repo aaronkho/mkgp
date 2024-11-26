@@ -22,7 +22,7 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -e .[test,guis,scripts] #Test with all optional dependencies
+  - pip install -e .[dev,demo,gui] # Test with all optional dependencies
 
 pytest:
   script:
