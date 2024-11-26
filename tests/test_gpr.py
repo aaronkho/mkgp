@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from operator import itemgetter
-import GPR1D
+from gpr1d import GPR1D
 
 
 def check_gp_results(results,cmean=None,cstd=None,cdmean=None,cdstd=None,rtol=1.0e-5,atol=1.0e-8):

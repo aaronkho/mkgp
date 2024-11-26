@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-import GPR1D
+from gpr1d import GPR1D
 
 
 def check_kernel_evaluation(kernel,x1,x2,der,comparison):

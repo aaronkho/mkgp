@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from operator import itemgetter
-import GPR1D
+from gpr1d import GPR1D
 
 
 @pytest.fixture(scope="module")
