@@ -1,5 +1,5 @@
 image:
-  name: "python:3.5"
+  name: "python:3.12"
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -32,37 +32,20 @@ pytest:
     <<: *cache
 
 pages:
-  image: alpine:3.7
+  image: python:3.12-alpine
   cache:
     <<: *cache
   before_script:
   - ''
   script:
-  - apk --no-cache add py2-pip python-dev
-
-  # Scipy is currently only in the 3.8 or higher package repository
-  - echo @v3.8 http://dl-cdn.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repositories
-  - apk update
-  - apk add py2-numpy@v3.8 py2-scipy@v3.8
-
   # Install GPR1D package + dependencies using pip
-  - pip install .
+  - python3 -m pip install .
 
   # Install sphinx and dependencies
-  - pip install sphinx
-  - apk --no-cache add make
-
-  # Print out version information and test imports
-  - echo "numpy version information"
-  - python2 -c "import numpy;print numpy.__version__;print numpy.__file__"
-  - python2 -c "import numpy"
-  - echo "scipy version information"
-  - python2 -c "import scipy;print scipy.__version__;print scipy.__file__"
-  - python2 -c "import scipy.special; import scipy.linalg; import scipy.stats"
+  - python3 -m pip install sphinx furo
 
   # Build the docs and move to public website
-  - make -C docs html
-  - mv docs/build/html/ public/
+  - sphinx-build -b html docs/source/ public/
   artifacts:
     paths:
     - public
