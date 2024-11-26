@@ -15,6 +15,7 @@ These classes were developed by Aaron Ho [1].
 import warnings
 import re
 import copy
+import math
 import numpy as np
 import scipy.special as spsp
 import scipy.linalg as spla
@@ -1516,7 +1517,7 @@ class SE_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power(rr / l_hyp,nn - jj)
             covm = afac * efac * sfac
         elif hder == 0:
@@ -1525,7 +1526,7 @@ class SE_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - jj) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - jj) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power(rr / l_hyp,nn - jj)
             covm = afac * efac * sfac
         elif hder == 1:
@@ -1534,7 +1535,7 @@ class SE_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 3,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                dfac = np.power(-1.0,nn - ii + 2) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
                 lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
                 sfac = sfac + lfac * np.power(rr / l_hyp,nn - jj + 2)
             covm = afac * efac * sfac
@@ -1637,7 +1638,7 @@ class RQ_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
                 sfac = sfac + cfac * gfac * np.power(rr / l_hyp,nn - jj)
             covm = afac * efac * sfac
@@ -1647,7 +1648,7 @@ class RQ_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
                 sfac = sfac + cfac * gfac * np.power(rr / l_hyp,nn - jj)
             covm = afac * efac * sfac
@@ -1657,7 +1658,7 @@ class RQ_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 3,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                dfac = np.power(-1.0,nn - ii + 2) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
                 lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
                 gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii) + 1.0) / (np.power(a_hyp,nn - ii + 1) * spsp.gamma(a_hyp))
                 sfac = sfac + lfac * gfac * np.power(rr / l_hyp,nn - jj + 2)
@@ -1668,7 +1669,7 @@ class RQ_Kernel(_Kernel):
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 gfac = np.power(rqt,ii) * spsp.gamma(a_hyp + float(nn) - float(ii)) / (np.power(a_hyp,nn - ii) * spsp.gamma(a_hyp))
                 pfac = (a_hyp - 2.0 * ii) / (a_hyp) * (rqt - 1.0) - float(nn - ii) / a_hyp - rqt * (np.log(rqt) + spsp.digamma(a_hyp + float(nn) - float(ii)) - spsp.digamma(a_hyp))
                 sfac = sfac + cfac * gfac * pfac * np.power(rr / l_hyp,nn - jj)
@@ -1785,43 +1786,43 @@ class Matern_HI_Kernel(_Kernel):
         if hder is None:
             afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * mat_amp**2.0 * np.power(np.sqrt(2.0 * nu) / mat_hyp,nn)
             efac = np.exp(-mht)
-            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            spre = math.factorial(pp) / math.factorial(2 * pp)
             tfac = np.zeros(rr.shape)
             for ii in np.arange(0,nn + 1):
-                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
                 sfac = np.zeros(rr.shape)
                 for zz in np.arange(0,pp - ii + 1):
-                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
                 tfac = tfac + mfac * sfac
             covm = afac * efac * tfac
         elif hder == 0:
             afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * 2.0 * mat_amp * np.power(np.sqrt(2.0 * nu) / mat_hyp,nn)
             efac = np.exp(-mht)
-            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            spre = math.factorial(pp) / math.factorial(2 * pp)
             tfac = np.zeros(rr.shape)
             for ii in np.arange(0,nn + 1):
-                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
                 sfac = np.zeros(rr.shape)
                 for zz in np.arange(0,pp - ii + 1):
-                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
                 tfac = tfac + mfac * sfac
             covm = afac * efac * tfac
         elif hder == 1:
             afac = np.power(drdx1,dx1) * np.power(drdx2,dx2) * mat_amp**2.0 * np.power(np.sqrt(2.0 * nu),nn) / np.power(mat_hyp,nn + 1)
             efac = np.exp(-mht)
-            spre = np.math.factorial(pp) / np.math.factorial(2 * pp)
+            spre = math.factorial(pp) / math.factorial(2 * pp)
             ofac = np.zeros(rr.shape)
             for zz in np.arange(0,pp - nn):
-                ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - nn - zz - 1))
+                ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - nn - zz - 1))
                 ofac = ofac + ffac * np.power(2.0 * mht,pp - nn - zz - 1)
             tfac = -np.power(2.0,nn + 1) * ofac
             for ii in np.arange(0,nn + 1):
-                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * np.math.factorial(nn) / (np.math.factorial(ii) * np.math.factorial(nn - ii))
+                mfac = np.power(-1.0,nn - ii) * np.power(2.0,ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
                 sfac = np.zeros(rr.shape)
                 for zz in np.arange(0,pp - ii + 1):
-                    ffac = spre * np.math.factorial(pp + zz) / (np.math.factorial(zz) * np.math.factorial(pp - ii - zz))
+                    ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht,pp - ii - zz)
                 tfac = tfac + mfac * sfac
             covm = afac * efac * tfac
@@ -2541,7 +2542,7 @@ class IG_WarpingFunction(_WarpingFunction):
             sfac = np.zeros(zz.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
             warp = base + afac * sfac if der == 0 else afac * sfac
         elif hder == 0:
@@ -2551,7 +2552,7 @@ class IG_WarpingFunction(_WarpingFunction):
             sfac = np.zeros(zz.shape)
             for jj in np.arange(0,nn + 1,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                cfac = np.power(-1.0,nn - ii) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj))
+                cfac = np.power(-1.0,nn - ii) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power((zz - mu) / sig,nn - jj)
             warp = afac * sfac
         elif hder == 2:
@@ -2559,7 +2560,7 @@ class IG_WarpingFunction(_WarpingFunction):
             sfac = np.zeros(zz.shape)
             for jj in np.arange(0,nn + 3,2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
-                dfac = np.power(-1.0,nn - ii + 2) * np.math.factorial(nn) / (np.power(2.0,ii) * np.math.factorial(ii) * np.math.factorial(nn - jj + 2))
+                dfac = np.power(-1.0,nn - ii + 2) * math.factorial(nn) / (np.power(2.0,ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
                 lfac = dfac * ((nn + 2.0) * (nn + 1.0) - float(jj))
                 sfac = sfac + lfac * np.power((zz - mu) / sig,nn - jj + 2)
             warp = afac * sfac
