@@ -27,7 +27,7 @@ class TestBaseClasses(object):
                 empty_warping_function.hyperparameters.size,
                 empty_warping_function.constants.size,
                 empty_warping_function.bounds,
-                empty_warping_function.is_hderiv_implemented()) == ("None",0,0,None,False)
+                empty_warping_function.is_hderiv_implemented()) == ('Warp',0,0,None,False)
 
     def test_eval_empty_warping_function(self,empty_warping_function):
         pytest.raises(NotImplementedError,empty_warping_function,[0.0])
@@ -37,7 +37,7 @@ class TestBaseClasses(object):
                 empty_kernel.hyperparameters.size,
                 empty_kernel.constants.size,
                 empty_kernel.bounds,
-                empty_kernel.is_hderiv_implemented()) == ("None",0,0,None,False)
+                empty_kernel.is_hderiv_implemented()) == ('None',0,0,None,False)
 
     def test_eval_empty_kernel(self,empty_kernel):
         pytest.raises(NotImplementedError,empty_kernel,[0.0],[0.0])
@@ -47,7 +47,7 @@ class TestBaseClasses(object):
                 empty_operator_kernel.hyperparameters.size,
                 empty_operator_kernel.constants.size,
                 empty_operator_kernel.bounds,
-                empty_operator_kernel.is_hderiv_implemented()) == ("None()",0,0,None,False)
+                empty_operator_kernel.is_hderiv_implemented()) == ('Op()',0,0,None,False)
 
     def test_eval_empty_operator_kernel(self,empty_operator_kernel):
         pytest.raises(NotImplementedError,empty_operator_kernel,[0.0],[0.0])
