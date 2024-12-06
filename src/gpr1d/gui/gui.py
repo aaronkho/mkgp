@@ -56,7 +56,8 @@ else:
     from matplotlib.backends import backend_qt4agg as mplqt
 
 from matplotlib.figure import Figure
-from gpr1d import GPR1D
+from gpr1d.core.routines import GaussianProcessRegression1D
+from gpr1d.core.utils import KernelReconstructor
 
 
 ##### Base classes to be inherited by custom implementations - do not modify! #####
