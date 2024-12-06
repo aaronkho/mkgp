@@ -8,6 +8,7 @@ import pwd
 import time
 import copy
 import pickle
+from pathlib import Path
 import numpy as np
 from packaging.version import Version
 import inspect
@@ -1080,8 +1081,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.fNewData = False
         self.gpr = GPR1D.GaussianProcessRegression1D()
-        location = inspect.getsourcefile(type(self.gpr))
-        self.srcdir = os.path.dirname(location) + '/'
+        location = Path(inspect.getsourcefile(type(self.gpr)))
+        self.srcdir = location.parent
         print(f'Using GPR1D definition from: {self.srcdir}')
         self.initUI()
 

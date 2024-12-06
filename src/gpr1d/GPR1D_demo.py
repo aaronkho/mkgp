@@ -5,6 +5,7 @@ import sys
 import re
 import inspect
 from operator import itemgetter
+from pathlib import Path
 import numpy as np
 
 from gpr1d import GPR1D   # Required import, only works after using 'pip install'
@@ -24,11 +25,10 @@ def run_demo():
 
     ### Some basic setup
 
-    plot_save_directory = './GPPlots/'
-    if not plot_save_directory.endswith('/'):
-        plot_save_directory = plot_save_directory + '/'
-    if not os.path.isdir(plot_save_directory):
-        os.makedirs(plot_save_directory)
+    plot_save_directory = Path('GPPlots')
+    plot_save_directory.mkdir(parents=True, exist_ok=True)
+    if not plot_save_directory.is_dir():
+        raise IOError(f'Demo save directory, {plot_save_directory}, already exists and is not a directory. Aborting!')
 
 
     ### Generating sample data
@@ -82,8 +82,8 @@ def run_demo():
     gpr_object = GPR1D.GaussianProcessRegression1D()
 
     # Print source location for reference, in case of multiple installations
-    location = inspect.getsourcefile(type(gpr_object))
-    print(f'Using GPR1D definition from: {os.path.dirname(location) + "/"}')
+    location = Path(inspect.getsourcefile(type(gpr_object)))
+    print(f'Using GPR1D definition from: {location.parent.resolve()}')
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     gpr_object.set_kernel(
@@ -364,19 +364,21 @@ def run_demo():
         plot_sigma = 2.0
 
         # Raw data with GPR fit and error, only accounting for y-errors
-        plot_raw_y_errors = plot_sigma * raw_y_errors
+        save_file = plot_save_directory / 'gp_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        plot_raw_y_errors = plot_sigma * raw_y_errors
         ax.errorbar(raw_x_values, raw_y_values, yerr=plot_raw_y_errors, ls='', marker='.', color='k')
         ax.plot(fit_x_values, hs_fit_y_values, color='r')
         plot_hs_fit_y_lower = hs_fit_y_values - plot_sigma * hs_fit_y_errors
         plot_hs_fit_y_upper = hs_fit_y_values + plot_sigma * hs_fit_y_errors
         ax.fill_between(fit_x_values, plot_hs_fit_y_lower, plot_hs_fit_y_upper, facecolor='r', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'gp_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Derivative of GPR fit and error, only accounting for y-errors
+        save_file = plot_save_directory / 'gp_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(fit_x_values, fit_dydx_values, color='r')
@@ -384,13 +386,14 @@ def run_demo():
         plot_hs_fit_dydx_upper = hs_fit_dydx_values + plot_sigma * hs_fit_dydx_errors
         ax.fill_between(fit_x_values, plot_hs_fit_dydx_lower, plot_hs_fit_dydx_upper, facecolor='r', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'gp_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Raw data with GPR fit and error, comparison of using y-errors as weights, rigourously accounting for y-errors, and rigourously account for y-errors AND x-errors
-        plot_raw_x_errors = plot_sigma * raw_x_errors
+        save_file = plot_save_directory / 'gp_options_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        plot_raw_x_errors = plot_sigma * raw_x_errors
         ax.errorbar(raw_x_values, raw_y_values, xerr=plot_raw_x_errors, yerr=plot_raw_y_errors, ls='', marker='.', color='k')
         ax.plot(fit_x_values, fit_y_values, color='g')
         plot_fit_y_lower = fit_y_values - plot_sigma * fit_y_errors
@@ -409,10 +412,11 @@ def run_demo():
         ax.plot(fit_x_values, plot_ni_fit_y_upper, color='b', ls='--')
         #ax.fill_between(fit_x_values, plot_ni_fit_y_lower, plot_ni_fit_y_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'gp_options_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Derivative of GPR fit and error, comparison of using y-errors as weights, rigourously accounting for y-errors, and rigourously account for y-errors AND x-errors
+        save_file = plot_save_directory / 'gp_options_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(fit_x_values, fit_dydx_values, color='g')
@@ -432,10 +436,11 @@ def run_demo():
         ax.plot(fit_x_values, plot_ni_fit_dydx_upper, color='b', ls='--')
         #ax.fill_between(fit_x_values, plot_ni_fit_dydx_lower, plot_ni_fit_dydx_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'gp_options_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit curves (smooth noise) against GPR fit distribution
+        save_file = plot_save_directory / 'sample_gp_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_y_lower, plot_hs_fit_y_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -445,10 +450,11 @@ def run_demo():
         plot_hs_sample_y_upper = sample_mean + plot_sigma * sample_std
         ax.fill_between(fit_x_values, plot_hs_sample_y_lower, plot_hs_sample_y_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Derivatives of sampled fit curves (smooth noise) against GPR fit derivative distribution
+        save_file = plot_save_directory / 'sample_gp_der_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_dydx_lower, plot_hs_fit_dydx_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -458,10 +464,11 @@ def run_demo():
         plot_hs_sample_dydx_upper = deriv_mean + plot_sigma * deriv_std
         ax.fill_between(dfit_x_values, plot_hs_sample_dydx_lower, plot_hs_sample_dydx_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_drv_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit derivative curves (smooth noise) against GPR fit derivative distribution
+        save_file = plot_save_directory / 'sample_gp_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_dydx_lower, plot_hs_fit_dydx_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -471,10 +478,11 @@ def run_demo():
         plot_hs_dsample_dydx_upper = dsample_mean + plot_sigma * dsample_std
         ax.fill_between(fit_x_values, plot_hs_dsample_dydx_lower, plot_hs_dsample_dydx_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Integrals of sampled fit derivative curves (smooth noise) against GPR fit distribution
+        save_file = plot_save_directory / 'sample_gp_int_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_y_lower, plot_hs_fit_y_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -484,30 +492,33 @@ def run_demo():
         plot_hs_dsample_y_upper = integ_mean + plot_sigma * integ_std
         ax.fill_between(ifit_x_values, plot_hs_dsample_y_lower, plot_hs_dsample_y_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_itg_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit curves (true noise) against GPR fit distribution
+        save_file = plot_save_directory / 'sample_gp_noisy_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_y_lower, plot_hs_fit_y_upper, facecolor='r', edgecolor='None', alpha=0.2)
         for ii in np.arange(0, plot_num_samples):
             ax.plot(fit_x_values, nsample_array[ii, :], color='k', alpha=0.5)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_noisy_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit derivative curves (true noise) against GPR fit derivative distribution
+        save_file = plot_save_directory / 'sample_gp_noisy_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_fit_dydx_lower, plot_hs_fit_dydx_upper, facecolor='r', edgecolor='None', alpha=0.2)
         for ii in np.arange(0, plot_num_samples):
             ax.plot(fit_x_values, ndsample_array[ii, :], color='k', alpha=0.5)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_noisy_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit curves (zero noise) against GPR fit distribution
+        save_file = plot_save_directory / 'sample_gp_no_noise_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         plot_hs_zfit_y_lower = hs_zfit_y_values - plot_sigma * hs_zfit_y_errors
@@ -519,10 +530,11 @@ def run_demo():
         plot_hs_zsample_y_upper = zsample_mean + plot_sigma * zsample_std
         ax.fill_between(fit_x_values, plot_hs_sample_y_lower, plot_hs_sample_y_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_no_noise_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Derivatives of sampled fit curves (zero noise) against GPR fit derivative distribution
+        save_file = plot_save_directory / 'sample_gp_der_no_noise_test.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         plot_hs_zfit_dydx_lower = hs_zfit_dydx_values - plot_sigma * hs_zfit_dydx_errors
@@ -534,10 +546,11 @@ def run_demo():
         plot_hs_zsample_dydx_upper = zderiv_mean + plot_sigma * zderiv_std
         ax.fill_between(dfit_x_values, plot_hs_zsample_dydx_lower, plot_hs_zsample_dydx_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_drv_no_noise_test.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Sampled fit derivative curves (zero noise) against GPR fit derivative distribution
+        save_file = plot_save_directory / 'sample_gp_no_noise_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_zfit_dydx_lower, plot_hs_zfit_dydx_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -547,10 +560,11 @@ def run_demo():
         plot_hs_zdsample_dydx_upper = zdsample_mean + plot_sigma * zdsample_std
         ax.fill_between(fit_x_values, plot_hs_zdsample_dydx_lower, plot_hs_zdsample_dydx_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_no_noise_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
         # Integrals of sampled fit derivative curves (zero noise) against GPR fit distribution
+        save_file = plot_save_directory / 'sample_gp_int_no_noise_dtest.png'
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.fill_between(fit_x_values, plot_hs_zfit_y_lower, plot_hs_zfit_y_upper, facecolor='r', edgecolor='None', alpha=0.2)
@@ -560,10 +574,10 @@ def run_demo():
         plot_hs_zdsample_y_upper = zinteg_mean + plot_sigma * zinteg_std
         ax.fill_between(ifit_x_values, plot_hs_zdsample_y_lower, plot_hs_zdsample_y_upper, facecolor='b', edgecolor='None', alpha=0.2)
         ax.set_xlim(0.0, 1.0)
-        fig.savefig(plot_save_directory + 'sample_gp_itg_no_noise_dtest.png')
+        fig.savefig(save_file)
         plt.close(fig)
 
-        print(f'Results of demonstration plotted in directory {plot_save_directory}.\n')
+        print(f'Results of demonstration plotted and saved in directory, {plot_save_directory.resolve()}.\n')
 
     else:
 
