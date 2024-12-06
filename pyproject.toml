@@ -45,8 +45,9 @@ gui = ["pyqt5", "matplotlib"]
 "Source" = "https://gitlab.com/aaronkho/GPR1D"
 
 [project.scripts]
-gpr1d_demo = "gpr1d.GPR1D_demo:main"
-gpr1d_gui = "gpr1d.GPR1D_GUI:main"
+gpr1d_demo = "gpr1d.scripts.demo:main"
+gpr1d_profiler = "gpr1d.scripts.profiler:main"
+gpr1d_gui = "gpr1d.gui.gui:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "gpr1d.__version__"}
