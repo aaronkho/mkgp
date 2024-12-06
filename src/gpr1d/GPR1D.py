@@ -1,4 +1,4 @@
-r"""
+r'''
 Classes for Gaussian Process Regression fitting of 1D data with errorbars. Built in Python 3.x, adapted to be Python 2.x compatible.
 
 These classes were developed by Aaron Ho [1].
@@ -7,7 +7,7 @@ These classes were developed by Aaron Ho [1].
     IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis, Boston, MA (2017)
     `<https://nucleus.iaea.org/sites/fusionportal/Shared\ Documents/Fusion\ Data\ Processing\ 2nd/31.05/Ho.pdf>`_
 
-"""
+'''
 #    Kernel theory: "Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I. Williams (2006)
 #    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
 
@@ -25,9 +25,9 @@ from operator import itemgetter
 np_itypes = (np.int8, np.int16, np.int32, np.int64)
 np_utypes = (np.uint8, np.uint16, np.uint32, np.uint64)
 np_ftypes = (np.float16, np.float32, np.float64)
-array = np.ndarray
 number_types = (float, int, np_itypes, np_utypes, np_ftypes)
 array_types = (list, tuple, np.ndarray)
+default_dtype = np.float64
 
 __all__ = [
     'Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operator classes
@@ -40,7 +40,7 @@ __all__ = [
 
 
 class _Kernel(object):
-    r"""
+    r'''
     Base class to be inherited by **ALL** kernel implementations in order for type checks to succeed.
     Type checking done with :code:`isinstance(<object>,<this_module>._Kernel)`.
 
@@ -73,7 +73,7 @@ class _Kernel(object):
     :kwarg htags: array. Names of hyperparameters to be stored as indices in the :code:`_Kernel` class implementation. (optional)
 
     :kwarg ctags: array. Names of constants to be stored as indices in the :code:`_Kernel` class implementation. (optional)
-    """
+    '''
 
     def __init__(
         self,
@@ -85,7 +85,7 @@ class _Kernel(object):
         htags=None,
         ctags=None
     ):
-        r"""
+        r'''
         Initializes the :code:`_Kernel` instance.
 
         .. note::
@@ -107,12 +107,12 @@ class _Kernel(object):
         :kwarg ctags: array. Names of constants to be stored as indices in the :code:`_Kernel` class implementation. (optional)
 
         :returns: none.
-        """
+        '''
 
         self._fname = name
         self._function = func if callable(func) else None
-        self._hyperparameters = np.array(hyps, dtype=np.float64).flatten() if isinstance(hyps, (list, tuple, array)) else None
-        self._constants = np.array(csts, dtype=np.float64).flatten() if isinstance(csts, (list, tuple, array)) else None
+        self._hyperparameters = np.array(hyps, dtype=default_dtype).flatten() if isinstance(hyps, array_types) else None
+        self._constants = np.array(csts, dtype=default_dtype).flatten() if isinstance(csts, array_types) else None
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
@@ -120,7 +120,7 @@ class _Kernel(object):
 
 
     def __call__(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Default class call function, evaluates the stored covariance function at the input values.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -132,7 +132,7 @@ class _Kernel(object):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         k_out = None
         if callable(self._function):
@@ -140,19 +140,19 @@ class _Kernel(object):
             xt2 = None
             dert = 0
             hdert = None
-            if isinstance(x1, (float, int, np_itypes, np_utypes, np_ftypes)):
-                xt1 = np.array(np.atleast_2d(x1), dtype=np.float64)
-            elif isinstance(x1, (list, tuple, array)):
-                xt1 = np.array(np.atleast_2d(x1), dtype=np.float64)
-            if isinstance(x2, (float, int, np_itypes, np_utypes, np_ftypes)):
-                xt2 = np.array(np.atleast_2d(x2), dtype=np.float64)
-            elif isinstance(x2, (list, tuple, array)):
-                xt2 = np.array(np.atleast_2d(x2), dtype=np.float64)
-            if isinstance(der, (float, int, np_itypes, np_utypes, np_ftypes)):
+            if isinstance(x1, number_types):
+                xt1 = np.array(np.atleast_2d(x1), dtype=default_dtype)
+            elif isinstance(x1, array_types):
+                xt1 = np.array(np.atleast_2d(x1), dtype=default_dtype)
+            if isinstance(x2, number_types):
+                xt2 = np.array(np.atleast_2d(x2), dtype=default_dtype)
+            elif isinstance(x2, array_types):
+                xt2 = np.array(np.atleast_2d(x2), dtype=default_dtype)
+            if isinstance(der, number_types):
                 dert = int(der)
-            if isinstance(hder, (float, int, np_itypes, np_utypes, np_ftypes)):
+            if isinstance(hder, number_types):
                 hdert = int(hder)
-            if isinstance(xt1, array) and isinstance(xt2, array):
+            if isinstance(xt1, np.ndarray) and isinstance(xt2, np.ndarray):
                 k_out = self._function(xt1, xt2, dert, hdert)
             else:
                 raise TypeError(f'Arguments x1 and x2 must be a 2D-array-like object.')
@@ -162,13 +162,13 @@ class _Kernel(object):
 
 
     def __eq__(self,other):
-        r"""
+        r'''
 	Custom equality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_Kernel` class instance.
 
         :returns: bool. Indicates whether the two objects are equal to each other.
-        """
+        '''
 
         status = False
         if isinstance(other, _Kernel):
@@ -180,121 +180,121 @@ class _Kernel(object):
 
 
     def __ne__(self, other):
-        r"""
+        r'''
 	Custom inequality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_Kernel` class instance.
 
         :returns: bool. Indicates whether the two objects are not equal to each other.
-        """
+        '''
 
         return not self.__eq__(other)
 
 
     def enforce_bounds(self, value=True):
-        r"""
+        r'''
         Sets a flag to enforce the given hyperparameter bounds.
 
         :kwarg value: bool. Boolean value to set the flag.
 
         :returns: none.
-        """
+        '''
 
         self._force_bounds = True if value else False
 
 
     @property
     def name(self):
-        r"""
+        r'''
         Returns the codename of the :code:`_Kernel` instance.
 
         :returns: str. Codename of the :code:`_Kernel` instance.
-        """
+        '''
 
         return f'{self._fname}'
 
 
     @property
     def hyperparameters(self):
-        r"""
+        r'''
         Return the hyperparameters stored in the :code:`_Kernel` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_Kernel` class implementation.
-        """
+        '''
 
         val = np.array([])
-        if isinstance(self._hyperparameters, array):
+        if isinstance(self._hyperparameters, np.ndarray):
             val = self._hyperparameters.copy()
         return val
 
 
     @property
     def constants(self):
-        r"""
+        r'''
         Return the constants stored in the :code:`_Kernel` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_Kernel` class implementation.
-        """
+        '''
 
         val = np.array([])
-        if isinstance(self._constants, array):
+        if isinstance(self._constants, np.ndarray):
             val = self._constants.copy()
         return val
 
 
     @property
     def bounds(self):
-        r"""
+        r'''
         Return the hyperparameter search bounds stored in the :code:`_Kernel` instance.
 
         :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_Kernel` class implementation.
-        """
+        '''
 
         val = None
-        if isinstance(self._hyp_lbounds, array) and isinstance(self._hyp_ubounds, array) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
+        if isinstance(self._hyp_lbounds, np.ndarray) and isinstance(self._hyp_ubounds, np.ndarray) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
             val = np.vstack((self._hyp_lbounds.flatten(), self._hyp_ubounds.flatten()))
         return val
 
 
     def is_hderiv_implemented(self):
-        r"""
+        r'''
         Checks if the explicit hyperparameter derivative is implemented in the :code:`_Kernel` class implementation.
 
         :returns: bool. True if explicit hyperparameter derivative is implemented.
-        """
+        '''
 
         return self._hderflag
 
 
     @hyperparameters.setter
     def hyperparameters(self, theta):
-        r"""
+        r'''
         Set the hyperparameters stored in the :code:`_Kernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` implementation.
 
         :returns: none.
-        """
+        '''
 
         userhyps = None
-        if isinstance(theta, (list, tuple, array)):
+        if isinstance(theta, array_types):
             userhyps = np.array(theta).flatten()
         else:
             raise TypeError(f'{self.name} Kernel hyperparameters must be given as an array-like object.')
         nhyps = self._hyperparameters.size
         if nhyps > 0:
             if userhyps.size >= nhyps:
-                if self._force_bounds and isinstance(self._hyp_lbounds, array) and self._hyp_lbounds.size == nhyps:
+                if self._force_bounds and isinstance(self._hyp_lbounds, np.ndarray) and self._hyp_lbounds.size == nhyps:
                     htemp = userhyps[:nhyps]
                     lcheck = (htemp < self._hyp_lbounds)
                     htemp[lcheck] = self._hyp_lbounds[lcheck]
                     userhyps[:nhyps] = htemp
-                if self._force_bounds and isinstance(self._hyp_ubounds, array) and self._hyp_ubounds.size == nhyps:
+                if self._force_bounds and isinstance(self._hyp_ubounds, np.ndarray) and self._hyp_ubounds.size == nhyps:
                     htemp = userhyps[:nhyps]
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
                     userhyps[:nhyps] = htemp
-                self._hyperparameters = np.array(userhyps[:nhyps], dtype=np.float64)
+                self._hyperparameters = np.array(userhyps[:nhyps], dtype=default_dtype)
             else:
                 raise ValueError(f'{self.name} Kernel hyperparameters must contain at least {nhyps} elements.')
         else:
@@ -303,23 +303,23 @@ class _Kernel(object):
 
     @constants.setter
     def constants(self,consts):
-        r"""
+        r'''
         Set the constants stored in the :code:`_Kernel` instance.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
 
         :returns: none.
-        """
+        '''
 
         usercsts = None
-        if isinstance(consts, (list, tuple, array)):
+        if isinstance(consts, array_types):
             usercsts = np.array(consts).flatten()
         else:
             raise TypeError(f'{self.name} Kernel constants must be given as an array-like object.')
         ncsts = self._constants.size
         if ncsts > 0:
             if usercsts.size >= ncsts:
-                self._constants = np.array(usercsts[:ncsts], dtype=np.float64)
+                self._constants = np.array(usercsts[:ncsts], dtype=default_dtype)
             else:
                 raise ValueError(f'{self.name} Kernel constants must contain at least {ncsts} elements.')
         else:
@@ -328,16 +328,16 @@ class _Kernel(object):
 
     @bounds.setter
     def bounds(self,bounds):
-        r"""
+        r'''
         Set the hyperparameter bounds stored in the :code:`_Kernel` instance.
 
         :arg bounds: 2D array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` class implementation.
 
         :returns: none.
-        """
+        '''
 
         userbnds = None
-        if isinstance(bounds, (list, tuple, array)):
+        if isinstance(bounds, array_types):
             userbnds = np.atleast_2d(bounds)
         else:
             raise TypeError(f'{self.name} Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.')
@@ -346,8 +346,8 @@ class _Kernel(object):
         nhyps = self._hyperparameters.size
         if nhyps > 0:
             if userbnds.shape[1] >= nhyps:
-                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=np.float64)
-                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=np.float64)
+                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=default_dtype)
+                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=default_dtype)
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
@@ -358,7 +358,7 @@ class _Kernel(object):
 
 
 class _OperatorKernel(_Kernel):
-    r"""
+    r'''
     Base operator class to be inherited by **ALL** operator kernel implementations for custom get/set functions.
     Type checking done with :code:`isinstance(<object>,<this_module>._OperatorKernel)` if needed.
 
@@ -381,7 +381,7 @@ class _OperatorKernel(_Kernel):
     :kwarg hderf: bool. Indicates availability of analytical hyperparameter derivatives within :code:`func` for optimization algorithms.
 
     :kwarg klist: array. List of :code:`_Kernel` instances to be operated on by the :code:`_OperatorKernel` instance, input order determines the order of parameter lists.
-    """
+    '''
 
     def __init__(
         self,
@@ -390,7 +390,7 @@ class _OperatorKernel(_Kernel):
         hderf=False,
         klist=None
     ):
-        r"""
+        r'''
         Initializes the :code:`_OperatorKernel` instance.
 
         :kwarg name: str. Codename of :code:`_OperatorKernel` class implementation.
@@ -402,7 +402,7 @@ class _OperatorKernel(_Kernel):
         :kwarg klist: array. List of :code:`_Kernel` instances to be operated on by the :code:`_OperatorKernel` instance, input order determines the order of parameter lists.
 
         :returns: none.
-        """
+        '''
 
         super().__init__(name, func, hderf)
         self._kernel_list = klist if klist is not None else []
@@ -410,11 +410,11 @@ class _OperatorKernel(_Kernel):
 
     @property
     def name(self):
-        r"""
+        r'''
         Returns the codename of the :code:`_OperatorKernel` instance.
 
         :returns: str. Codename of the :code:`_OperatorKernel` instance.
-        """
+        '''
 
         kname = '-'.join([f'{kk.name}' for kk in self._kernel_list])
         return f'{self._fname}({kname})'
@@ -422,22 +422,22 @@ class _OperatorKernel(_Kernel):
 
     @property
     def basename(self):
-        r"""
+        r'''
         Returns the base codename of the :code:`_OperatorKernel` instance.
 
         :returns: str. Base codename of the :code:`_OperatorKernel` instance.
-        """
+        '''
 
         return f'{self._fname}'
 
 
     @property
     def hyperparameters(self):
-        r"""
+        r'''
         Return the hyperparameters of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
-        """
+        '''
 
         val = np.array([])
         for kk in self._kernel_list:
@@ -447,11 +447,11 @@ class _OperatorKernel(_Kernel):
 
     @property
     def constants(self):
-        r"""
+        r'''
         Return the constants of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
-        """
+        '''
 
         val = np.array([])
         for kk in self._kernel_list:
@@ -461,11 +461,11 @@ class _OperatorKernel(_Kernel):
 
     @property
     def bounds(self):
-        r"""
+        r'''
         Return the hyperparameter bounds of all the :code:`_Kernel` instances stored within the :code:`_OperatorKernel` instance.
 
         :returns: array. Hyperparameter lower/upper bounds list, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
-        """
+        '''
 
         val = None
         for kk in self._kernel_list:
@@ -477,16 +477,16 @@ class _OperatorKernel(_Kernel):
 
     @hyperparameters.setter
     def hyperparameters(self, theta):
-        r"""
+        r'''
         Set the hyperparameters stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
 
         :returns: none.
-        """
+        '''
 
         userhyps = None
-        if isinstance(theta, (list, tuple, array)):
+        if isinstance(theta, array_types):
             userhyps = np.array(theta).flatten()
         else:
             raise TypeError(f'{self.name} OperatorKernel hyperparameters must be given as an array-like object.')
@@ -510,16 +510,16 @@ class _OperatorKernel(_Kernel):
 
     @constants.setter
     def constants(self, consts):
-        r"""
+        r'''
         Set the constants stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
 
         :returns: none.
-        """
+        '''
 
         usercsts = None
-        if isinstance(consts, (list, tuple, array)):
+        if isinstance(consts, array_types):
             usercsts = np.array(consts).flatten()
         else:
             raise TypeError(f'{self.name} OperatorKernel constants must be given as an array-like object.')
@@ -543,16 +543,16 @@ class _OperatorKernel(_Kernel):
 
     @bounds.setter
     def bounds(self, bounds):
-        r"""
+        r'''
         Set the hyperparameter bounds stored in all the :code:`_Kernel` instances within the :code:`_OperatorKernel` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_OperatorKernel` class implementation and the current :code:`self._kernel_list` instance.
 
         :returns: none.
-        """
+        '''
 
         userbnds = None
-        if isinstance(bounds, (list, tuple, array)):
+        if isinstance(bounds, array_types):
             userbnds = np.atleast_2d(bounds)
         else:
             raise TypeError(f'{self.name} OperatorKernel bounds must be given as a 2d-array-like object with exactly 2 rows.')
@@ -578,7 +578,7 @@ class _OperatorKernel(_Kernel):
 
 
 class _WarpingFunction(object):
-    r"""
+    r'''
     Base class to be inherited by **ALL** warping function implementations in order for type checks to succeed.
     Type checking done with :code:`isinstance(<object>,<this_module>._WarpingFunction)`.
 
@@ -616,7 +616,7 @@ class _WarpingFunction(object):
     :kwarg htags: array. Names of hyperparameters to be stored as indices in the :code:`_WarpingFunction` class implementation. (optional)
 
     :kwarg ctags: array. Names of constants to be stored as indices in the :code:`_WarpingFunction` class implementation. (optional)
-    """
+    '''
 
     def __init__(
         self,
@@ -628,7 +628,7 @@ class _WarpingFunction(object):
         htags=None,
         ctags=None
     ):
-        r"""
+        r'''
         Initializes the :code:`_WarpingFunction` instance.
 
         .. note::
@@ -650,12 +650,12 @@ class _WarpingFunction(object):
         :kwarg ctags: array. Names of constants to be stored as indices in the :code:`_WarpingFunction` class implementation. (optional)
 
         :returns: none.
-        """
+        '''
 
         self._fname = name
         self._function = func if func is not None else None
-        self._hyperparameters = np.array(hyps, dtype=np.float64) if isinstance(hyps, (list, tuple, array)) else None
-        self._constants = np.array(csts, dtype=np.float64) if isinstance(csts, (list, tuple, array)) else None
+        self._hyperparameters = np.array(hyps, dtype=default_dtype) if isinstance(hyps, array_types) else None
+        self._constants = np.array(csts, dtype=default_dtype) if isinstance(csts, array_types) else None
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
@@ -663,7 +663,7 @@ class _WarpingFunction(object):
 
 
     def __call__(self, zz, der=0, hder=None):
-        r"""
+        r'''
         Default class call function, evaluates the stored warping function at the input values.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -673,7 +673,7 @@ class _WarpingFunction(object):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
 
         :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
-        """
+        '''
 
         k_out = None
         if self._function is not None:
@@ -684,13 +684,13 @@ class _WarpingFunction(object):
 
 
     def __eq__(self, other):
-        r"""
+        r'''
 	Custom equality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_WarpingFunction` class instance.
 
         :returns: bool. Indicates whether the two objects are equal to each other.
-        """
+        '''
 
         status = False
         if isinstance(other, _WarpingFunction):
@@ -702,47 +702,47 @@ class _WarpingFunction(object):
 
 
     def __ne__(self, other):
-        r"""
+        r'''
 	Custom inequality operator. Compares name, hyperparameters and constants.
 
         :arg other: obj. Any other :code:`_WarpingFunction` class instance.
 
         :returns: bool. Indicates whether the two objects are not equal to each other.
-        """
+        '''
 
         return not self.__eq__(other)
 
 
     def enforce_bounds(self, value=True):
-        r"""
+        r'''
         Sets a flag to enforce the given hyperparameter bounds.
 
         :kwarg value: bool. Boolean value to set the flag.
 
         :returns: none.
-        """
+        '''
 
         self._force_bounds = True if value else False
 
 
     @property
     def name(self):
-        r"""
+        r'''
         Returns the codename of the :code:`_WarpingFunction` instance.
 
         :returns: str. Codename of the :code:`_WarpingFunction` instance.
-        """
+        '''
 
         return f'{self._fname}'
 
 
     @property
     def hyperparameters(self):
-        r"""
+        r'''
         Return the hyperparameters stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Hyperparameter list, ordered according to the specific :code:`_WarpingFunction` class implementation.
-        """
+        '''
 
         val = np.array([])
         if self._hyperparameters is not None:
@@ -752,11 +752,11 @@ class _WarpingFunction(object):
 
     @property
     def constants(self):
-        r"""
+        r'''
         Return the constants stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Constant list, ordered according to the specific :code:`_WarpingFunction` class implementation.
-        """
+        '''
 
         val = np.array([])
         if self._constants is not None:
@@ -766,57 +766,57 @@ class _WarpingFunction(object):
 
     @property
     def bounds(self):
-        r"""
+        r'''
         Return the hyperparameter search bounds stored in the :code:`_WarpingFunction` instance.
 
         :returns: array. Hyperparameter bounds list, ordered according to the specific :code:`_WarpingFunction` class implementation.
-        """
+        '''
 
         val = None
-        if isinstance(self._hyp_lbounds, array) and isinstance(self._hyp_ubounds, array) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
+        if isinstance(self._hyp_lbounds, np.ndarray) and isinstance(self._hyp_ubounds, np.ndarray) and self._hyp_lbounds.shape == self._hyp_ubounds.shape:
             val = np.vstack((self._hyp_lbounds.flatten(), self._hyp_ubounds.flatten()))
         return val
 
 
     def is_hderiv_implemented(self):
-        r"""
+        r'''
         Checks if the explicit hyperparameter derivative is implemented in this :code:`_WarpingFunction` class implementation.
 
         :returns: bool. True if explicit hyperparameter derivative is implemented.
-        """
+        '''
 
         return self._hderflag
 
 
     @hyperparameters.setter
     def hyperparameters(self, theta):
-        r"""
+        r'''
         Set the hyperparameters stored in the :code:`_WarpingFunction` instance.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         userhyps = None
-        if isinstance(theta, (list, tuple, array)):
+        if isinstance(theta, array_types):
             userhyps = np.array(theta).flatten()
         else:
             raise TypeError(f'{self.name} WarpingFunction hyperparameters must be given as an array-like object.')
         nhyps = self.hyperparameters.size
         if nhyps > 0:
             if userhyps.size >= nhyps:
-                if self._force_bounds and isinstance(self._hyp_lbounds, array) and self._hyp_lbounds.size == nhyps:
+                if self._force_bounds and isinstance(self._hyp_lbounds, np.ndarray) and self._hyp_lbounds.size == nhyps:
                     htemp = userhyps[:nhyps]
                     lcheck = (htemp < self._hyp_lbounds)
                     htemp[lcheck] = self._hyp_lbounds[lcheck]
                     userhyps[:nhyps] = htemp
-                if self._force_bounds and isinstance(self._hyp_ubounds, array) and self._hyp_ubounds.size == nhyps:
+                if self._force_bounds and isinstance(self._hyp_ubounds, np.ndarray) and self._hyp_ubounds.size == nhyps:
                     htemp = userhyps[:nhyps]
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
                     userhyps[:nhyps] = htemp
-                self._hyperparameters = np.array(userhyps[:nhyps], dtype=np.float64)
+                self._hyperparameters = np.array(userhyps[:nhyps], dtype=default_dtype)
             else:
                 raise ValueError(f'{self.name} WarpingFunction hyperparameters must contain at least {nhyps} elements.')
         else:
@@ -825,23 +825,23 @@ class _WarpingFunction(object):
 
     @constants.setter
     def constants(self, consts):
-        r"""
+        r'''
         Set the constants stored in the :code:`_WarpingFunction` object.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         usercsts = None
-        if isinstance(consts, (list, tuple, array)):
+        if isinstance(consts, array_types):
             usercsts = np.array(consts).flatten()
         else:
             raise TypeError(f'{self.name} WarpingFunction constants must be given as an array-like object.')
         ncsts = self.constants.size
         if ncsts > 0:
             if usercsts.size >= ncsts:
-                self._constants = np.array(usercsts[:ncsts], dtype=np.float64)
+                self._constants = np.array(usercsts[:ncsts], dtype=default_dtype)
             else:
                 raise ValueError(f'{self.name} WarpingFunction constants must contain at least {ncsts} elements.')
         else:
@@ -850,16 +850,16 @@ class _WarpingFunction(object):
 
     @bounds.setter
     def bounds(self,bounds):
-        r"""
+        r'''
         Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         userbnds = None
-        if isinstance(bounds, (list, tuple, array)):
+        if isinstance(bounds, array_types):
             userbnds = np.atleast_2d(bounds)
         else:
             raise TypeError(f'{self.name} WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.')
@@ -868,8 +868,8 @@ class _WarpingFunction(object):
         nhyps = self.hyperparameters.size
         if nhyps > 0:
             if userbnds.shape[1] >= nhyps:
-                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=np.float64)
-                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=np.float64)
+                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=default_dtype)
+                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=default_dtype)
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
@@ -884,16 +884,16 @@ class _WarpingFunction(object):
 # ****************************************************************************************************************************************
 
 class Sum_Kernel(_OperatorKernel):
-    r"""
+    r'''
     Sum Kernel: Implements the sum of two (or more) separate kernels.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
 
     :kwarg klist: list. Python native list of :code:`_Kernel` instances to be added together. Must contain a minimum of 2.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -905,7 +905,7 @@ class Sum_Kernel(_OperatorKernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
@@ -918,7 +918,7 @@ class Sum_Kernel(_OperatorKernel):
 
 
     def __init__(self, *args, **kwargs):
-        r"""
+        r'''
         Initializes the :code:`Sum_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
@@ -926,7 +926,7 @@ class Sum_Kernel(_OperatorKernel):
         :kwarg klist: list. Python native list of :code:`_Kernel` instances to be added together. Must contain a minimum of 2.
 
         :returns: none.
-        """
+        '''
 
         klist = kwargs.get('klist')
         uklist = []
@@ -944,11 +944,11 @@ class Sum_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         kcopy_list = []
         for kk in self._kernel_list:
@@ -959,16 +959,16 @@ class Sum_Kernel(_OperatorKernel):
 
 
 class Product_Kernel(_OperatorKernel):
-    r"""
+    r'''
     Product Kernel: Implements the product of two (or more) separate kernels.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
     :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -980,7 +980,7 @@ class Product_Kernel(_OperatorKernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
@@ -1011,7 +1011,7 @@ class Product_Kernel(_OperatorKernel):
 
 
     def __init__(self, *args, **kwargs):
-        r"""
+        r'''
         Initializes the :code:`Product_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
@@ -1019,7 +1019,7 @@ class Product_Kernel(_OperatorKernel):
         :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
 
         :returns: none.
-        """
+        '''
 
         klist = kwargs.get('klist')
         uklist = []
@@ -1037,11 +1037,11 @@ class Product_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         kcopy_list = []
         for kk in self._kernel_list:
@@ -1052,7 +1052,7 @@ class Product_Kernel(_OperatorKernel):
 
 
 class Symmetric_Kernel(_OperatorKernel):
-    r"""
+    r'''
     1D Symmetric Kernel: Enforces even symmetry about zero for any given kernel. Although
     this class accepts multiple arguments, it only uses first :code:`_Kernel` argument.
 
@@ -1063,10 +1063,10 @@ class Symmetric_Kernel(_OperatorKernel):
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be given flip symmetry. Must provide a minimum of 1.
 
     :kwarg klist: list. Python native list of :code:`_Kernel` instances to be given flip symmetry. Must contain a minimum of 1.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1078,7 +1078,7 @@ class Symmetric_Kernel(_OperatorKernel):
         :kwarg hder: int. Order of hyperparameter derivative to evaluate the covariance function at, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
         ihyp = hder
@@ -1091,7 +1091,7 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
     def __init__(self,*args,**kwargs):
-        r"""
+        r'''
         Initializes the :code:`Symmetric_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be given flip symmetry. Must provide a minimum of 1.
@@ -1099,18 +1099,18 @@ class Symmetric_Kernel(_OperatorKernel):
         :kwarg klist: list. Python native list of :code:`_Kernel` instances to be given flip symmetry. Must contain a minimum of 1.
 
         :returns: none.
-        """
+        '''
 
         klist = kwargs.get('klist')
         uklist = []
         if len(args) >= 1 and isinstance(args[0], _Kernel):
             if len(args) >= 2:
-                print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
+                print('Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.')
             kk = args[0]
             uklist.append(kk)
         elif isinstance(klist, list) and len(klist) >= 1 and isinstance(klist[0], _Kernel):
             if len(klist) >= 2:
-                print("Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.")
+                print('Only the first kernel argument is used in Symmetric_Kernel class, use other operators first.')
             kk = klist[0]
             uklist.append(kk)
         else:
@@ -1119,11 +1119,11 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current object, which can be modified without affecting the original.
-        """
+        '''
 
         kcopy_list = []
         for kk in self._kernel_list:
@@ -1134,7 +1134,7 @@ class Symmetric_Kernel(_OperatorKernel):
 
 
 class Constant_Kernel(_Kernel):
-    r"""
+    r'''
     Constant Kernel: always evaluates to a constant value, regardless of input pair.
 
     .. warning::
@@ -1145,10 +1145,10 @@ class Constant_Kernel(_Kernel):
         tested!**
 
     :kwarg cv: float. Constant value which kernel always evaluates to.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         .. warning::
@@ -1165,7 +1165,7 @@ class Constant_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1181,16 +1181,16 @@ class Constant_Kernel(_Kernel):
 
 
     def __init__(self, cv=1.0):
-        r"""
+        r'''
         Initializes the :code:`Constant_Kernel` instance.
 
         :kwarg cv: float. Constant value which kernel always evaluates to.
 
         :returns: none.
-        """
+        '''
 
         csts = np.zeros((1, ))
-        if isinstance(cv, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(cv, number_types):
             csts[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
@@ -1198,11 +1198,11 @@ class Constant_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1217,7 +1217,7 @@ class Constant_Kernel(_Kernel):
 
 
 class Noise_Kernel(_Kernel):
-    r"""
+    r'''
     Noise Kernel: adds a user-defined degree of expected noise in the GPR regression, emulates a
     constant assumed fit noise level.
 
@@ -1227,10 +1227,10 @@ class Noise_Kernel(_Kernel):
         which should be applied externally in GP regression implementation!!!
 
     :kwarg nv: float. Hyperparameter representing the noise level.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1 values at which to evaulate the covariance function.
@@ -1242,7 +1242,7 @@ class Noise_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1272,16 +1272,16 @@ class Noise_Kernel(_Kernel):
 
 
     def __init__(self, nv=1.0):
-        r"""
+        r'''
         Initializes the :code:`Noise_Kernel` instance.
 
         :kwarg nv: float. Hyperparameter representing the noise level.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((1, ))
-        if isinstance(nv, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(nv, number_types):
             hyps[0] = float(nv)
         else:
             raise ValueError('Noise hyperparameter must be a real number.')
@@ -1289,11 +1289,11 @@ class Noise_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1308,15 +1308,15 @@ class Noise_Kernel(_Kernel):
 
 
 class Linear_Kernel(_Kernel):
-    r"""
+    r'''
     Linear Kernel: Applies linear regression :code:`ax`, can be multiplied with itself
     for higher order pure polynomials.
 
     :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1328,7 +1328,7 @@ class Linear_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1361,16 +1361,16 @@ class Linear_Kernel(_Kernel):
 
 
     def __init__(self, var=1.0):
-        r"""
+        r'''
         Initializes the :code:`Linear_Kernel` instance.
 
         :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((1, ))
-        if isinstance(var, (float, int, np_itypes, np_utypes, np_ftypes)) and float(var) > 0.0:
+        if isinstance(var, number_types) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be greater than 0.')
@@ -1378,11 +1378,11 @@ class Linear_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1397,17 +1397,17 @@ class Linear_Kernel(_Kernel):
 
 
 class Poly_Order_Kernel(_Kernel):
-    r"""
+    r'''
     Polynomial Order Kernel: Applies linear regression :code:`ax + b`, where :code:`b != 0`,
     can be multiplied with itself for higher order polynomials.
 
     :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
 
     :kwarg cst: float. Hyperparameter added to linear component of model, ie. :code:`b`.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1419,7 +1419,7 @@ class Poly_Order_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1455,7 +1455,7 @@ class Poly_Order_Kernel(_Kernel):
 
 
     def __init__(self, var=1.0, cst=1.0):
-        r"""
+        r'''
         Initializes the :code:`Poly_Order_Kernel` instance.
 
         :kwarg var: float. Hyperparameter multiplying linear component of model, ie. :code:`a`.
@@ -1463,14 +1463,14 @@ class Poly_Order_Kernel(_Kernel):
         :kwarg cst: float. Hyperparameter added to linear component of model, ie. :code:`b`.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((2, ))
-        if isinstance(var, (float, int, np_itypes, np_utypes, np_ftypes)) and float(var) > 0.0:
+        if isinstance(var, number_types) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Multiplicative hyperparameter must be greater than 0.')
-        if isinstance(cst, (float, int, np_itypes, np_utypes, np_ftypes)) and float(cst) > 0.0:
+        if isinstance(cst, number_types) and float(cst) > 0.0:
             hyps[1] = float(cst)
         else:
             raise ValueError('Additive hyperparameter must be greater than 0.')
@@ -1478,11 +1478,11 @@ class Poly_Order_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1498,16 +1498,16 @@ class Poly_Order_Kernel(_Kernel):
 
 
 class SE_Kernel(_Kernel):
-    r"""
+    r'''
     Square Exponential Kernel: Infinitely differentiable (ie. extremely smooth) covariance function.
 
     :kwarg var: float. Hyperparameter representing variability of model in y.
 
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
-    """
+    '''
 
     def __calc_covm(self,x1,x2,der=0,hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1519,7 +1519,7 @@ class SE_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1567,7 +1567,7 @@ class SE_Kernel(_Kernel):
 
 
     def __init__(self, var=1.0, ls=1.0):
-        r"""
+        r'''
         Initializes the :code:`SE_Kernel` instance.
 
         :kwarg var: float. Hyperparameter representing variability of model in y.
@@ -1575,14 +1575,14 @@ class SE_Kernel(_Kernel):
         :kwarg ls: float. Hyperparameter represeting variability of model in x, ie. length scale.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((2, ))
-        if isinstance(var, (float, int, np_itypes, np_utypes, np_ftypes)) and float(var) > 0.0:
+        if isinstance(var, number_types) and float(var) > 0.0:
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be greater than 0.')
-        if isinstance(ls, (float, int, np_itypes, np_utypes, np_ftypes)) and float(ls) > 0.0:
+        if isinstance(ls, number_types) and float(ls) > 0.0:
             hyps[1] = float(ls)
         else:
             raise ValueError('Length scale hyperparameter must be greater than 0.')
@@ -1590,11 +1590,11 @@ class SE_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1610,7 +1610,7 @@ class SE_Kernel(_Kernel):
 
 
 class RQ_Kernel(_Kernel):
-    r"""
+    r'''
     Rational Quadratic Kernel: Infinitely differentiable covariance function
     but provides higher tolerance for steep slopes than the squared exponential
     kernel. Mathematically equivalent to an infinite sum of squared exponential
@@ -1623,10 +1623,10 @@ class RQ_Kernel(_Kernel):
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. base length scale.
 
     :kwarg alpha: float. Hyperparameter representing degree of length scale mixing in model.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1638,7 +1638,7 @@ class RQ_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1702,7 +1702,7 @@ class RQ_Kernel(_Kernel):
 
 
     def __init__(self, amp=1.0, ls=1.0, alpha=1.0):
-        r"""
+        r'''
         Initializes the :code:`RQ_Kernel` instance.
 
         :kwarg amp: float. Hyperparameter representing variability of model in y.
@@ -1712,18 +1712,18 @@ class RQ_Kernel(_Kernel):
         :kwarg alpha: float. Hyperparameter representing degree of length scale mixing in model.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((3, ))
-        if isinstance(amp, (float, int, np_itypes, np_utypes, np_ftypes)) and float(amp) > 0.0:
+        if isinstance(amp, number_types) and float(amp) > 0.0:
             hyps[0] = float(amp)
         else:
             raise ValueError('Rational quadratic amplitude must be greater than 0.')
-        if isinstance(ls, (float, int, np_itypes, np_utypes, np_ftypes)) and float(ls) != 0.0:
+        if isinstance(ls, number_types) and float(ls) != 0.0:
             hyps[1] = float(ls)
         else:
             raise ValueError('Rational quadratic hyperparameter cannot equal 0.')
-        if isinstance(alpha, (float, int, np_itypes, np_utypes, np_ftypes)) and float(alpha) > 0.0:
+        if isinstance(alpha, number_types) and float(alpha) > 0.0:
             hyps[2] = float(alpha)
         else:
             raise ValueError('Rational quadratic alpha parameter must be greater than 0.')
@@ -1731,11 +1731,11 @@ class RQ_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1752,7 +1752,7 @@ class RQ_Kernel(_Kernel):
 
 
 class Matern_HI_Kernel(_Kernel):
-    r"""
+    r'''
     Matern Kernel with Half-Integer Order Parameter: Only differentiable in
     orders less than given order parameter, :code:`nu`. Allows fit to retain
     more features at expense of volatility, but effectively becomes
@@ -1772,10 +1772,10 @@ class Matern_HI_Kernel(_Kernel):
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
 
     :kwarg nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1787,7 +1787,7 @@ class Matern_HI_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1855,7 +1855,7 @@ class Matern_HI_Kernel(_Kernel):
 
 
     def __init__(self, amp=0.1, ls=0.1, nu=2.5):
-        r"""
+        r'''
         Initializes the :code:`Matern_HI_Kernel` instance.
 
         :kwarg amp: float. Hyperparameter representing variability of model in y.
@@ -1865,19 +1865,19 @@ class Matern_HI_Kernel(_Kernel):
         :kwarg nu: float. Constant value setting the volatility of the model, recommended value is 2.5.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((2, ))
         csts = np.zeros((1, ))
-        if isinstance(amp, (float, int)) and float(amp) > 0.0:
+        if isinstance(amp, number_types) and float(amp) > 0.0:
             hyps[0] = float(amp)
         else:
             raise ValueError('Matern amplitude hyperparameter must be greater than 0.')
-        if isinstance(ls, (float, int)) and float(ls) > 0.0:
+        if isinstance(ls, number_types) and float(ls) > 0.0:
             hyps[1] = float(ls)
         else:
             raise ValueError('Matern length scale hyperparameter must be greater than 0.')
-        if isinstance(nu, (float, int)) and float(nu) >= 0.0:
+        if isinstance(nu, number_types) and float(nu) >= 0.0:
             csts[0] = float(int(nu)) + 0.5
         else:
             raise ValueError('Matern half-integer nu constant must be greater or equal to 0.')
@@ -1885,11 +1885,11 @@ class Matern_HI_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1906,7 +1906,7 @@ class Matern_HI_Kernel(_Kernel):
 
 
 class NN_Kernel(_Kernel):
-    r"""
+    r'''
     Neural Network Style Kernel: Implements a sigmoid covariance function similar
     to a perceptron (or neuron) in a neural network, good for strong discontinuities.
 
@@ -1922,10 +1922,10 @@ class NN_Kernel(_Kernel):
     :kwarg nno: float. Hyperparameter representing offset of the sigmoid from the origin.
 
     :kwarg nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -1937,7 +1937,7 @@ class NN_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -1983,7 +1983,7 @@ class NN_Kernel(_Kernel):
 
 
     def __init__(self,nna=1.0,nno=1.0,nnv=1.0):
-        r"""
+        r'''
         Initializes the :code:`NN_Kernel` instance.
 
         :kwarg nna: float. Hyperparameter representing variability of model in y.
@@ -1993,18 +1993,18 @@ class NN_Kernel(_Kernel):
         :kwarg nnv: float. Hyperparameter representing variability of model in x, ie. length scale.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((3, ))
-        if isinstance(nna, (float, int)) and float(nna) > 0.0:
+        if isinstance(nna, number_types) and float(nna) > 0.0:
             hyps[0] = float(nna)
         else:
             raise ValueError('Neural network amplitude must be greater than 0.')
-        if isinstance(nno, (float, int)):
+        if isinstance(nno, number_types):
             hyps[1] = float(nno)
         else:
             raise ValueError('Neural network offset parameter must be a real number.')
-        if isinstance(nnv, (float, int)) and float(nnv) > 0.0:
+        if isinstance(nnv, number_types) and float(nnv) > 0.0:
             hyps[2] = float(nnv)
         else:
             raise ValueError('Neural network hyperparameter must be a real number.')
@@ -2012,11 +2012,11 @@ class NN_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2033,7 +2033,7 @@ class NN_Kernel(_Kernel):
 
 
 class Gibbs_Kernel(_Kernel):
-    r"""
+    r'''
     Gibbs Kernel: Implements a Gibbs covariance function with variable length
     scale defined by an externally-defined warping function.
 
@@ -2049,10 +2049,10 @@ class Gibbs_Kernel(_Kernel):
     :kwarg var: float. Hyperparameter representing variability of model in y.
 
     :kwarg wfunc: object. Warping function, as a :code:`_WarpingFunction` instance, representing the variability of model in x as a function of x.
-    """
+    '''
 
     def __calc_covm(self, x1, x2, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific covariance function.
 
         :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
@@ -2064,7 +2064,7 @@ class Gibbs_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2261,11 +2261,11 @@ class Gibbs_Kernel(_Kernel):
 
     @property
     def wfuncname(self):
-        r"""
+        r'''
         Returns the codename of the stored :code:`_WarpingFunction` instance.
 
         :returns: str. Codename of the stored :code:`_WarpingFunction` instance.
-        """
+        '''
 
         # Ensure reconstruction failure if warping function is not properly defined
         wfname = '?'
@@ -2277,7 +2277,7 @@ class Gibbs_Kernel(_Kernel):
 
 
     def evaluate_wfunc(self, xx, der=0, hder=None):
-        r"""
+        r'''
         Evaluates the stored warping function at the specified values.
 
         :arg xx: array. Vector of x-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2287,7 +2287,7 @@ class Gibbs_Kernel(_Kernel):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
 
         :returns: array. Warping function evaluations at input values, under the given derivative settings. Has the same dimensions as :code:`xx`.
-        """
+        '''
 
         # Prevent catastrophic failure if warping function is not properly defined
         lsf = None
@@ -2299,7 +2299,7 @@ class Gibbs_Kernel(_Kernel):
 
 
     def __init__(self, var=1.0, wfunc=None):
-        r"""
+        r'''
         Initialize the :code:`Gibbs_Kernel` instance.
 
         :kwarg var: float. Hyperparameter representing variability of model in y.
@@ -2307,7 +2307,7 @@ class Gibbs_Kernel(_Kernel):
         :kwarg wfunc: object. Warping function, as a :code:`_WarpingFunction` instance, representing the variability of model in x as a function of x.
 
         :returns: none.
-        """
+        '''
 
         self._wfunc = None
         if isinstance(wfunc, _WarpingFunction):
@@ -2316,7 +2316,7 @@ class Gibbs_Kernel(_Kernel):
             self._wfunc = Constant_WarpingFunction(1.0e0)
 
         hyps = np.zeros((1, ))
-        if isinstance(var, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(var, number_types):
             hyps[0] = float(var)
         else:
             raise ValueError('Amplitude hyperparameter must be a real number.')
@@ -2363,16 +2363,16 @@ class Gibbs_Kernel(_Kernel):
 
     @hyperparameters.setter
     def hyperparameters(self, theta):
-        r"""
+        r'''
         Set the hyperparameters stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
         :returns: none.
-        """
+        '''
 
         userhyps = None
-        if isinstance(theta, (list, tuple, array)):
+        if isinstance(theta, array_types):
             userhyps = np.array(theta).flatten()
         else:
             raise TypeError(f'{self.name} Kernel hyperparameters must be given as an array-like object.')
@@ -2388,16 +2388,16 @@ class Gibbs_Kernel(_Kernel):
 
     @constants.setter
     def constants(self, consts):
-        r"""
+        r'''
         Set the constants stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
         :returns: none.
-        """
+        '''
 
         usercsts = None
-        if isinstance(consts, (list, tuple, array)):
+        if isinstance(consts, array_types):
             usercsts = np.array(consts).flatten()
         else:
             raise TypeError(f'{self.name} Kernel constants must be given as an array-like object.')
@@ -2413,16 +2413,16 @@ class Gibbs_Kernel(_Kernel):
 
     @bounds.setter
     def bounds(self, bounds):
-        r"""
+        r'''
         Set the hyperparameter bounds stored in the :code:`Gibbs_Kernel` and stored :code:`_WarpingFunction` instances.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_Kernel` and :code:`_WarpingFunction` class implementations.
 
         :returns: none.
-        """
+        '''
 
         userbnds = None
-        if isinstance(bounds, (list, tuple, array)):
+        if isinstance(bounds, array_types):
             userbnds = np.atleast_2d(bounds)
         else:
             raise TypeError(f'{self.name} Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.')
@@ -2439,11 +2439,11 @@ class Gibbs_Kernel(_Kernel):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2459,14 +2459,14 @@ class Gibbs_Kernel(_Kernel):
 
 
 class Constant_WarpingFunction(_WarpingFunction):
-    r"""
+    r'''
     Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
     
     :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
-    """
+    '''
 
     def __calc_warp(self, zz, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific warping function.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2476,7 +2476,7 @@ class Constant_WarpingFunction(_WarpingFunction):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
 
         :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2491,16 +2491,16 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
     def __init__(self, cv=1.0):
-        r"""
+        r'''
         Initializes the :code:`Constant_WarpingFunction` instance.
 
         :kwarg cv: float. Hyperparameter representing constant value which warping function always evaluates to.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((1, ))
-        if isinstance(cv, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(cv, number_types):
             hyps[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
@@ -2508,11 +2508,11 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2527,7 +2527,7 @@ class Constant_WarpingFunction(_WarpingFunction):
 
 
 class IG_WarpingFunction(_WarpingFunction):
-    r"""
+    r'''
     Inverse Gaussian Warping Function for Gibbs Kernel: localized variation of length-scale with variation limit.
 
     :kwarg lb: float. Hyperparameter representing base length scale.
@@ -2539,10 +2539,10 @@ class IG_WarpingFunction(_WarpingFunction):
     :kwarg gm: float. Constant indicating location of peak of Gaussian envelope adjusting the length scale.
 
     :kwarg mf: float. Constant indicating upper limit for height-to-base length scale ratio, to improve stability.
-    """
+    '''
 
     def __calc_warp(self, zz, der=0, hder=None):
-        r"""
+        r'''
         Implementation-specific warping function.
 
         :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
@@ -2552,7 +2552,7 @@ class IG_WarpingFunction(_WarpingFunction):
         :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
 
         :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2595,7 +2595,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
     def __init__(self, lb=1.0, gh=0.5, gs=1.0, gm=0.0, mf=0.6):
-        r"""
+        r'''
         Initializes the :code:`IG_WarpingFunction` instance.
 
         :kwarg lb: float. Hyperparameter representing base length scale.
@@ -2609,27 +2609,27 @@ class IG_WarpingFunction(_WarpingFunction):
         :kwarg mf: float. Constant indicating upper limit for height-to-base length scale ratio, to improve stability.
 
         :returns: none.
-        """
+        '''
 
         hyps = np.zeros((3, ))
         csts = np.zeros((2, ))
-        if isinstance(lb, (float, int, np_itypes, np_utypes, np_ftypes)) and float(lb) > 0.0:
+        if isinstance(lb, number_types) and float(lb) > 0.0:
             hyps[0] = float(lb)
         else:
             raise ValueError('Length scale function base hyperparameter must be greater than 0.')
-        if isinstance(gh, (float, int, np_itypes, np_utypes, np_ftypes)) and float(gh) > 0.0:
+        if isinstance(gh, number_types) and float(gh) > 0.0:
             hyps[1] = float(gh)
         else:
             raise ValueError('Length scale function minimum hyperparameter must be greater than 0.')
-        if isinstance(gs, (float, int, np_itypes, np_utypes, np_ftypes)) and float(gs) > 0.0:
+        if isinstance(gs, number_types) and float(gs) > 0.0:
             hyps[2] = float(gs)
         else:
             raise ValueError('Length scale function sigma hyperparameter must be greater than 0.')
-        if isinstance(gm, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(gm, number_types):
             csts[0] = float(gm)
         else:
             raise ValueError('Length scale function mu constant must be a real number.')
-        if isinstance(mf, (float, int, np_itypes, np_utypes, np_ftypes)) and float(mf) < 1.0:
+        if isinstance(mf, number_types) and float(mf) < 1.0:
             csts[1] = float(mf)
         else:
             raise ValueError('Length scale function minimum-to-base ratio limit must be less than 1.')
@@ -2658,13 +2658,13 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @hyperparameters.setter
     def hyperparameters(self, theta):
-        r"""
+        r'''
         Set the hyperparameters stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
         :arg theta: array. Hyperparameter list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         super(IG_WarpingFunction, self.__class__).hyperparameters.__set__(self, theta)
         hyps = self.hyperparameters
@@ -2676,13 +2676,13 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @constants.setter
     def constants(self, consts):
-        r"""
+        r'''
         Set the constants stored in the :code:`_WarpingFunction` object. Specific implementation due to maximum fraction limit.
 
         :arg consts: array. Constant list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         super(IG_WarpingFunction, self.__class__).constants.__set__(self, consts)
         hyps = self.hyperparameters
@@ -2694,13 +2694,13 @@ class IG_WarpingFunction(_WarpingFunction):
 
     @bounds.setter
     def bounds(self, bounds):
-        r"""
+        r'''
         Set the hyperparameter bounds stored in the :code:`_WarpingFunction` instance.
 
         :arg bounds: array. Hyperparameter lower/upper bound list to be stored, ordered according to the specific :code:`_WarpingFunction` class implementation.
 
         :returns: none.
-        """
+        '''
 
         super(IG_WarpingFunction, self.__class__).bounds.__set__(self, bounds)
         if self._force_bounds:
@@ -2712,11 +2712,11 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
     def __copy__(self):
-        r"""
+        r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
-        """
+        '''
 
         hyps = self.hyperparameters
         csts = self.constants
@@ -2735,7 +2735,7 @@ class IG_WarpingFunction(_WarpingFunction):
 
 
 class GaussianProcessRegression1D(object):
-    r"""
+    r'''
     Class containing variable containers, get/set functions, and fitting functions required to
     perform Gaussian process regressions on 1-dimensional data.
 
@@ -2743,12 +2743,12 @@ class GaussianProcessRegression1D(object):
 
         This implementation requires the specific implementation of the :code:`_Kernel`
         template class provided within the same package!
-    """
+    '''
 
     def __init__(self):
-        r"""
+        r'''
         Defines the input and output containers used within the class, but they still requires instantiation.
-        """
+        '''
 
         self._kk = None
         self._kb = None
@@ -2801,17 +2801,17 @@ class GaussianProcessRegression1D(object):
 
 
     def __eq__(self, other):
-        r"""
+        r'''
         Custom equality operator, only compares input data due to statistical
         variance of outputs.
 
         :arg other: object. Another :code:`GaussianProcessRegression1D` object.
 
         :returns: bool. Indicates whether the two objects have identical inputs.
-        """
+        '''
 
         status = False
-        if isinstance(other,GaussianProcessRegression1D):
+        if isinstance(other, GaussianProcessRegression1D):
             skk = self._kk.name == other._kk.name if self._kk is not None and other._kk is not None else self._kk == other._kk
             skb = np.all(np.isclose(self._kb, other._kb)) if self._kb is not None and other._kb is not None else np.all(np.atleast_1d(self._kb == other._kb))
             seps = np.isclose(self._eps, other._eps) if self._eps is not None and other._eps is not None else self._eps == other._eps
@@ -2829,31 +2829,33 @@ class GaussianProcessRegression1D(object):
             sub = np.isclose(self._ub, other._ub) if self._ub is not None and other._ub is not None else self._ub == other._ub
             scn = np.isclose(self._cn, other._cn) if self._cn is not None and other._cn is not None else self._cn == other._cn
             #print(skk, skb, seps, sekk, sekb, seeps, sxx, sxe, sye, sdxx, sdyy, sdye, slb, sub, scn)
-            status = skk and skb and seps and sekk and sekb and seeps and \
-                     sxx and sxe and syy and sye and sdxx and sdyy and sdye and \
-                     np.isclose(self._lp,other._lp) and np.isclose(self._elp, other._elp) and \
-                     slb and sub and scn and \
-                     (self._opm == other._opm and np.all(np.isclose(self._opp, other._opp))) and \
-                     (self._eopm == other._eopm and np.all(np.isclose(self._eopp, other._eopp)))
+            status = (
+                skk and skb and seps and sekk and sekb and seeps and
+                sxx and sxe and syy and sye and sdxx and sdyy and sdye and
+                np.isclose(self._lp,other._lp) and np.isclose(self._elp, other._elp) and
+                slb and sub and scn and
+                (self._opm == other._opm and np.all(np.isclose(self._opp, other._opp))) and
+                (self._eopm == other._eopm and np.all(np.isclose(self._eopp, other._eopp)))
+            )
             
         return status
 
 
     def __ne__(self, other):
-        r"""
+        r'''
         Custom inequality operator, only compares input data due to statistical
         variance of outputs.
 
         :arg other: object. Another :code:`GaussianProcessRegression1D` object.
 
         :returns: bool. Indicates whether the two objects do not have identical inputs.
-        """
+        '''
 
         return not self.__eq__(other)
 
 
     def set_kernel(self, kernel=None, kbounds=None, regpar=None):
-        r"""
+        r'''
         Specify the kernel that the Gaussian process regression will be performed with.
 
         :kwarg kernel: object. The covariance function, as a :code:`_Kernel` instance, to be used in fitting the data with Gaussian process regression.
@@ -2863,14 +2865,14 @@ class GaussianProcessRegression1D(object):
         :kwarg regpar: float. Regularization parameter, multiplies penalty term for kernel complexity to reduce volatility. (optional)
 
         :returns: none.
-        """
+        '''
 
         if isinstance(kernel, _Kernel):
             self._kk = copy.copy(kernel)
             self._ikk = copy.copy(self._kk)
         if isinstance(self._kk, _Kernel):
             kh = np.log10(self._kk.hyperparameters)
-            if isinstance(kbounds, (list, tuple, np.ndarray)):
+            if isinstance(kbounds, array_types):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
@@ -2882,12 +2884,12 @@ class GaussianProcessRegression1D(object):
                     kb = None
                 self._kb = kb
                 self._kk.bounds = np.power(10.0, self._kb)
-        if isinstance(regpar, (float, int, np_itypes, np_utypes, np_ftypes)) and float(regpar) > 0.0:
+        if isinstance(regpar, number_types) and float(regpar) > 0.0:
             self._lp = float(regpar)
 
 
     def set_raw_data(self, xdata=None, ydata=None, xerr=None, yerr=None, dxdata=None, dydata=None, dyerr=None):
-        r"""
+        r'''
         Specify the raw data that the Gaussian process regression will be performed on.
         Performs some consistency checks between the input raw data to ensure validity.
 
@@ -2906,7 +2908,7 @@ class GaussianProcessRegression1D(object):
         :kwarg dyerr: array. Vector of dy/dx-errors of derivative data points to be included in fit. (optional)
 
         :returns: none.
-        """
+        '''
 
         altered = False
         if isinstance(xdata, (list, tuple)) and len(xdata) > 0:
@@ -2984,7 +2986,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_conditioner(self, condnum=None, lbound=None, ubound=None):
-        r"""
+        r'''
         Specify the parameters to ensure the condition number of the matrix is good,
         as well as set upper and lower bounds for the input data to be included.
 
@@ -2995,26 +2997,26 @@ class GaussianProcessRegression1D(object):
         :kwarg ubound: float. Maximum allowable y-value for input data, values above are omitted from fit procedure. (optional)
 
         :returns: none.
-        """
+        '''
 
-        if isinstance(condnum, (float, int, np_itypes, np_utypes, np_ftypes)) and float(condnum) > 0.0:
+        if isinstance(condnum, number_types) and float(condnum) > 0.0:
             self._cn = float(condnum)
-        elif isinstance(condnum, (float, int, np_itypes, np_utypes, np_ftypes)) and float(condnum) <= 0.0:
+        elif isinstance(condnum, number_types) and float(condnum) <= 0.0:
             self._cn = None
         elif isinstance(condnum, str):
             self._cn = None
-        if isinstance(lbound, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(lbound, number_types):
             self._lb = float(lbound)
         elif isinstance(lbound, str):
             self._lb = None
-        if isinstance(ubound, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(ubound, number_types):
             self._ub = float(ubound)
         elif isinstance(ubound, str):
             self._ub = None
 
 
     def set_error_kernel(self, kernel=None, kbounds=None, regpar=None, nrestarts=None):
-        r"""
+        r'''
         Specify the kernel that the Gaussian process regression on the error function
         will be performed with.
 
@@ -3027,7 +3029,7 @@ class GaussianProcessRegression1D(object):
         :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within :code:`kbounds`. (optional)
 
         :returns: none.
-        """
+        '''
 
         altered = False
         if isinstance(kernel, _Kernel):
@@ -3035,7 +3037,7 @@ class GaussianProcessRegression1D(object):
             altered = True
         if isinstance(self._ekk, _Kernel):
             kh = np.log10(self._ekk.hyperparameters)
-            if isinstance(kbounds, (list, tuple, np.ndarray)):
+            if isinstance(kbounds, array_types):
                 kb = np.atleast_2d(kbounds)
                 if np.any(np.isnan(kb.flatten())) or np.any(np.invert(np.isfinite(kb.flatten()))) or np.any(kb.flatten() <= 0.0) or len(kb.shape) > 2:
                     kb = None
@@ -3048,10 +3050,10 @@ class GaussianProcessRegression1D(object):
                 self._ekb = kb
                 self._ekk.bounds = np.power(10.0, self._ekb)
                 altered = True
-        if isinstance(regpar, (float, int, np_itypes, np_utypes, np_ftypes)) and float(regpar) > 0.0:
+        if isinstance(regpar, number_types) and float(regpar) > 0.0:
             self._elp = float(regpar)
             altered = True
-        if isinstance(nrestarts, (float, int, np_itypes, np_utypes, np_ftypes)):
+        if isinstance(nrestarts, number_types):
             self._enr = int(nrestarts) if int(nrestarts) > 0 else 0
         if altered:
             self._gpxe = None
@@ -3062,7 +3064,7 @@ class GaussianProcessRegression1D(object):
 
 
     def set_search_parameters(self, epsilon=None, method=None, spars=None, sdiff=None, maxiter=None):
-        r"""
+        r'''
         Specify the search parameters that the Gaussian process regression will use.
         Performs some consistency checks on input values to ensure validity.
 
@@ -3079,12 +3081,12 @@ class GaussianProcessRegression1D(object):
         :kwarg maxiter: int. Maximum number of iterations for hyperparameter optimization algorithm, default is 500. (optional)
 
         :returns: none.
-        """
+        '''
 
         midx = None
-        if isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) > 0.0:
+        if isinstance(epsilon, number_types) and float(epsilon) > 0.0:
             self._eps = float(epsilon)
-        elif isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon, number_types) and float(epsilon) <= 0.0:
             self._eps = None
         elif isinstance(epsilon, str):
             self._eps = None
@@ -3092,7 +3094,7 @@ class GaussianProcessRegression1D(object):
             mstr = method.lower()
             if mstr in self._opopts:
                 midx = self._opopts.index(mstr)
-        elif isinstance(method, (float, int, np_itypes, np_utypes, np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
+        elif isinstance(method, number_types) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
@@ -3153,20 +3155,20 @@ class GaussianProcessRegression1D(object):
                 self._opp = opp.copy()
         if isinstance(spars, (list, tuple)):
             for ii in np.arange(0, len(spars)):
-                if ii < self._opp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < self._opp.size and isinstance(spars[ii], number_types):
                     self._opp[ii] = float(spars[ii])
         elif isinstance(spars, np.ndarray):
             for ii in np.arange(0, spars.size):
-                if ii < self._opp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < self._opp.size and isinstance(spars[ii], number_types):
                     self._opp[ii] = float(spars[ii])
-        if isinstance(sdiff, (float, int, np_itypes, np_utypes, np_ftypes)) and float(sdiff) > 0.0:
+        if isinstance(sdiff, number_types) and float(sdiff) > 0.0:
             self._dh = float(sdiff)
-        if isinstance(maxiter, (float, int, np_itypes, np_utypes, np_ftypes)) and int(maxiter) > 0:
+        if isinstance(maxiter, number_types) and int(maxiter) > 0:
             self._imax = int(maxiter) if int(maxiter) > 50 else 50
 
 
     def set_error_search_parameters(self, epsilon=None, method=None, spars=None, sdiff=None):
-        r"""
+        r'''
         Specify the search parameters that the Gaussian process regression will use for the error function.
         Performs some consistency checks on input values to ensure validity.
 
@@ -3181,12 +3183,12 @@ class GaussianProcessRegression1D(object):
 	              **Only** used if analytical implementation of kernel derivative is not present! (optional)
 
         :returns: none.
-        """
+        '''
 
         emidx = None
-        if isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) > 0.0:
+        if isinstance(epsilon, number_types) and float(epsilon) > 0.0:
             self._eeps = float(epsilon)
-        elif isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon, number_types) and float(epsilon) <= 0.0:
             self._eeps = None
         elif isinstance(epsilon, str):
             self._eeps = None
@@ -3194,7 +3196,7 @@ class GaussianProcessRegression1D(object):
             mstr = method.lower()
             if mstr in self._opopts:
                 emidx = self._opopts.index(mstr)
-        elif isinstance(method, (float, int, np_itypes, np_utypes, np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
+        elif isinstance(method, number_types) and int(method) >= 0 and int(method) < len(self._opopts):
             emidx = int(method)
         if emidx is not None:
             if emidx == 1:
@@ -3255,18 +3257,18 @@ class GaussianProcessRegression1D(object):
                 self._eopp = opp.copy()
         if isinstance(spars, (list, tuple)):
             for ii in np.arange(0, len(spars)):
-                if ii < self._eopp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < self._eopp.size and isinstance(spars[ii], number_types):
                     self._eopp[ii] = float(spars[ii])
         elif isinstance(spars, np.ndarray):
             for ii in np.arange(0, spars.size):
-                if ii < self._eopp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < self._eopp.size and isinstance(spars[ii], number_types):
                     self._eopp[ii] = float(spars[ii])
-        if isinstance(sdiff, (float, int, np_itypes, np_utypes, np_ftypes)) and float(sdiff) > 0.0:
+        if isinstance(sdiff, number_types) and float(sdiff) > 0.0:
             self._edh = float(sdiff)
 
 
     def set_warning_flag(self, flag=True):
-        r"""
+        r'''
         Specify the printing of runtime warnings within the
         hyperparameter optimization routine. The warnings are
         disabled by default but calling this function will
@@ -3275,19 +3277,19 @@ class GaussianProcessRegression1D(object):
         :kwarg flag: bool. Flag to toggle display of warnings.
 
         :returns: none.
-        """
+        '''
 
         self._fwarn = True if flag else False
 
 
     def reset_error_kernel(self):
-        r"""
+        r'''
         Resets error kernel and associated settings to an empty
         state. Primarily used for setting up identical objects
         for comparison and testing purposes.
 
         :returns: none.
-        """
+        '''
 
         self._ekk = None
         self._ekb = None
@@ -3304,13 +3306,13 @@ class GaussianProcessRegression1D(object):
 
 
     def get_raw_data(self):
-        r"""
+        r'''
         Returns the input raw data passed in latest :code:`set_raw_data()` call,
         without any internal processing.
 
         :returns: (array, array, array, array, array, array, array).
             Vectors in order of x-values, y-values, x-errors, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
-        """
+        '''
 
         rxx = copy.deepcopy(self._xx)
         ryy = copy.deepcopy(self._yy)
@@ -3323,7 +3325,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_processed_data(self):
-        r"""
+        r'''
         Returns the input data passed into the latest :code:`GPRFit()` call,
         including all internal processing performed by that call.
 
@@ -3335,7 +3337,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (array, array, array, array, array, array, array).
             Vectors in order of x-values, y-values, y-errors, derivative x-values, dy/dx-values, dy/dx-errors.
-        """
+        '''
 
         pxx = copy.deepcopy(self._xx)
         pyy = copy.deepcopy(self._yy)
@@ -3357,48 +3359,48 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_x(self):
-        r"""
+        r'''
         Returns the x-values used in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of x-values corresponding to predicted y-values.
-        """
+        '''
 
         return copy.deepcopy(self._xF)
 
 
     def get_gp_regpar(self):
-        r"""
+        r'''
         Returns the regularization parameter value used in the latest :code:`GPRFit()` call.
 
         :returns: float. Regularization parameter value used in cost function evaluation.
-        """
+        '''
 
         return self._lp
 
 
     def get_gp_error_regpar(self):
-        r"""
+        r'''
         Returns the regularization parameter value used for error function fitting in the latest :code:`GPRFit()` call.
 
         :returns: float. Regularization parameter value used in cost function evaluation for error function fitting.
-        """
+        '''
 
         return self._elp
 
 
     def get_gp_mean(self):
-        r"""
+        r'''
         Returns the y-values computed in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of predicted y-values from fit.
-        """
+        '''
 
         return copy.deepcopy(self._barF)
 
 
     # TODO: Place process noise fraction on GPRFit() level and remove the argument from these functions, currently introduces inconsistencies in statistics
     def get_gp_variance(self, noise_flag=True, noise_mult=None):
-        r"""
+        r'''
         Returns the full covariance matrix of the y-values computed in the latest
         :code:`GPRFit()` call.
 
@@ -3407,17 +3409,17 @@ class GaussianProcessRegression1D(object):
         :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
 
         :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
-        """
+        '''
 
         varF = copy.deepcopy(self._varF)
         if varF is not None and self._varN is not None and noise_flag:
-            nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult, (float, int, np_itypes, np_utypes, np_ftypes)) and float(noise_mult) >= 0.0 else 1.0
+            nfac = float(noise_mult) ** 2.0 if isinstance(noise_mult, number_types) and float(noise_mult) >= 0.0 else 1.0
             varF = varF + nfac * self._varN
         return varF
 
 
     def get_gp_std(self, noise_flag=True, noise_mult=None):
-        r"""
+        r'''
         Returns only the rooted diagonal elements of the covariance matrix of the y-values
         computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma error of fit.
 
@@ -3426,7 +3428,7 @@ class GaussianProcessRegression1D(object):
         :kwarg noise_mult: float. Noise term multiplier to introduce known bias or covariance in data, must be greater than or equal to zero. (optional)
 
         :returns: array. 1D array containing 1 sigma errors of predicted y-values from fit.
-        """
+        '''
 
         sigF = None
         varF = self.get_gp_variance(noise_flag=noise_flag, noise_mult=noise_mult)
@@ -3436,17 +3438,17 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_drv_mean(self):
-        r"""
+        r'''
         Returns the dy/dx-values computed in the latest :code:`GPRFit()` call.
 
         :returns: array. Vector of predicted dy/dx-values from fit, if requested in fit call.
-        """
+        '''
 
         return copy.deepcopy(self._dbarF)
 
 
     def get_gp_drv_variance(self, noise_flag=True, process_noise_fraction=None):
-        r"""
+        r'''
         Returns the full covariance matrix of the dy/dx-values computed in the latest
         :code:`GPRFit()` call.
 
@@ -3455,7 +3457,7 @@ class GaussianProcessRegression1D(object):
         :kwarg process_noise_fraction: float. Specify split between process noise and observation noise in data, must be between zero and one. (optional)
 
         :returns: array. 2D meshgrid array containing full covariance matrix for predicted dy/dx-values from fit, if requested in fit call.
-        """
+        '''
 
         dvarF = copy.deepcopy(self._dvarF)
         if dvarF is not None:
@@ -3464,7 +3466,7 @@ class GaussianProcessRegression1D(object):
             dvar_denom[dvar_denom == 0.0] = 1.0
             dvarmod = dvar_numer / dvar_denom
             if self._dvarN is not None and noise_flag:
-                nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction, (float, int, np_itypes, np_utypes, np_ftypes)) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
+                nfac = float(process_noise_fraction) ** 2.0 if isinstance(process_noise_fraction, number_types) and float(process_noise_fraction) >= 0.0 and float(process_noise_fraction) <= 1.0 else 1.0
                 dvarF = dvarmod * dvarF + nfac * self._dvarN
             else:
                 dvarF = dvarmod * dvarF
@@ -3472,7 +3474,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_drv_std(self, noise_flag=True, process_noise_fraction=None):
-        r"""
+        r'''
         Returns only the rooted diagonal elements of the covariance matrix of the 
         dy/dx-values computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma
         error of fit.
@@ -3482,7 +3484,7 @@ class GaussianProcessRegression1D(object):
         :kwarg process_noise_fraction: float. Specify split between process noise and observation noise in data, must be between zero and one. (optional)
 
         :returns: array. 1D array containing 1 sigma errors of predicted dy/dx-values from fit, if requested in fit call.
-        """
+        '''
 
         dsigF = None
         dvarF = self.get_gp_drv_variance(noise_flag=noise_flag, process_noise_fraction=process_noise_fraction)
@@ -3492,7 +3494,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_results(self, rtn_cov=False, noise_flag=True, process_noise_fraction=None):
-        r"""
+        r'''
         Returns all common predicted values computed in the latest :code:`GPRFit()` call.
 
         :kwarg rtn_cov: bool. Set as true to return the full predicted covariance matrix instead the 1 sigma errors. (optional)
@@ -3503,7 +3505,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (array, array, array, array).
             Vectors in order of y-values, y-errors, dy/dx-values, dy/dx-errors.
-        """
+        '''
 
         ra = self.get_gp_mean()
         rb = self.get_gp_variance(noise_flag=noise_flag) if rtn_cov else self.get_gp_std(noise_flag=noise_flag)
@@ -3513,32 +3515,32 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_lml(self):
-        r"""
+        r'''
         Returns the log-marginal-likelihood of the latest :code:`GPRFit()` call.
 
         :returns: float. Log-marginal-likelihood value from fit.
-        """
+        '''
 
         return self._lml
 
 
     def get_gp_null_lml(self):
-        r"""
+        r'''
         Returns the log-marginal-likelihood for the null hypothesis, calculated by the latest :code:`GPRFit()` call.
         This value can be used to normalize the log-marginal-likelihood of the fit for a generalized goodness-of-fit metric.
 
         :returns: float. Log-marginal-likelihood value of null hypothesis.
-        """
+        '''
 
         return self._nulllml
 
 
     def get_gp_r2(self):
-        r"""
+        r'''
         Calculates the R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()` call.
 
         :returns: float. R-squared value.
-        """
+        '''
         r2 = None
         if self._xF is not None and self._estF is not None:
             myy = np.nanmean(self._yy)
@@ -3549,12 +3551,12 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_adjusted_r2(self):
-        r"""
+        r'''
         Calculates the adjusted R-squared (coefficient of determination) using the results of the latest :code:`GPRFit()`
         call.
 
         :returns: float. Adjusted R-squared value.
-        """
+        '''
 
         adjr2 = None
         if self._xF is not None and self._estF is not None:
@@ -3567,7 +3569,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_generalized_r2(self):
-        r"""
+        r'''
         Calculates the Cox and Snell pseudo R-squared (coefficient of determination) using the results of the latest
         :code:`GPRFit()` call.
 
@@ -3576,7 +3578,7 @@ class GaussianProcessRegression1D(object):
                   extreme caution!!!
 
         :returns: float. Generalized pseudo R-squared value based on Cox and Snell methodology.
-        """
+        '''
 
         genr2 = None
         if self._xF is not None:
@@ -3585,33 +3587,33 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_input_kernel(self):
-        r"""
+        r'''
         Returns the original input kernel, with settings retained from before the
         hyperparameter optimization step.
 
         :returns: object. The original input :code:`_Kernel` instance, saved from the latest :code:`set_kernel()` call.
-        """
+        '''
 
         return self._ikk
 
 
     def get_gp_kernel(self):
-        r"""
+        r'''
         Returns the optimized kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: object. The :code:`_Kernel` instance from the latest :code:`GPRFit()` call, including optimized hyperparameters if fit was performed.
-        """
+        '''
 
         return self._kk
 
 
     def get_gp_kernel_details(self):
-        r"""
+        r'''
         Returns the data needed to save the optimized kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: (str, array, float).
             Kernel codename, vector of kernel hyperparameters and constants, regularization parameter.
-        """
+        '''
 
         kname = None
         kpars = None
@@ -3624,22 +3626,22 @@ class GaussianProcessRegression1D(object):
 
 
     def get_gp_error_kernel(self):
-        r"""
+        r'''
         Returns the optimized error kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: object. The error :code:`_Kernel` instance from the latest :code:`GPRFit()` call, including optimized hyperparameters if fit was performed.
-        """
+        '''
 
         return self._ekk
 
 
     def get_gp_error_kernel_details(self):
-        r"""
+        r'''
         Returns the data needed to save the optimized error kernel determined in the latest :code:`GPRFit()` call.
 
         :returns: (str, array).
             Kernel codename, vector of kernel hyperparameters and constants, regularization parameter.
-        """
+        '''
 
         kname = None
         kpars = None
@@ -3652,7 +3654,7 @@ class GaussianProcessRegression1D(object):
 
 
     def get_error_gp_mean(self):
-        r"""
+        r'''
         Returns the fitted y-errors computed in the latest :code:`GPRFit()` call.
 
         .. warning::
@@ -3662,13 +3664,13 @@ class GaussianProcessRegression1D(object):
             distribution!!!
 
         :returns: array. Vector of predicted y-values from fit.
-        """
+        '''
 
         return copy.deepcopy(self._barE)
 
 
     def get_error_gp_variance(self):
-        r"""
+        r'''
         Returns the full covariance matrix of the fitted y-errors computed in the latest
         :code:`GPRFit()` call.
 
@@ -3679,13 +3681,13 @@ class GaussianProcessRegression1D(object):
             distribution!!!
 
         :returns: array. 2D meshgrid array containing full covariance matrix of predicted y-values from fit.
-        """
+        '''
 
         return copy.deepcopy(self._varE)
 
 
     def get_error_gp_std(self):
-        r"""
+        r'''
         Returns only the rooted diagonal elements of the covariance matrix of the y-values
         computed in the latest :code:`GPRFit()` call, corresponds to 1 sigma error of fit.
 
@@ -3696,7 +3698,7 @@ class GaussianProcessRegression1D(object):
             distribution!!!
 
         :returns: array. 1D array containing 1 sigma errors of predicted y-values from fit.
-        """
+        '''
 
         sigE = None
         varE = self.get_error_gp_variance()
@@ -3706,7 +3708,7 @@ class GaussianProcessRegression1D(object):
 
 
     def eval_error_function(self, xnew, enforce_positive=True):
-        r"""
+        r'''
         Returns the error values used in heteroscedastic GPR, evaluated at the input x-values,
         using the error kernel determined in the latest :code:`GPRFit()` call.
 
@@ -3721,7 +3723,7 @@ class GaussianProcessRegression1D(object):
         :kwarg enforce_positive: bool. Returns of absolute values of the error function if :code:`True`.
 
         :returns: array. Vecotr of predicted y-errors from the fit using the error kernel.
-        """
+        '''
 
         xn = None
         if isinstance(xnew, (list, tuple)) and len(xnew) > 0:
@@ -3737,7 +3739,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_base_alg(self, xn, kk, lp, xx, yy, ye, dxx, dyy, dye, dd):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for 1-dimensional Gaussian process regression, with no
@@ -3772,7 +3774,7 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, float).
             Vector of predicted mean values, matrix of predicted variances and covariances,
             log-marginal-likelihood of prediction including the regularization component.
-        """
+        '''
 
         # Set up the problem grids for calculating the required matrices from covf
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
@@ -3839,7 +3841,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_brute_deriv1(self, xn, kk, lp, xx, yy, ye):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for brute-force first-order derivative of 1-dimensional Gaussian process regression.
@@ -3861,7 +3863,7 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, float).
             Vector of predicted mean derivative values, matrix of predicted variances and covariances,
             log-marginal-likelihood of prediction including the regularization component.
-        """
+        '''
 
         # Set up the problem grids for calculating the required matrices from covf
         (x1, x2) = np.meshgrid(xx, xx)
@@ -3901,7 +3903,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_brute_grad_lml(self, kk, lp, xx, yy, ye, dxx, dyy, dye, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for brute-force computation of gradient of log-marginal-likelihood with respect to the
@@ -3927,7 +3929,7 @@ class GaussianProcessRegression1D(object):
         :arg dh: float. Step size in hyperparameter space used in derivative approximation.
 
         :returns: array. Vector of log-marginal-likelihood derivatives with respect to the hyperparameters including the regularization component.
-        """
+        '''
 
         xn = np.array([0.0])
         theta = np.log10(kk.hyperparameters)
@@ -3947,7 +3949,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_grad_lml(self, kk, lp, xx, yy, ye, dxx, dyy, dye):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Bare-bones algorithm for computation of gradient of log-marginal-likelihood with respect to the hyperparameters
@@ -3971,7 +3973,7 @@ class GaussianProcessRegression1D(object):
         :arg dye: array. Vector of dy-errors of derivative data to be included in fit, assumed to be given as 1 sigma. Must have same dimensions as :code:`dxx` if given.
 
         :returns: array. Vector of log-marginal-likelihood derivatives with respect to the hyperparameters including the regularization component.
-        """
+        '''
 
         # Set up the problem grids for calculating the required matrices from covf
         theta = kk.hyperparameters
@@ -4020,7 +4022,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_grad_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Gradient ascent hyperparameter optimization algorithm, searches hyperparameters in log-space.
@@ -4055,7 +4057,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4089,7 +4091,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_momentum_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, gam, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Gradient ascent hyperparameter optimization algorithm with momentum, searches hyperparameters
@@ -4127,7 +4129,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4161,7 +4163,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_nesterov_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, gam, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Nesterov-accelerated gradient ascent hyperparameter optimization algorithm with momentum,
@@ -4200,7 +4202,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4242,7 +4244,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adagrad_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive gradient ascent hyperparameter optimization algorithm, searches hyperparameters
@@ -4279,7 +4281,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4316,7 +4318,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adadelta_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, gam, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive gradient ascent hyperparameter optimization algorithm with decaying accumulation
@@ -4354,7 +4356,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4396,7 +4398,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adam_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, b1, b2, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive moment estimation hyperparameter optimization algorithm, searches hyperparameters
@@ -4436,7 +4438,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4476,7 +4478,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_adamax_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, b1, b2, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Adaptive moment estimation hyperparameter optimization algorithm with l-infinity, searches
@@ -4516,7 +4518,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4557,7 +4559,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _gp_nadam_optimizer(self, kk, lp, xx, yy, ye, dxx, dyy, dye, eps, eta, b1, b2, dh):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Nesterov-accelerated adaptive moment estimation hyperparameter optimization algorithm,
@@ -4597,7 +4599,7 @@ class GaussianProcessRegression1D(object):
 
         :returns: (object, float).
             Final :code:`_Kernel` instance resulting from hyperparameter optimization of LML, final log-marginal-likelihood including the regularization component.
-        """
+        '''
 
         # Set up required data for performing the search
         xn = np.array([0.0])    # Reduction of prediction vector for speed bonus
@@ -4637,7 +4639,7 @@ class GaussianProcessRegression1D(object):
 
 
     def _condition_data(self, xx, xe, yy, ye, lb, ub, cn):
-        r"""
+        r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
         Conditions the input data to remove data points which are too close together, as
@@ -4660,7 +4662,7 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, array, array, array).
             Vectors in order of conditioned x-values, conditioned x-errors, conditioned y-values, conditioned y-errors,
             number of data points blended into corresponding index.
-        """
+        '''
 
         good = np.all([np.invert(np.isnan(xx)), np.invert(np.isnan(yy)), np.isfinite(xx), np.isfinite(yy)], axis=0)
         xe = xe[good] if xe.size == xx.size else np.full(xx[good].shape, xe[0])
@@ -4720,7 +4722,7 @@ class GaussianProcessRegression1D(object):
         do_drv=False,
         rtn_cov=False
     ):
-        r"""
+        r'''
         **RESTRICTED ACCESS FUNCTION** - Can be called externally for testing if user is familiar with algorithm.
 
         Basic GP regression fitting routine, **recommended** to call this instead of the bare-bones functions
@@ -4767,7 +4769,7 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, float, object).
             Vector of predicted mean values, vector or matrix of predicted errors, log-marginal-likelihood of fit
             including the regularization component, final :code:`_Kernel` instance with optimized hyperparameters if performed.
-        """
+        '''
 
         xn = None
         kk = copy.copy(self._kk)
@@ -4792,7 +4794,7 @@ class GaussianProcessRegression1D(object):
             xn = xnew.flatten()
         if isinstance(kernel, _Kernel):
             kk = copy.copy(kernel)
-        if isinstance(regpar, (float, int, np_itypes, np_utypes, np_ftypes)) and float(regpar) > 0.0:
+        if isinstance(regpar, number_types) and float(regpar) > 0.0:
             lp = float(regpar)
         if isinstance(xdata, (list, tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
@@ -4835,9 +4837,9 @@ class GaussianProcessRegression1D(object):
             dye = dyerr.flatten()
         elif isinstance(dyerr, str):
             dye = None
-        if isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) > 0.0:
+        if isinstance(epsilon, number_types) and float(epsilon) > 0.0:
             eps = float(epsilon)
-        elif isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) and float(epsilon) <= 0.0:
+        elif isinstance(epsilon, number_types) and float(epsilon) <= 0.0:
             eps = None
         elif isinstance(epsilon, str):
             eps = None
@@ -4845,7 +4847,7 @@ class GaussianProcessRegression1D(object):
             mstr = method.lower()
             if mstr in self._opopts:
                 midx = self._opopts.index(mstr)
-        elif isinstance(method, (float, int, np_itypes, np_utypes, np_ftypes)) and int(method) >= 0 and int(method) < len(self._opopts):
+        elif isinstance(method, number_types) and int(method) >= 0 and int(method) < len(self._opopts):
             midx = int(method)
         if midx is not None:
             if midx == 1:
@@ -4906,13 +4908,13 @@ class GaussianProcessRegression1D(object):
                 opp = oppt.copy()
         if isinstance(spars, (list, tuple)):
             for ii in np.arange(0, len(spars)):
-                if ii < opp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < opp.size and isinstance(spars[ii], number_types):
                     opp[ii] = float(spars[ii])
         elif isinstance(spars, np.ndarray):
             for ii in np.arange(0, spars.size):
-                if ii < opp.size and isinstance(spars[ii], (float, int, np_itypes, np_utypes, np_ftypes)):
+                if ii < opp.size and isinstance(spars[ii], number_types):
                     opp[ii] = float(spars[ii])
-        if isinstance(sdiff, (float, int, np_itypes, np_utypes, np_ftypes)) and float(sdiff) > 0.0:
+        if isinstance(sdiff, number_types) and float(sdiff) > 0.0:
             dh = float(sdiff)
 
         barF = None
@@ -4979,7 +4981,7 @@ class GaussianProcessRegression1D(object):
         yerr=None,
         rtn_cov=False
     ):
-        r"""
+        r'''
         **RESTRICTED ACCESS FUNCTION** - Can be called externally for testing if user is familiar with algorithm.
 
         Brute-force numerical GP regression derivative routine, **recommended** to call this instead of bare-bones
@@ -5008,7 +5010,7 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, float).
             Vector of predicted dy/dx-values, vector or matrix of predicted dy/dx-errors, log-marginal-likelihood of fit
             including the regularization component.
-        """
+        '''
 
         xn = None
         kk = self._kk
@@ -5025,7 +5027,7 @@ class GaussianProcessRegression1D(object):
             xn = xnew.flatten()
         if isinstance(kernel, _Kernel):
             kk = copy.copy(kernel)
-        if isinstance(regpar, (float, int)) and float(regpar) > 0.0:
+        if isinstance(regpar, number_types) and float(regpar) > 0.0:
             self._lp = float(regpar)
         if isinstance(xdata, (list, tuple)) and len(xdata) > 0:
             xx = np.array(xdata).flatten()
@@ -5069,7 +5071,7 @@ class GaussianProcessRegression1D(object):
 
 
     def make_HSGP_errors(self):
-        r"""
+        r'''
         Calculates a vector of modified y-errors based on GPR fit of input y-errors,
         for use inside a heteroscedastic GPR execution.
 
@@ -5080,7 +5082,7 @@ class GaussianProcessRegression1D(object):
             automatically stores all results within the appropriate class variables.
 
         :returns: none.
-        """
+        '''
 
         if isinstance(self._ekk, _Kernel) and self._ye is not None and self._yy.size == self._ye.size:
             elml = None
@@ -5236,7 +5238,7 @@ class GaussianProcessRegression1D(object):
 
 
     def make_NIGP_errors(self, nrestarts=0, hsgp_flag=False):
-        r"""
+        r'''
         Calculates a vector of modified y-errors based on input x-errors and a test model
         gradient, for use inside a noisy input GPR execution.
 
@@ -5266,11 +5268,11 @@ class GaussianProcessRegression1D(object):
         :kwarg hsgp_flag: bool. Indicates Gaussian Process regression fit with variable y-errors. (optional)
 
         :returns: none.
-        """
+        '''
 
         # Check inputs
         nr = 0
-        if isinstance(nrestarts, (float, int, np_itypes, np_utypes, np_ftypes)) and int(nrestarts) > 0:
+        if isinstance(nrestarts, number_types) and int(nrestarts) > 0:
             nr = int(nrestarts)
 
         if isinstance(self._kk, _Kernel) and self._xe is not None and self._xx.size == self._xe.size:
@@ -5349,7 +5351,7 @@ class GaussianProcessRegression1D(object):
         nigp_flag=False,
         nrestarts=None
     ):
-        r"""
+        r'''
         Main GP regression fitting routine, **recommended** to call this after using set functions, instead of the
         :code:`__basic_fit()` function, as this adapts the method based on inputs, performs 1st derivative and
         saves output to class variables.
@@ -5369,7 +5371,7 @@ class GaussianProcessRegression1D(object):
         :kwarg nrestarts: int. Number of kernel restarts using uniform randomized hyperparameter values within the provided hyperparameter bounds. (optional)
 
         :returns: none.
-        """
+        '''
         # Check inputs
         xn = None
         nr = 0
@@ -5377,14 +5379,14 @@ class GaussianProcessRegression1D(object):
             xn = np.array(xnew).flatten()
         elif isinstance(xnew, np.ndarray) and xnew.size > 0:
             xn = xnew.flatten()
-        if isinstance(nrestarts, (float, int, np_itypes, np_utypes, np_ftypes)) and int(nrestarts) > 0:
+        if isinstance(nrestarts, number_types) and int(nrestarts) > 0:
             nr = int(nrestarts)
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
         oxn = copy.deepcopy(xn)
 
         if not self._fwarn:
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
 
         barF = None
         varF = None
@@ -5598,7 +5600,7 @@ class GaussianProcessRegression1D(object):
             raise ValueError('Check GP inputs to make sure they are valid.')
 
         if not self._fwarn:
-            warnings.filterwarnings("default", category=RuntimeWarning)
+            warnings.filterwarnings('default', category=RuntimeWarning)
 
 
     def sample_GP(
@@ -5608,7 +5610,7 @@ class GaussianProcessRegression1D(object):
         without_noise=False,
         simple_out=False
     ):
-        r"""
+        r'''
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
         :code:`GPRFit()` method.
@@ -5622,7 +5624,7 @@ class GaussianProcessRegression1D(object):
         :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation. (optional)
 
         :returns: array. Rows containing sampled fit evaluated at xnew used in latest :code:`GPRFit()`. If :code:`simple_out = True`, row 0 is the mean and row 1 is the 1 sigma error.
-        """
+        '''
 
         # Check instantiation of output class variables
         if self._xF is None or self._barF is None or self._varF is None:
@@ -5630,11 +5632,11 @@ class GaussianProcessRegression1D(object):
 
         # Check inputs
         ns = 0
-        if isinstance(nsamples, (float, int, np_itypes, np_utypes, np_ftypes)) and int(nsamples) > 0:
+        if isinstance(nsamples, number_types) and int(nsamples) > 0:
             ns = int(nsamples)
 
         if not self._fwarn:
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
 
         samples = None
         if ns > 0:
@@ -5653,7 +5655,7 @@ class GaussianProcessRegression1D(object):
             raise ValueError('Check inputs to sampler to make sure they are valid.')
 
         if not self._fwarn:
-            warnings.filterwarnings("default", category=RuntimeWarning)
+            warnings.filterwarnings('default', category=RuntimeWarning)
 
         return samples
 
@@ -5665,7 +5667,7 @@ class GaussianProcessRegression1D(object):
         without_noise=False,
         simple_out=False
     ):
-        r"""
+        r'''
         Samples Gaussian process posterior on data for predictive functions.
         Can be used by user to check validity of mean and variance outputs of
         :code:`GPRFit()` method.
@@ -5679,7 +5681,7 @@ class GaussianProcessRegression1D(object):
         :kwarg simple_out: bool. Set as true to average over all samples and return only the mean and standard deviation. (optional)
 
         :returns: array. Rows containing sampled fit evaluated at xnew used in latest :code:`GPRFit()`. If :code:`simple_out = True`, row 0 is the mean and row 1 is the 1 sigma error.
-        """
+        '''
 
         # Check instantiation of output class variables
         if self._xF is None or self._dbarF is None or self._dvarF is None:
@@ -5687,11 +5689,11 @@ class GaussianProcessRegression1D(object):
 
         # Check inputs
         ns = 0
-        if isinstance(nsamples, (float, int, np_itypes, np_utypes, np_ftypes)) and int(nsamples) > 0:
+        if isinstance(nsamples, number_types) and int(nsamples) > 0:
             ns = int(nsamples)
 
         if not self._fwarn:
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
 
         samples = None
         if ns > 0:
@@ -5710,13 +5712,13 @@ class GaussianProcessRegression1D(object):
             raise ValueError('Check inputs to sampler to make sure they are valid.')
 
         if not self._fwarn:
-            warnings.filterwarnings("default", category=RuntimeWarning)
+            warnings.filterwarnings('default', category=RuntimeWarning)
 
         return samples
 
 
     def MCMC_posterior_sampling(self,nsamples):
-        r"""
+        r'''
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters,
         using the log-marginal-likelihood as the acceptance criterion.
 
@@ -5733,18 +5735,18 @@ class GaussianProcessRegression1D(object):
         :returns: (array, array, array, array).
             Matrices containing rows of predicted y-values, predicted y-errors, predicted dy/dx-values,
             predicted dy/dx-errors with each having a number of rows equal to the number of samples.
-        """
+        '''
         # Check instantiation of output class variables
         if self._xF is None or self._barF is None or self._varF is None:
             raise ValueError('Run GPRFit() before attempting to use MCMC posterior sampling.')
 
         # Check inputs
         ns = 0
-        if isinstance(nsamples, (float, int, np_itypes, np_utypes, np_ftypes)) and int(nsamples) > 0:
+        if isinstance(nsamples, number_types) and int(nsamples) > 0:
             ns = int(nsamples)
 
         if not self._fwarn:
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
 
         sbarM = None
         ssigM = None
@@ -5847,7 +5849,7 @@ class GaussianProcessRegression1D(object):
             raise ValueError('Check inputs to sampler to make sure they are valid.')
 
         if not self._fwarn:
-            warnings.filterwarnings("default", category=RuntimeWarning)
+            warnings.filterwarnings('default', category=RuntimeWarning)
 
         return (sbarM, ssigM, sdbarM, sdsigM)
 
@@ -5859,7 +5861,7 @@ class GaussianProcessRegression1D(object):
 
 
 class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
-    r"""
+    r'''
     A simplified version of the main :code:`GaussianProcessRegression1D`
     class with pre-defined settings, only requiring the bare necessities
     to use for fitting. Although this class allows an entry point akin
@@ -5893,7 +5895,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
     :kwarg num_restarts: int. Number of kernel restarts. (optional)
 
     :kwarg hyp_opt_gain: float. Gain value on the hyperparameter optimizer, expert use only. (optional)
-    """
+    '''
 
     def __init__(
         self,
@@ -5909,7 +5911,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         hyp_opt_gain=1.0e-2,
         include_noise=True
     ):
-        r"""
+        r'''
         Defines customized :code:`GaussianProcessRegression1D` instance with
         a pre-defined common settings for both data fit and error fit. Input
         parameters reduced only to essentials and most crucial knobs for
@@ -5938,18 +5940,18 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         :kwarg include_noise: bool. Specifies inclusion of Gaussian noise term in returned variance. Only operates on diagonal elements. (optional)
 
         :returns: none.
-        """
+        '''
         super().__init__()
         self._nrestarts = num_restarts
 
         self.set_raw_data(xdata=xdata, ydata=ydata, yerr=yerr, xerr=xerr)
 
-        eps = 'none' if not isinstance(epsilon, (float, int, np_itypes, np_utypes, np_ftypes)) else epsilon
-        sg = hyp_opt_gain if isinstance(hyp_opt_gain, (float, int, np_itypes, np_utypes, np_ftypes)) else 1.0e-1
+        eps = 'none' if not isinstance(epsilon, number_types) else epsilon
+        sg = hyp_opt_gain if isinstance(hyp_opt_gain, number_types) else 1.0e-1
         self.set_kernel(kernel=kernel, kbounds=kernel_bounds, regpar=reg_par)
         self.set_search_parameters(epsilon=epsilon, method='adam', spars=[sg, 0.4, 0.8])
 
-        self._perform_heterogp = False if isinstance(yerr, (float, int, np_itypes, np_utypes, np_ftypes)) or self._ye is None else True
+        self._perform_heterogp = False if isinstance(yerr, number_types) or self._ye is None else True
         self._perform_nigp = False if self._xe is None else True
         self._include_noise = True if include_noise else False
 
@@ -5959,13 +5961,13 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
             error_kernel_hyppar_bounds = np.atleast_2d([[1.0e-1, error_length * 0.25, 1.0e1], [1.0e0, error_length * 4.0, 5.0e1]])
             self.set_error_kernel(kernel=error_kernel, kbounds=error_kernel_hyppar_bounds, regpar=5.0, nrestarts=0)
             self.set_error_search_parameters(epsilon=1.0e-1, method='adam', spars=[1.0e-2, 0.4, 0.8])
-        elif isinstance(yerr, (float, int, np_itypes, np_utypes, np_ftypes)):
+        elif isinstance(yerr, number_types):
             ye = np.full(self._yy.shape, yerr)
             self.set_raw_data(yerr=ye)
 
 
     def __call__(self, xnew):
-        r"""
+        r'''
         Defines a simplified fitting execution, *only* performs
         optimization on the *first* call. Subsequent calls
         merely evaluate the optimized fit at the input x-values.
@@ -5977,7 +5979,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
                   Standard deviation of mean, given as 1 sigma ;
                   Mean derivative of GPR predictive disstribution, ie. the derivative of the fit ;
                   Standard deviation of mean derivative, given as 1 sigma.
-        """
+        '''
         nrestarts = self._nrestarts
         if self._xF is not None:
             nrestarts = None
@@ -5988,7 +5990,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
 
     def sample(self, xnew, derivative=False):
-        r"""
+        r'''
         Provides a more intuitive function for sampling the
         predictive distribution. Only provides one sample
         per call, unlike the more complex function in the
@@ -5999,7 +6001,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         :kwarg derivative: bool. Flag to indicate sampling of fit derivative instead of the fit. (optional)
 
         :returns: array. Vector of y-values corresponding to a random sample of the GPR predictive distribution.
-        """
+        '''
         self.__call__(xnew)
         remove_noise = not self._include_noise
         output = self.sample_GP(1, actual_noise=False, without_noise=remove_noise) if not derivative else self.sample_GP_derivative(1, actual_noise=False, without_noise=remove_noise)
@@ -6007,7 +6009,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
 
 
 def KernelConstructor(name):
-    r"""
+    r'''
     Function to construct a kernel solely based on the kernel codename.
 
     .. note::
@@ -6018,7 +6020,7 @@ def KernelConstructor(name):
     :arg name: str. The codename of the desired :code:`_Kernel` instance.
 
     :returns: object. The desired :code:`_Kernel` instance with default parameters. Returns :code:`None` if given kernel codename was invalid.
-    """
+    '''
 
     kernel = None
     if isinstance(name, str):
@@ -6074,7 +6076,7 @@ def KernelConstructor(name):
 
 
 def KernelReconstructor(name, pars=None):
-    r"""
+    r'''
     Function to reconstruct any :code:`_Kernel` instance from its codename and parameter list,
     useful for saving only necessary data to represent a :code:`GaussianProcessRregression1D`
     instance.
@@ -6089,7 +6091,7 @@ def KernelReconstructor(name, pars=None):
     :kwarg pars: array. The hyperparameter and constant values to be stored in the :code:`_Kernel` instance, order determined by the specific :code:`_Kernel` class implementation. (optional)
 
     :returns: object. The desired :code:`_Kernel` instance, with the supplied parameters already set if parameters were valid. Returns :code:`None` if given kernel codename was invalid.
-    """
+    '''
 
     kernel = KernelConstructor(name)
     pvec = None
