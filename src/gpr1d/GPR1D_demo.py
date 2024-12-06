@@ -7,7 +7,7 @@ import inspect
 from operator import itemgetter
 import numpy as np
 
-import GPR1D   # Required import, only works after using 'pip install'
+from gpr1d import GPR1D   # Required import, only works after using 'pip install'
 
 
 def run_demo():
