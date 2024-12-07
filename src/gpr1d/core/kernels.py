@@ -18,8 +18,8 @@ import math
 import numpy as np
 import scipy.special as spsp
 
-from .utils import number_types, array_types
 from .baseclasses import _Kernel, _OperatorKernel, _WarpingFunction
+from .definitions import number_types, array_types
 
 __all__ = [
     'Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operator classes

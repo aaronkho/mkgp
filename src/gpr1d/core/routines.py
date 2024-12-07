@@ -19,7 +19,7 @@ import scipy.linalg as spla
 import scipy.stats as spst
 from operator import itemgetter
 
-from .utils import number_types, array_types, default_dtype
+from .definitions import number_types, array_types, default_dtype
 from .kernels import _Kernel, _WarpingFunction
 
 __all__ = [

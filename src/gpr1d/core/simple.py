@@ -11,6 +11,8 @@ These functions were developed by Aaron Ho [1].
 # Required imports
 import numpy as np
 
+from .definitions import number_types, array_types
+from .kernels import RQ_Kernel
 from .routines import GaussianProcessRegression1D
 
 __all__ = [

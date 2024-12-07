@@ -12,12 +12,23 @@ These functions were developed by Aaron Ho [1].
 import re
 import numpy as np
 
-np_itypes = (np.int8, np.int16, np.int32, np.int64)
-np_utypes = (np.uint8, np.uint16, np.uint32, np.uint64)
-np_ftypes = (np.float16, np.float32, np.float64)
-number_types = (float, int, np_itypes, np_utypes, np_ftypes)
-array_types = (list, tuple, np.ndarray)
-default_dtype = np.float64
+from .kernels import (
+    _Kernel,
+    Constant_Kernel,
+    Noise_Kernel,
+    Linear_Kernel,
+    Poly_Order_Kernel,
+    SE_Kernel,
+    RQ_Kernel,
+    Matern_HI_Kernel,
+    NN_Kernel,
+    Gibbs_Kernel,
+    Sum_Kernel,
+    Product_Kernel,
+    Symmetric_Kernel,
+    Constant_WarpingFunction,
+    IG_WarpingFunction,
+)
 
 __all__ = [
     'KernelConstructor', 'KernelReconstructor',  # Kernel construction functions
@@ -46,7 +57,7 @@ def KernelConstructor(name):
             names = []
             bflag = False
             rname = ''
-            for jj in np.arange(0, len(links)):
+            for jj in range(len(links)):
                 rname = links[jj] if not bflag else rname + '-' + links[jj]
                 if re.search(r'\(', links[jj]):
                     bflag = True
@@ -55,7 +66,7 @@ def KernelConstructor(name):
                 if not bflag:
                     names.append(rname)
             kklist = []
-            for ii in np.arange(0, len(names)):
+            for ii in range(len(names)):
                 kklist.append(KernelConstructor(names[ii]))
             if re.search(r'^Sum$', m.group(1)):
                 kernel = Sum_Kernel(klist=kklist)

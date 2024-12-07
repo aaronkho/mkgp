@@ -15,7 +15,7 @@ These classes were developed by Aaron Ho [1].
 import warnings
 import numpy as np
 
-from .utils import number_types, array_types, default_dtype
+from .definitions import number_types, array_types, default_dtype
 
 
 class _Kernel():
