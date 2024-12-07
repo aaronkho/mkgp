@@ -1,7 +1,7 @@
-GPR1D
+gpr1d
 =====
 
-Installing the GPR1D program
+Installing the gpr1d program
 ----------------------------
 
 *Author: Aaron Ho (01/06/2018)*
@@ -13,7 +13,7 @@ developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
 by using the following on the command line::
 
-    pip install [--user] GPR1D[guis]
+    pip install [--user] gpr1d[guis]
 
 Use the :code:`--user` flag if you do not have root access on the system
 that you are working on. If you have already cloned the
@@ -33,19 +33,19 @@ Documentation
 
 Documentation of the equations used in the algorithm, along with
 the available kernels and optimizers, can be found in docs/.
-Documentation of the GPR1D module can be found on
+Documentation of the :code:`gpr1d` module can be found on
 `GitLab pages <https://aaronkho.gitlab.io/GPR1D>`_
 
 
-Using the GPR1D program
+Using the gpr1d program
 -----------------------
 
 For those who wish to include the functionality of this package
 into their own Python scripts, a demo script is provided in
-scripts/. The basic syntax used to create kernels, select
-settings, and perform GPR fits are outlined there.
+:code:`src/gpr1d/scripts`. The basic syntax used to create kernels,
+select settings, and perform GP regression fits are outlined there.
 
-In addition, a simplified GPR1D class is available for those
+In addition, a simplified :code:`gpr1d` class is available for those
 wishing to distill the parameters into a subset of the most
 crucial ones.
 
