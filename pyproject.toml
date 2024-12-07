@@ -39,6 +39,7 @@ dev = ["coverage", "pytest", "pytest-cov"]
 build = ["build", "twine"]
 demo = ["matplotlib"]
 gui = ["pyqt5", "matplotlib"]
+profile = ["scikit-learn"]
 
 [project.urls]
 "Homepage" = "https://gitlab.com/aaronkho/GPR1D"
@@ -65,5 +66,5 @@ gpr1d = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = {features = ["gui", "demo"], solve-group = "default"}
-develop = {features = ["dev", "build", "gui", "demo"], solve-group = "develop"}
+develop = {features = ["dev", "build", "gui", "demo", "profile"], solve-group = "develop"}
 
