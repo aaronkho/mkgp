@@ -36,6 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["coverage", "pytest", "pytest-cov"]
+build = ["build", "twine"]
 demo = ["matplotlib"]
 gui = ["pyqt5", "matplotlib"]
 
@@ -63,5 +64,6 @@ index-url = "https://pypi.org/simple"
 gpr1d = { path = ".", editable = true }
 
 [tool.pixi.environments]
-default = {features = ["dev", "gui", "demo"], solve-group = "default"}
+default = {features = ["gui", "demo"], solve-group = "default"}
+develop = {features = ["dev", "build", "gui", "demo"], solve-group = "develop"}
 
