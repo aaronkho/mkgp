@@ -1,35 +1,34 @@
-{% set name = "GPR1D" %}
-{% set version = "2.0.0" %}
+{% set pyproject = load_file_data('pyproject.toml') %}
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: {{ pyproject.get('project', {}).get('name') }}
+  version: {{ pyproject.get('project', {}).get('version') }}
 
 source:
   git_rev: v{{ version }}
-  git_url: https://gitlab.com/aaronkho/{{ name }}
+  git_url: {{ pyproject.get('project', {}).get('urls', {}).get('"Source"') }}
 
 requirements:
   host:
     - python
-    - pip
-    - numpy >=1.13
-    - scipy >=0.17
+    {% for dep in pyproject.get('project', {}).get('dependencies') %}
+    - {{ dep }}
+    {% endfor %}
   run:
     - python
-    - numpy >=1.13
-    - scipy >=0.17
+    {% for dep in pyproject.get('project', {}).get('dependencies') %}
+    - {{ dep }}
+    {% endfor %}
 
 build:
   noarch: python
   script: python -m pip install --no-deps --ignore-installed .
 
-
 about:
-  home: {{ load_setup_py_data().url }}
-  license: {{ load_setup_py_data().license }}
-  license_file: LICENSE
-  summary: {{ load_setup_py_data().description }}
+  home: {{ pyproject.get('project', {}).get('urls', {}).get('"Homepage"') }}
+  license: {{ pyproject.get('project', {}).get('license') }}
+  license_file: {{ pyproject.get('project', {}).get('license', {}).get('file', LICENSE) }}
+  summary: {{ pyproject.get('project', {}).get('description') }}
   doc_url: https://aaronkho.gitlab.io/{{ name }}
 
 extra:

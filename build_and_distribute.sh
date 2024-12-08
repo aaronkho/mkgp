@@ -19,8 +19,8 @@ fi
 CONDA_BUILD_DIR=conda-build
 ANACONDA_USER=aaronkho
 CURRENT_PLATFORM=$(conda info --json | grep platform | cut -d'"' -f4)
-declare -a PYTHON_VERSIONS=("2.7" "3.5" "3.6")
-declare -a PLATFORMS=("linux-64" "osx-64")
+declare -a PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12")
+declare -a PLATFORMS=("linux-64" "osx-64" "osx-arm64")
 
 # Build. This package is pure-python, so only one build necessary
 rm -rf $CONDA_BUILD_DIR
