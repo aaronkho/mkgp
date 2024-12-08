@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=62.0", "wheel", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpr1d"
+description = "Classes for Gaussian Process Regression fitting of 1D data with errorbars"
+readme = "README.rst"
+requires-python = ">=3.7,<3.13"
+license = {file = "LICENSE"}
+keywords = ["gaussian process regression", "1D data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
+authors = [
+  {name = "Aaron Ho", email = "aaronkho@mit.edu" }
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "Topic :: Utilities",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version"]
+
+dependencies = [
+  "pip",
+  "numpy>=1.13",
+  "scipy>=0.17",
+  "pandas",
+  "ipython",
+]
+
+[project.optional-dependencies]
+dev = ["coverage", "pytest", "pytest-cov"]
+build = ["build", "twine"]
+demo = ["matplotlib"]
+gui = ["pyqt5", "matplotlib"]
+profile = ["scikit-learn"]
+
+[project.urls]
+"Homepage" = "https://gitlab.com/aaronkho/GPR1D"
+"Bug Reports" = "https://gitlab.com/aaronkho/GPR1D/-/issues"
+"Source" = "https://gitlab.com/aaronkho/GPR1D"
+
+[project.scripts]
+gpr1d_demo = "gpr1d.scripts.demo:main"
+gpr1d_profiler = "gpr1d.scripts.profiler:main"
+gpr1d_gui = "gpr1d.gui.gui:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "gpr1d.__version__"}
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-options]
+index-url = "https://pypi.org/simple"
+
+[tool.pixi.pypi-dependencies]
+gpr1d = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = {features = ["gui", "demo"], solve-group = "default"}
+develop = {features = ["dev", "build", "gui", "demo", "profile"], solve-group = "develop"}
+

@@ -3,74 +3,97 @@
 import pytest
 import numpy as np
 from operator import itemgetter
-import GPR1D
+
+from gpr1d.core.kernels import (
+    _Kernel,
+    _OperatorKernel,
+    _WarpingFunction,
+    Constant_Kernel,
+    Noise_Kernel,
+    Linear_Kernel,
+    Poly_Order_Kernel,
+    SE_Kernel,
+    RQ_Kernel,
+    Matern_HI_Kernel,
+    Gibbs_Kernel,
+    Sum_Kernel,
+    Product_Kernel,
+    Constant_WarpingFunction,
+    IG_WarpingFunction,
+)
+from gpr1d.core.routines import (
+    GaussianProcessRegression1D,
+)
+from gpr1d.core.simple import (
+    SimplifiedGaussianProcessRegression1D
+)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def empty_warping_function():
-    return GPR1D._WarpingFunction()
+    return _WarpingFunction()
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def constant_warping_function():
-    return GPR1D.Constant_WarpingFunction(1.0)
+    return Constant_WarpingFunction(1.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def inverse_gaussian_warping_function():
-    return GPR1D.IG_WarpingFunction(0.5,0.4,0.05,0.9,0.8)
+    return IG_WarpingFunction(0.5, 0.4, 0.05, 0.9, 0.8)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def empty_kernel():
-    return GPR1D._Kernel()
+    return _Kernel()
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def constant_kernel():
-    return GPR1D.Constant_Kernel(2.0)
+    return Constant_Kernel(2.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def noise_kernel():
-    return GPR1D.Noise_Kernel(1.0)
+    return Noise_Kernel(1.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def linear_kernel():
-    return GPR1D.Linear_Kernel(2.0)
+    return Linear_Kernel(2.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def poly_order_kernel():
-    return GPR1D.Poly_Order_Kernel(2.0,1.0)
+    return Poly_Order_Kernel(2.0, 1.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def se_kernel():
-    return GPR1D.SE_Kernel(1.0,0.5)
+    return SE_Kernel(1.0, 0.5)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def rq_kernel():
-    return GPR1D.RQ_Kernel(1.0,0.5,5.0)
+    return RQ_Kernel(1.0, 0.5, 5.0)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def matern_hi_kernel():
-    return GPR1D.Matern_HI_Kernel(1.0,0.5,2.5)
+    return Matern_HI_Kernel(1.0, 0.5, 2.5)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def gibbs_constant_kernel(constant_warping_function):
-    return GPR1D.Gibbs_Kernel(1.0,constant_warping_function)
+    return Gibbs_Kernel(1.0, constant_warping_function)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def gibbs_inverse_gaussian_kernel(inverse_gaussian_warping_function):
-    return GPR1D.Gibbs_Kernel(1.0,inverse_gaussian_warping_function)
+    return Gibbs_Kernel(1.0, inverse_gaussian_warping_function)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def empty_operator_kernel():
-    return GPR1D._OperatorKernel()
+    return _OperatorKernel()
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def sum_kernel(se_kernel,noise_kernel):
-    return GPR1D.Sum_Kernel(se_kernel,noise_kernel)
+    return Sum_Kernel(se_kernel, noise_kernel)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def product_kernel(linear_kernel):
-    return GPR1D.Product_Kernel(linear_kernel,linear_kernel)
+    return Product_Kernel(linear_kernel, linear_kernel)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def linear_test_data():
     # Made to follow y = 1.9 * x with x_error = N(0,0.02) and y_error = N(0,0.2)
     xvalues = np.array([-0.96740013, -0.87351828, -0.82642837, -0.70047194, -0.59080932,
@@ -78,15 +101,15 @@ def linear_test_data():
                          0.01570590,  0.10126372,  0.19727240,  0.28985247,  0.41903549,
                          0.54407216,  0.61490052,  0.67747007,  0.81998975,  0.90411010,
                          0.95085251])
-    xerrors = np.full(xvalues.shape,0.02)
+    xerrors = np.full(xvalues.shape, 0.02)
     yvalues = np.array([-1.99033519, -1.77994779, -1.81395185, -1.34285693, -1.18439277,
                         -0.76244458, -0.69355271, -0.45994556, -0.22130082, -0.17259663,
                          0.18375909,  0.20151468,  0.20361261,  0.42478122,  0.97264555,
                          0.97186543,  1.15666269,  0.96138111,  1.69555386,  1.75694618,
                          1.77774039])
     yerrors = np.abs(yvalues) * 0.1
-    gpinput = np.vstack((xvalues,yvalues,yerrors,xerrors))
-    xoutput = np.linspace(-1.0,1.0,31)  # Chosen to be distinct from input x vector
+    gpinput = np.vstack((xvalues, yvalues, yerrors, xerrors))
+    xoutput = np.linspace(-1.0, 1.0, 31)  # Chosen to be distinct from input x vector
     ref_mean = np.array([-1.92347366, -1.79560673, -1.66773979, -1.53987285, -1.41200592,
                          -1.28413898, -1.15627204, -1.02840511, -0.90053817, -0.77267124,
                          -0.64480430, -0.51693736, -0.38907043, -0.26120349, -0.13333656,
@@ -101,7 +124,7 @@ def linear_test_data():
                         0.11744278, 0.11781242, 0.11824779, 0.11874815, 0.11931268,
                         0.11994049, 0.12063059, 0.1213819 , 0.12219331, 0.12306362,
                         0.12399159])
-    ref_derivative_mean = np.full(xoutput.shape,1.91800404)
+    ref_derivative_mean = np.full(xoutput.shape, 1.91800404)
     ref_derivative_std = np.array([0.12399159, 0.13185388, 0.14099228, 0.15172738, 0.16449626,
                                    0.17991074, 0.19885447, 0.22265278, 0.25338812, 0.29453106,
                                    0.35232833, 0.43927302, 0.58451513, 0.87550381, 1.74948319,
@@ -109,7 +132,7 @@ def linear_test_data():
                                    0.35232833, 0.29453106, 0.25338812, 0.22265278, 0.19885447,
                                    0.17991074, 0.16449626, 0.15172738, 0.14099228, 0.13185388,
                                    0.12399159])
-    ref_target = np.vstack((ref_mean,ref_std,ref_derivative_mean,ref_derivative_std))
+    ref_target = np.vstack((ref_mean, ref_std, ref_derivative_mean, ref_derivative_std))
     ref_lml = 19.7879497328
     ref_null_lml = -1009.74859926
     hs_mean = np.array([-2.54429848, -2.37504322, -2.20578797, -2.03653271, -1.86727745,
@@ -126,7 +149,7 @@ def linear_test_data():
                        0.09787608, 0.09821823, 0.09863164, 0.09911540, 0.09966851,
                        0.1002898 , 0.10097803, 0.10173183, 0.10254975, 0.10343028,
                        0.10437183])
-    hs_derivative_mean = np.full(xoutput.shape,2.53882886)
+    hs_derivative_mean = np.full(xoutput.shape, 2.53882886)
     hs_derivative_std = np.array([0.10601130, 0.11247294, 0.11999606, 0.12884810, 0.13939371,
                                   0.15214330, 0.16783403, 0.18757147, 0.21309275, 0.24729284,
                                   0.29538233, 0.36778193, 0.48880593, 0.73139612, 1.46025912,
@@ -148,7 +171,7 @@ def linear_test_data():
                        0.05587607, 0.06913114, 0.08346096, 0.09846393, 0.11368536,
                        0.12862426, 0.14275374, 0.1555547 , 0.16655913, 0.17539552,
                        0.18182756])
-    hs_derivative_mean = np.full(xoutput.shape,1.74955067)
+    hs_derivative_mean = np.full(xoutput.shape, 1.74955067)
     hs_derivative_std = np.array([0.21496683, 0.24285578, 0.27287635, 0.30052605, 0.32193352,
                                   0.33428406, 0.33598285, 0.32666075, 0.30707488, 0.27897202,
                                   0.24504937, 0.20935282, 0.17925773, 0.17366077, 0.26740397,
@@ -156,7 +179,7 @@ def linear_test_data():
                                   0.24948387, 0.26747676, 0.28171492, 0.29072559, 0.29349435,
                                   0.28944770, 0.27859694, 0.26171101, 0.24042717, 0.21722140,
                                   0.19514516])
-    hs_target = np.vstack((hs_mean,hs_std,hs_derivative_mean,hs_derivative_std))
+    hs_target = np.vstack((hs_mean, hs_std, hs_derivative_mean, hs_derivative_std))
     hs_lml = -46.6833105933
     hs_null_lml = -1007.28701166
     ni_mean = np.array([-1.74042085, -1.62475743, -1.50909402, -1.39343060, -1.27776719,
@@ -173,7 +196,7 @@ def linear_test_data():
                        0.06781651, 0.07899325, 0.09124076, 0.10434916, 0.11806966,
                        0.13208448, 0.14598845, 0.15929423, 0.17146629, 0.18197941,
                        0.19038861])
-    ni_derivative_mean = np.full(xoutput.shape,1.73495123)
+    ni_derivative_mean = np.full(xoutput.shape, 1.73495123)
     ni_derivative_std = np.array([0.22791510, 0.25689235, 0.28605774, 0.31068007, 0.32710750,
                                   0.33321264, 0.32853134, 0.31417169, 0.29257742, 0.26731469,
                                   0.24319884, 0.22736976, 0.23273144, 0.28997513, 0.53348137,
@@ -181,7 +204,7 @@ def linear_test_data():
                                   0.25421704, 0.26083285, 0.26939502, 0.27752553, 0.28345370,
                                   0.28556772, 0.28245637, 0.27322900, 0.2579224 , 0.23780856,
                                   0.21544209])
-    ni_target = np.vstack((ni_mean,ni_std,ni_derivative_mean,ni_derivative_std))
+    ni_target = np.vstack((ni_mean, ni_std, ni_derivative_mean, ni_derivative_std))
     ni_lml = 3.98229778152
     ni_null_lml = -732.662302649
     xy_mean = np.array([-1.79799505, -1.67849335, -1.55899166, -1.43948996, -1.31998827,
@@ -198,7 +221,7 @@ def linear_test_data():
                        0.06810521, 0.07957447, 0.09220527, 0.10568267, 0.11960885,
                        0.13350941, 0.14685916, 0.15912419, 0.16981368, 0.17853179,
                        0.18502017])
-    xy_derivative_mean = np.full(xoutput.shape,1.79252543)
+    xy_derivative_mean = np.full(xoutput.shape, 1.79252543)
     xy_derivative_std = np.array([0.21761201, 0.24396712, 0.27168392, 0.29653606, 0.31494765,
                                   0.32446884, 0.32399891, 0.31384643, 0.29569408, 0.27258904,
                                   0.24921672, 0.23302527, 0.23761033, 0.29459353, 0.53989551,
@@ -206,36 +229,45 @@ def linear_test_data():
                                   0.25686483, 0.26532472, 0.27498041, 0.28257315, 0.28586099,
                                   0.28339810, 0.27459532, 0.25983562, 0.24052033, 0.21896468,
                                   0.19806665])
-    xy_target = np.vstack((xy_mean,xy_std,xy_derivative_mean,xy_derivative_std))
+    xy_target = np.vstack((xy_mean, xy_std, xy_derivative_mean, xy_derivative_std))
     xy_lml = 4.83962150611
     xy_null_lml = -749.992013630
-    return (gpinput,xoutput,
-            ref_target,ref_lml,ref_null_lml,
-            hs_target,hs_lml,hs_null_lml,
-            ni_target,ni_lml,ni_null_lml,
-            xy_target,xy_lml,xy_null_lml)
+    return (
+        gpinput, xoutput,
+        ref_target, ref_lml, ref_null_lml,
+        hs_target, hs_lml, hs_null_lml,
+        ni_target, ni_lml, ni_null_lml,
+        xy_target, xy_lml, xy_null_lml
+    )
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def empty_gpr_object():
-    return GPR1D.GaussianProcessRegression1D()
+    return GaussianProcessRegression1D()
 
-@pytest.fixture(scope="class")
-def unoptimized_gpr_object(linear_kernel,linear_test_data):
+@pytest.fixture(scope='class')
+def unoptimized_gpr_object(linear_kernel, linear_test_data):
     gpr_input = itemgetter(0)(linear_test_data)
-    gpr_object = GPR1D.GaussianProcessRegression1D()
+    gpr_object = GaussianProcessRegression1D()
     gpr_object.set_kernel(kernel=linear_kernel)
-    gpr_object.set_raw_data(xdata=gpr_input[0,:],ydata=gpr_input[1,:],yerr=gpr_input[2,:],xerr=gpr_input[3,:])
+    gpr_object.set_raw_data(xdata=gpr_input[0, :], ydata=gpr_input[1, :], yerr=gpr_input[2, :], xerr=gpr_input[3, :])
     return gpr_object
 
-@pytest.fixture(scope="class")
-def simplified_unoptimized_gpr_object(linear_kernel,linear_test_data):
+@pytest.fixture(scope='class')
+def simplified_unoptimized_gpr_object(linear_kernel, linear_test_data):
     gpr_input = itemgetter(0)(linear_test_data)
-    gpr_object = GPR1D.SimplifiedGaussianProcessRegression1D(kernel=linear_kernel,xdata=gpr_input[0,:],ydata=gpr_input[1,:],
-                                                             yerr=gpr_input[2,:],xerr=gpr_input[3,:],reg_par=1.0,epsilon="None")
+    gpr_object = SimplifiedGaussianProcessRegression1D(
+        kernel=linear_kernel,
+        xdata=gpr_input[0, :],
+        ydata=gpr_input[1, :],
+        yerr=gpr_input[2, :],
+        xerr=gpr_input[3, :],
+        reg_par=1.0,
+        epsilon='None'
+    )
     gpr_object.set_error_search_parameters(epsilon='None')
     return gpr_object
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def gaussian_test_data():
     # Made to follow y = exp(- x^2 / (2 * 0.3^2)) with x_error = N(0,0.02) and y_error = N(0,0.05)
     xvalues = np.array([-1.00540703, -0.89343136, -0.81342899, -0.71212131, -0.61382335,
@@ -243,20 +275,20 @@ def gaussian_test_data():
                         -0.04283059,  0.10003251,  0.20386169,  0.29962928,  0.40300245,
                          0.48250891,  0.63064336,  0.69389597,  0.80410067,  0.94612883,
                          0.99258774])
-    xerrors = np.full(xvalues.shape,0.02)
+    xerrors = np.full(xvalues.shape, 0.02)
     yvalues = np.array([ 0.03085014,  0.07193564, -0.01577018,  0.07841518,  0.05814738,
                          0.34168284,  0.35344264,  0.5136707 ,  0.78512886,  0.91773780,
                          1.03413131,  0.89498977,  0.76891424,  0.67849064,  0.46100151,
                          0.2735394 ,  0.13281691,  0.07783454,  0.07562198,  0.04154204,
                          0.03022913])
-    yerrors = np.full(yvalues.shape,0.05)
-    return (xvalues,xerrors,yvalues,yerrors)
+    yerrors = np.full(yvalues.shape, 0.05)
+    return (xvalues, xerrors, yvalues, yerrors)
 
-@pytest.fixture(scope="function")
-def preoptimization_gpr_object(rq_kernel,gaussian_test_data):
-    (xvalues,xerrors,yvalues,yerrors) = gaussian_test_data
-    gpr_object = GPR1D.GaussianProcessRegression1D()
+@pytest.fixture(scope='function')
+def preoptimization_gpr_object(rq_kernel, gaussian_test_data):
+    xvalues, xerrors, yvalues, yerrors = gaussian_test_data
+    gpr_object = GaussianProcessRegression1D()
     gpr_object.set_kernel(kernel=rq_kernel)
-    gpr_object.set_raw_data(xdata=xvalues,ydata=yvalues,yerr=yerrors,xerr=xerrors)
+    gpr_object.set_raw_data(xdata=xvalues, ydata=yvalues, yerr=yerrors, xerr=xerrors)
     return gpr_object
 

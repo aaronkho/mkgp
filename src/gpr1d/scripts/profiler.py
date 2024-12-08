@@ -12,9 +12,11 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, RationalQuadratic, Product
 
 # Assumes this is already installed via 'pip install'
-import GPR1D   
+from gpr1d.core.kernels import RQ_Kernel
+from gpr1d.core.routines import GaussianProcessRegression1D
 
 def generate_sample_raw_data(n_points, x_spread, y_spread, intercept, slopeA, slopeB, boundaryA, boundaryB):
+
     x_values = np.linspace(0.0, 1.0, n_points)
     y_values = slopeA * x_values + intercept
     boundaryA_filter = (x_values >= boundaryA)
@@ -43,7 +45,7 @@ def perform_gpr1d_with_profiler(n_fit_points, raw_x_values, raw_y_values, raw_y_
 
     # Define a kernel to fit the data itself
     #     Rational quadratic kernel is usually robust enough for general fitting
-    kernel = GPR1D.RQ_Kernel(1.0e0, 1.0e0, 5.0e0)
+    kernel = RQ_Kernel(1.0e0, 1.0e0, 5.0e0)
 
     # This is only necessary if using kernel restart option on the data fitting
     kernel_hyppar_bounds = np.atleast_2d([[1.0e-1, 1.0e-1, 1.0e0], [1.0e1, 1.0e0, 2.0e1]])
@@ -54,7 +56,7 @@ def perform_gpr1d_with_profiler(n_fit_points, raw_x_values, raw_y_values, raw_y_
 
     # GPR fit using y-errors only as weights
     #     Create class object to store raw data, kernels, and settings
-    gpr_object = GPR1D.GaussianProcessRegression1D()
+    gpr_object = GaussianProcessRegression1D()
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     gpr_object.set_kernel(kernel=kernel, kbounds=kernel_hyppar_bounds, regpar=1.0)
