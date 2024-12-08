@@ -7,7 +7,7 @@ name = "gpr1d"
 description = "Classes for Gaussian Process Regression fitting of 1D data with errorbars"
 readme = "README.rst"
 requires-python = ">=3.7,<3.13"
-license = {file = "LICENSE", text = "MIT License"}
+license = {file = "LICENSE"}
 keywords = ["gaussian process regression", "1D data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
 authors = [
   {name = "Aaron Ho", email = "aaronkho@mit.edu" }
