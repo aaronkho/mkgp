@@ -10,7 +10,7 @@ then
     echo "Unable to run 'conda'. Please install it with your system package manager"; exit 1
 fi
 conda build --help > /dev/null
-anaconda --help > /dev/null 2&>1
+anaconda --help > /dev/null
 if [ $? -ne 0 ]
 then
     echo "Unable to run 'anaconda'. Please install it using 'conda install anaconda-client'"; exit 1

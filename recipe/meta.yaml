@@ -1,0 +1,38 @@
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=True, recipe_dir='recipe') %}
+{% set name = pyproject['project']['name'] %}
+{% set version = '2.0.0' %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  git_rev: v{{ version }}
+  git_url: {{ pyproject['project']['urls']['Source'] }}
+
+requirements:
+  host:
+    - python
+    {% for dep in pyproject['project']['dependencies'] %}
+    - {{ dep }}
+    {% endfor %}
+  run:
+    - python
+    {% for dep in pyproject['project']['dependencies'] %}
+    - {{ dep }}
+    {% endfor %}
+
+build:
+  noarch: python
+  script: python -m pip install --no-deps --ignore-installed .
+
+about:
+  home: {{ pyproject['project']['urls']['Homepage'] }}
+  license: {{ pyproject['project']['license'] }}
+  license_file: {{ pyproject['project']['license']['file'] }}
+  summary: {{ pyproject['project']['description'] }}
+  doc_url: https://aaronkho.gitlab.io/{{ name|upper }}
+
+extra:
+  recipe-maintainers:
+    - aaronkho
