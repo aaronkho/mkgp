@@ -28,7 +28,7 @@ build:
 
 about:
   home: {{ pyproject['project']['urls']['Homepage'] }}
-  license: {{ pyproject['project']['license'] }}
+  license: {{ pyproject['project']['license']['text'] }}
   license_file: {{ pyproject['project']['license']['file'] }}
   summary: {{ pyproject['project']['description'] }}
   doc_url: https://aaronkho.gitlab.io/{{ name|upper }}

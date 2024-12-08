@@ -9,7 +9,7 @@ __pycache__/
 # Build directories
 dist/
 build/
-conda_build/
+conda-build/
 
 # Jupyter Notebook
 .ipynb_checkpoints
