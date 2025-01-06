@@ -1081,7 +1081,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fNewData = False
-        self.gpr = GPR1D.GaussianProcessRegression1D()
+        self.gpr = GaussianProcessRegression1D()
         location = Path(inspect.getsourcefile(type(self.gpr)))
         self.srcdir = location.parent
         print(f'Using GPR1D definition from: {self.srcdir}')
@@ -1811,7 +1811,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 ykhyps = np.hstack((ykhyps, float(self.YNoiseHypEntry.text()))) if ykhyps is not None else None
                 ykbounds = np.vstack((ykbounds, np.atleast_2d([float(self.YNoiseLBEntry.text()), float(self.YNoiseUBEntry.text())]))) if ykbounds is not None else None
             ynres = int(float(self.YNRestartsEntry.text())) if self.YKernelRestartBox.isChecked() else None
-            ykernel = GPR1D.KernelReconstructor(ykname, pars=np.hstack((ykhyps, ykcsts)))
+            ykernel = KernelReconstructor(ykname, pars=np.hstack((ykhyps, ykcsts)))
             if ykbounds is not None:
                 ykbounds = np.transpose(ykbounds)
 
@@ -1834,7 +1834,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                     ekhyps = np.hstack((ekhyps, float(self.ENoiseHypEntry.text()))) if ekhyps is not None else None
                     ekbounds = np.vstack((ekbounds, np.atleast_2d([float(self.ENoiseLBEntry.text()), float(self.ENoiseUBEntry.text())]))) if ekbounds is not None else None
                 enres = int(float(self.ENRestartsEntry.text())) if self.EKernelRestartBox.isChecked() else None
-                ekernel = GPR1D.KernelReconstructor(ekname, pars=np.hstack((ekhyps, ekcsts)))
+                ekernel = KernelReconstructor(ekname, pars=np.hstack((ekhyps, ekcsts)))
             if ekbounds is not None:
                 ekbounds = np.transpose(ekbounds)
             vary_yerrs = self.HeteroscedasticBox.isChecked() if ekernel is not None else False

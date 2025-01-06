@@ -3147,6 +3147,45 @@ class GaussianProcessRegression1D():
         return (sbarM, ssigM, sdbarM, sdsigM)
 
 
+    def save_raw_data_ascii(self, path):
+        with open(path, 'w') as ff:
+            xraw, yraw, xeraw, yeraw, dxraw, dyraw, dyeraw = self.get_raw_data()
+            xtag = 'X'
+            ytag = 'Y'
+            yetag = 'Y Err.'
+            xetag = 'X Err.'
+            ff.write(f'  {xtag:>15}{ytag:>15}{yetag:>15}{xetag:>15}\n')
+            for ii in np.arange(yraw.size):
+                ff.write(f'  {xraw[ii]:15.6e}{yraw[ii]:15.6e}{yeraw[ii]:15.6e}{xeraw[ii]:15.6e}\n')
+            if len(dyraw) > 0:
+                dxeraw = np.zeros(dxraw.shape)
+                dytag = f'd{ytag}'
+                dyetag = f'd{yetag}'
+                ff.write('\n')
+                ff.write(f'  {xtag:>15}{dytag:>15}{dyetag:>15}{xetag:>15}\n')
+                for ii in np.arange(dyraw.size):
+                    ff.write(f'! {dxraw[ii]:15.6e}{dyraw[ii]:15.6e}{dyeraw[ii]:15.6e}{dxeraw[ii]:15.6e}\n')
+            print(f'Raw data written into {path}.')
+
+
+    def save_fit_data_ascii(self, path):
+        with open(path, 'w') as ff:
+            xfit = self.get_gp_x()
+            yfit = self.get_gp_mean()
+            yefit = self.get_gp_std(noise_flag=True)
+            dyfit = self.get_gp_drv_mean()
+            dyefit = self.get_gp_drv_std(noise_flag=False)
+            xtag = 'X'
+            ytag = 'Y'
+            yetag = 'Y Err.'
+            dytag = f'd{ytag}'
+            dyetag = f'd{yetag}'
+            ff.write(f'  {xtag:>15}{ytag:>15}{yetag:>15}{dytag:>15}{dyetag:>15}\n')
+            for ii in np.arange(yfit.size):
+                ff.write(f'  {xfit[ii]:15.6e}{yfit[ii]:15.6e}{yefit[ii]:15.6e}{dyfit[ii]:15.6e}{dyefit[ii]:15.6e}\n')
+            print(f'Fit data written into {path}.')
+
+
 
 class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
     r'''
