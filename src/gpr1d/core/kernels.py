@@ -1701,8 +1701,8 @@ class Constant_WarpingFunction(_WarpingFunction):
         
 class Linear_WarpingFunction(_WarpingFunction):
     r'''
-    Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
-    
+    Linear Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
+
     :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
     '''
 
@@ -1726,20 +1726,16 @@ class Linear_WarpingFunction(_WarpingFunction):
         b_hyp = hyps[1]
         warp = np.zeros(zz.shape)
         if der == 0:
-            	if hder is None:
-                	warp = c_hyp * zz + b_hyp
-            	elif hder == 0:
-                	warp = zz.copy()
+            if hder is None:
+                warp = c_hyp * zz + b_hyp
+            elif hder == 0:
+                warp = zz.copy()
         elif der == 1:
-        	if hder is None:
-        		warp = c_hyp * np.ones(zz.shape)
-        	elif hder == 0:
-        		warp = np.ones(zz.shape)
-        
+            if hder is None:
+                warp = c_hyp * np.ones(zz.shape)
+            elif hder == 0:
+                warp = np.ones(zz.shape)
         return warp
-        
-        	
-        
 
 
     def __init__(self, cv=1.0, bv = 2.0):
@@ -1760,7 +1756,7 @@ class Linear_WarpingFunction(_WarpingFunction):
             hyps[1] = float(bv)
         else:
             raise ValueError('Constant value must be a real number.')
-        super().__init__('C2D', self.__calc_warp, True, hyps)
+        super().__init__('L2', self.__calc_warp, True, hyps)
 
 
     def __copy__(self):
