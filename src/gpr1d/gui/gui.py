@@ -1858,7 +1858,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
                 print(f'Final adjusted R-squared:      {rsad:15.8f}')
                 print(f'Final pseudo R-squared (CS):   {rscs:15.8f}')
                 if (isinstance(eeps, (float, int)) and eeps > 0.0) or (isinstance(enres, (float, int)) and enres > 0):
-                    ehyps = self.gpr.get_error_kernel().hyperparameters
+                    ehyps = self.gpr.get_gp_error_kernel().hyperparameters
                     print('   --- Optimized error kernel hyperparameters: ---')
                     print(ehyps)
                 if (isinstance(yeps, (float, int)) and yeps > 0.0) or (isinstance(ynres, (float, int)) and ynres > 0):
