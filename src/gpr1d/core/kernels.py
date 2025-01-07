@@ -1697,6 +1697,89 @@ class Constant_WarpingFunction(_WarpingFunction):
         if bnds is not None:
             kcopy.bounds = bnds
         return kcopy
+        
+        
+class Linear_WarpingFunction(_WarpingFunction):
+    r'''
+    Constant Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
+    
+    :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
+    '''
+
+    def __calc_warp(self, zz, der=0, hder=None):
+        r'''
+        Implementation-specific warping function.
+
+        :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
+
+        :kwarg der: int. Order of z derivative with which to evaluate the warping function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
+
+        :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
+        '''
+
+	
+        hyps = self.hyperparameters
+        csts = self.constants
+        c_hyp = hyps[0]
+        b_hyp = hyps[1]
+        warp = np.zeros(zz.shape)
+        if der == 0:
+            	if hder is None:
+                	warp = c_hyp * zz + b_hyp
+            	elif hder == 0:
+                	warp = zz.copy()
+        elif der == 1:
+        	if hder is None:
+        		warp = c_hyp * np.ones(zz.shape)
+        	elif hder == 0:
+        		warp = np.ones(zz.shape)
+        
+        return warp
+        
+        	
+        
+
+
+    def __init__(self, cv=1.0, bv = 2.0):
+        r'''
+        Initializes the :code:`Constant_WarpingFunction` instance.
+
+        :kwarg cv: float. Hyperparameter representing constant value which warping function always evaluates to.
+
+        :returns: none.
+        '''
+
+        hyps = np.zeros((2, ))
+        if isinstance(cv, number_types):
+            hyps[0] = float(cv)
+        else:
+            raise ValueError('Constant value must be a real number.')
+        if isinstance(bv, number_types):
+            hyps[1] = float(bv)
+        else:
+            raise ValueError('Constant value must be a real number.')
+        super().__init__('C2D', self.__calc_warp, True, hyps)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
+        bhp = float(hyps[1])
+        kcopy = Linear_WarpingFunction(chp, bhp)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
+        return kcopy
 
 
 
