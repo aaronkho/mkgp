@@ -90,11 +90,11 @@ class TestConstantKernel():
 
     x1_vector = np.array([0.0, 1.0])
     x2_vector = np.array([0.0, 1.0])
-    ref_cov = np.full((x1_vector.size, x2_vector.size), 2.0)
-    ref_dcov = np.zeros((x1_vector.size, x2_vector.size))
-    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size))
+    ref_cov = np.full((x1_vector.size, x2_vector.size), 2.0).T
+    ref_dcov = np.zeros((x1_vector.size, x2_vector.size)).T
+    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size)).T
     ref_hdcov = [
-        np.ones((x1_vector.size, x2_vector.size)),
+        np.ones((x1_vector.size, x2_vector.size)).T,
     ]
 
     def test_eval(self, constant_kernel):
@@ -123,8 +123,8 @@ class TestNoiseKernel():
     x1_vector = np.array([0.0, 1.0])
     x2_vector = np.array([0.0, 1.0])
     ref_cov = np.diag(np.power(np.ones(x1_vector.shape), 2.0))
-    ref_dcov = np.zeros((x1_vector.size, x2_vector.size))
-    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size))
+    ref_dcov = np.zeros((x1_vector.size, x2_vector.size)).T
+    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size)).T
     ref_hdcov = [
         np.diag(2.0 * np.ones(x1_vector.shape)),
     ]
