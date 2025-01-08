@@ -204,7 +204,7 @@ class Product_Kernel(_OperatorKernel):
         return kcopy
 
 
-class 2D_Kernel(_OperatorKernel):
+class Kernel2D(_OperatorKernel):
     r'''
     Product Kernel: Implements the product of two (or more) separate kernels.
 
