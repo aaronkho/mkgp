@@ -88,72 +88,72 @@ class TestAutoKernelCreation():
 @pytest.mark.usefixtures('constant_kernel')
 class TestConstantKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
-    ref_cov = np.full(x1.shape, 2.0)
-    ref_dcov = np.zeros(x1.shape)
-    ref_ddcov = np.zeros(x1.shape)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
+    ref_cov = np.full((x1_vector.size, x2_vector.size), 2.0)
+    ref_dcov = np.zeros((x1_vector.size, x2_vector.size))
+    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size))
     ref_hdcov = [
-        np.ones(x1.shape),
+        np.ones((x1_vector.size, x2_vector.size)),
     ]
 
     def test_eval(self, constant_kernel):
-        assert check_kernel_evaluation(constant_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(constant_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, constant_kernel):
-        assert check_kernel_evaluation(constant_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(constant_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, constant_kernel):
-        assert check_kernel_transposition(constant_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(constant_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, constant_kernel):
-        assert check_kernel_evaluation(constant_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(constant_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self,constant_kernel):
         if constant_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(constant_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(constant_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, constant_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('noise_kernel')
 class TestNoiseKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
-    ref_cov = np.diag(np.power(np.ones(test_x_vector.shape), 2.0))
-    ref_dcov = np.zeros(x1.shape)
-    ref_ddcov = np.zeros(x1.shape)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
+    ref_cov = np.diag(np.power(np.ones(x1_vector.shape), 2.0))
+    ref_dcov = np.zeros((x1_vector.size, x2_vector.size))
+    ref_ddcov = np.zeros((x1_vector.size, x2_vector.size))
     ref_hdcov = [
-        np.diag(2.0 * np.ones(test_x_vector.shape)),
+        np.diag(2.0 * np.ones(x1_vector.shape)),
     ]
 
     def test_eval(self, noise_kernel):
-        assert check_kernel_evaluation(noise_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(noise_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self,noise_kernel):
-        assert check_kernel_evaluation(noise_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(noise_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, noise_kernel):
-        assert check_kernel_transposition(noise_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(noise_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, noise_kernel):
-        assert check_kernel_evaluation(noise_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(noise_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, noise_kernel):
         if noise_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(noise_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(noise_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, noise_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('linear_kernel')
 class TestLinearKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[0.0, 0.0], [0.0, 4.0]])
     ref_dcov = np.atleast_2d([[0.0, 4.0], [0.0, 4.0]])
     ref_ddcov = np.atleast_2d([[4.0, 4.0], [4.0, 4.0]])
@@ -162,30 +162,30 @@ class TestLinearKernel():
     ]
 
     def test_eval(self, linear_kernel):
-        assert check_kernel_evaluation(linear_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(linear_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, linear_kernel):
-        assert check_kernel_evaluation(linear_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(linear_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, linear_kernel):
-        assert check_kernel_transposition(linear_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(linear_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, linear_kernel):
-        assert check_kernel_evaluation(linear_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(linear_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, linear_kernel):
         if linear_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(linear_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(linear_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, linear_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('poly_order_kernel')
 class TestPolyOrderKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 1.0], [1.0, 5.0]])
     ref_dcov = np.atleast_2d([[0.0, 4.0], [0.0, 4.0]])
     ref_ddcov = np.atleast_2d([[4.0, 4.0], [4.0, 4.0]])
@@ -195,30 +195,30 @@ class TestPolyOrderKernel():
     ]
 
     def test_eval(self, poly_order_kernel):
-        assert check_kernel_evaluation(poly_order_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(poly_order_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, poly_order_kernel):
-        assert check_kernel_evaluation(poly_order_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(poly_order_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, poly_order_kernel):
-        assert check_kernel_transposition(poly_order_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(poly_order_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, poly_order_kernel):
-        assert check_kernel_evaluation(poly_order_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(poly_order_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, poly_order_kernel):
         if poly_order_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(poly_order_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(poly_order_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, poly_order_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('se_kernel')
 class TestSquareExponentialKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 0.13533528323], [0.13533528323, 1.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.54134113295], [-0.54134113295, 0.0]])
     ref_ddcov = np.atleast_2d([[4.0, -1.62402339884], [-1.62402339884, 4.0]])
@@ -228,30 +228,30 @@ class TestSquareExponentialKernel():
     ]
 
     def test_eval(self, se_kernel):
-        assert check_kernel_evaluation(se_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(se_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, se_kernel):
-        assert check_kernel_evaluation(se_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(se_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, se_kernel):
-        assert check_kernel_transposition(se_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(se_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, se_kernel):
-        assert check_kernel_evaluation(se_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(se_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, se_kernel):
         if se_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(se_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(se_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, se_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('rq_kernel')
 class TestRationalQuadraticKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 0.18593443208], [0.18593443208, 1.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.53124123452], [-0.53124123452, 0.0]])
     ref_ddcov = np.atleast_2d([[4.0, -1.29015728383], [-1.29015728383, 4.0]])
@@ -262,30 +262,30 @@ class TestRationalQuadraticKernel():
     ]
 
     def test_eval(self, rq_kernel):
-        assert check_kernel_evaluation(rq_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(rq_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, rq_kernel):
-        assert check_kernel_evaluation(rq_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(rq_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, rq_kernel):
-        assert check_kernel_transposition(rq_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(rq_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, rq_kernel):
-        assert check_kernel_evaluation(rq_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(rq_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, rq_kernel):
         if rq_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(rq_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(rq_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, rq_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('matern_hi_kernel')
 class TestMaternHalfIntegerKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 0.13866021914], [0.13866021914, 1.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.41671741677], [-0.41671741677, 0.0]])
     ref_ddcov = np.atleast_2d([[6.66666666667, -1.10633471569], [-1.10633471569, 6.66666666667]])
@@ -295,30 +295,30 @@ class TestMaternHalfIntegerKernel():
     ]
 
     def test_eval(self, matern_hi_kernel):
-        assert check_kernel_evaluation(matern_hi_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(matern_hi_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, matern_hi_kernel):
-        assert check_kernel_evaluation(matern_hi_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(matern_hi_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, matern_hi_kernel):
-        assert check_kernel_transposition(matern_hi_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(matern_hi_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, matern_hi_kernel):
-        assert check_kernel_evaluation(matern_hi_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(matern_hi_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, matern_hi_kernel):
         if matern_hi_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(matern_hi_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(matern_hi_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, matern_hi_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('gibbs_constant_kernel')
 class TestGibbsKernelWithConstant():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 0.60653065971], [0.60653065971, 1.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.60653065971], [-0.60653065971, 0.0]])
     ref_ddcov = np.atleast_2d([[1.0, 0.0], [0.0, 1.0]])
@@ -328,30 +328,30 @@ class TestGibbsKernelWithConstant():
     ]
 
     def test_eval(self, gibbs_constant_kernel):
-        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, gibbs_constant_kernel):
-        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, gibbs_constant_kernel):
-        assert check_kernel_transposition(gibbs_constant_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(gibbs_constant_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, gibbs_constant_kernel):
-        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(gibbs_constant_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, gibbs_constant_kernel):
         if gibbs_constant_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(gibbs_constant_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(gibbs_constant_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, gibbs_constant_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('gibbs_inverse_gaussian_kernel')
 class TestGibbsKernelWithInverseGaussian():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[1.0, 0.10737182452], [0.10737182452, 1.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.47848791644], [0.58059409716, 0.0]])
     ref_ddcov = np.atleast_2d([[4.0, 1.00715576945], [1.00715576945, 16.8232521516]])
@@ -363,31 +363,30 @@ class TestGibbsKernelWithInverseGaussian():
     ]
 
     def test_eval(self, gibbs_inverse_gaussian_kernel):
-        print(gibbs_inverse_gaussian_kernel(self.x1, self.x2))
-        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, gibbs_inverse_gaussian_kernel):
-        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, gibbs_inverse_gaussian_kernel):
-        assert check_kernel_transposition(gibbs_inverse_gaussian_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(gibbs_inverse_gaussian_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, gibbs_inverse_gaussian_kernel):
-        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(gibbs_inverse_gaussian_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, gibbs_inverse_gaussian_kernel):
         if gibbs_inverse_gaussian_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(gibbs_inverse_gaussian_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(gibbs_inverse_gaussian_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, gibbs_inverse_gaussian_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('sum_kernel')
 class TestSumOperationKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[2.0, 0.13533528323], [0.13533528323, 2.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.54134113295], [-0.54134113295, 0.0]])
     ref_ddcov = np.atleast_2d([[4.0, -1.62402339884], [-1.62402339884, 4.0]])
@@ -398,30 +397,30 @@ class TestSumOperationKernel():
     ]
 
     def test_eval(self, sum_kernel):
-        assert check_kernel_evaluation(sum_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(sum_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, sum_kernel):
-        assert check_kernel_evaluation(sum_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(sum_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, sum_kernel):
-        assert check_kernel_transposition(sum_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(sum_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, sum_kernel):
-        assert check_kernel_evaluation(sum_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(sum_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, sum_kernel):
         if sum_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(sum_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(sum_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, sum_kernel, **kwargs)
 
 
 @pytest.mark.usefixtures('product_kernel')
 class TestProductOperationKernel():
 
-    test_x_vector = np.array([0.0, 1.0])
-    x1, x2 = np.meshgrid(test_x_vector, test_x_vector)
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[0.0, 0.0], [0.0, 16.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.0], [0.0, 32.0]])
     ref_ddcov = np.atleast_2d([[0.0, 0.0], [0.0, 64.0]])
@@ -431,20 +430,20 @@ class TestProductOperationKernel():
     ]
 
     def test_eval(self, product_kernel):
-        assert check_kernel_evaluation(product_kernel, self.x1, self.x2, 0, self.ref_cov)
+        assert check_kernel_evaluation(product_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
 
     def test_eval_first_derivative(self, product_kernel):
-        assert check_kernel_evaluation(product_kernel, self.x1, self.x2, 1, self.ref_dcov)
+        assert check_kernel_evaluation(product_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
 
     def test_eval_first_derivative_transpose(self, product_kernel):
-        assert check_kernel_transposition(product_kernel, self.x1, self.x2)
+        assert check_kernel_transposition(product_kernel, self.x1_vector, self.x2_vector)
 
     def test_eval_second_derivative(self, product_kernel):
-        assert check_kernel_evaluation(product_kernel, self.x1, self.x2, 2, self.ref_ddcov)
+        assert check_kernel_evaluation(product_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
 
     def test_eval_hyperparameter_derivatives(self, product_kernel):
         if product_kernel.is_hderiv_implemented():
-            assert check_kernel_hyperparameter_derivatives(product_kernel, self.x1, self.x2, self.ref_hdcov)
+            assert check_kernel_hyperparameter_derivatives(product_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
         else:
-            kwargs = {'x1': self.x1, 'x2': self.x2, 'hder': 0}
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, product_kernel, **kwargs)
