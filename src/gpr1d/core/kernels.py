@@ -53,7 +53,7 @@ class Sum_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
+        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         ihyp = hder
         for kk in self._kernel_list:
             covm = covm + kk(x1, x2, der, ihyp)
@@ -128,7 +128,7 @@ class Product_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
+        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
         dermat = np.atleast_2d([0] * nks)
         sd = int(np.sign(der))
@@ -145,7 +145,7 @@ class Product_Kernel(_OperatorKernel):
         dermat[oddfilt] = sd * dermat[oddfilt]
         for row in np.arange(0, dermat.shape[0]):
             ihyp = hder
-            covterm = np.ones((x1.size, x2.size))
+            covterm = np.ones((x1.size, x2.size)).T
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
                 covterm = covterm * kk(x1, x2, dermat[row, col], ihyp)
@@ -226,7 +226,7 @@ class Symmetric_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
+        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         ihyp = hder
         for kk in self._kernel_list:
             covm = covm + 0.5 * kk(x1, x2, der, ihyp) + 0.5 * kk(-x1, x2, der, ihyp)
