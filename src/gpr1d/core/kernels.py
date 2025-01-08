@@ -204,6 +204,97 @@ class Product_Kernel(_OperatorKernel):
         return kcopy
 
 
+class 2D_Kernel(_OperatorKernel):
+    r'''
+    Product Kernel: Implements the product of two (or more) separate kernels.
+
+    :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+    :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+    '''
+
+    def __calc_covm(self, x1, x2, der=0, hder=None):
+        r'''
+        Implementation-specific covariance function.
+
+        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function. [[1],  [2], [3]]
+
+        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function. [[4],  [5], [6]]
+
+        :kwarg der: int. Order of x derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
+        '''
+	
+
+     	x1 = np.atleast_2d(x1)
+     	x2 = np.atleast_2d(x2)
+     	
+     	for c in range(x1.shape[1]):
+            col = self.x1[:, c]
+            kern = _Kernel(col, col) np.dot(col, col.T)
+            self._kernel_list.append(kern)
+        #input each individual sigma in a list   
+     	covm = np.ones(x1.shape)
+        #nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        #dermat = np.atleast_2d([0] * nks)
+
+        ihyp = hder
+     	product = 1.0
+     	for ii in range(len(self._kernel_list)):
+     	    kk = self._kernel_list[ii]
+     	    product *= kk(x1[:, ii], x2[:, ii], der, ihyp)
+     	    if ihyp is not None:
+     	        nhyps = kk.hyperparameters.size
+     	        ihyp = ihyp - nhyps
+     	    #sigma = _kernel.compute()
+     	    #product *= sigma
+     	return product
+    
+           
+     	   
+
+    def __init__(self, *args, **kwargs):
+        r'''
+        Initializes the :code:`Product_Kernel` instance.
+
+        :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+        :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+
+        :returns: none.
+        '''
+
+        klist = kwargs.get('klist')
+        uklist = []
+        if len(args) >= 2 and isinstance(args[0], _Kernel) and isinstance(args[1], _Kernel):
+            for kk in args:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        elif isinstance(klist, list) and len(klist) >= 2 and isinstance(klist[0], _Kernel) and isinstance(klist[1], _Kernel):
+            for kk in klist:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        else:
+            raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
+        super().__init__('Prod', self.__calc_covm, True, uklist)
+
+
+    def __call__(self, x1, x2, der=0, hder=None):
+    
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+		
+        kcopy_list = []
+        for kk in self._kernel_list:
+            kcopy_list.append(copy.copy(kk))
+        kcopy = Product_Kernel(klist=kcopy_list)
+        return kcopy
 
 class Symmetric_Kernel(_OperatorKernel):
     r'''
