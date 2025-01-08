@@ -120,13 +120,13 @@ class _Kernel():
             dert = 0
             hdert = None
             if isinstance(x1, number_types):
-                xt1 = np.array(np.atleast_2d(x1), dtype=default_dtype)
+                xt1 = np.array(np.atleast_1d(x1), dtype=default_dtype)
             elif isinstance(x1, array_types):
-                xt1 = np.array(np.atleast_2d(x1), dtype=default_dtype)
+                xt1 = np.array(np.atleast_1d(x1), dtype=default_dtype)
             if isinstance(x2, number_types):
-                xt2 = np.array(np.atleast_2d(x2), dtype=default_dtype)
+                xt2 = np.array(np.atleast_1d(x2), dtype=default_dtype)
             elif isinstance(x2, array_types):
-                xt2 = np.array(np.atleast_2d(x2), dtype=default_dtype)
+                xt2 = np.array(np.atleast_1d(x2), dtype=default_dtype)
             if isinstance(der, number_types):
                 dert = int(der)
             if isinstance(hder, number_types):
@@ -134,7 +134,7 @@ class _Kernel():
             if isinstance(xt1, np.ndarray) and isinstance(xt2, np.ndarray):
                 k_out = self._function(xt1, xt2, dert, hdert)
             else:
-                raise TypeError(f'Arguments x1 and x2 must be a 2D-array-like object.')
+                raise TypeError(f'Arguments x1 and x2 must be at least 1D-array-like object.')
         else:
             raise NotImplementedError(f'Covariance function of {self.name} Kernel object not yet defined.')
         return k_out

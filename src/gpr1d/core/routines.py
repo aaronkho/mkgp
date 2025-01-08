@@ -1077,24 +1077,28 @@ class GaussianProcessRegression1D():
         yf = np.append(yy, yyd)
         yed = dye if dflag else []
         yef = np.append(ye, yed)
-        (x1, x2) = np.meshgrid(xx, xx)
-        (x1h1, x2h1) = np.meshgrid(xx, xxd)
-        (x1h2, x2h2) = np.meshgrid(xxd, xx)
-        (x1d, x2d) = np.meshgrid(xxd, xxd)
-        (xs1, xs2) = np.meshgrid(xn, xx)
-        (xs1h, xs2h) = np.meshgrid(xn, xxd)
-        (xt1, xt2) = np.meshgrid(xn, xn)
+
+        # Move meshgridding into kernel structure
+        #(x1, x2) = np.meshgrid(xx, xx)
+        #(x1h1, x2h1) = np.meshgrid(xx, xxd)
+        #(x1h2, x2h2) = np.meshgrid(xxd, xx)
+        #(x1d, x2d) = np.meshgrid(xxd, xxd)
+        #(xs1, xs2) = np.meshgrid(xn, xx)
+        #(xs1h, xs2h) = np.meshgrid(xn, xxd)
+        #(xt1, xt2) = np.meshgrid(xn, xn)
 
         # Algorithm, see theory (located in book specified at top of file) for details
-        KKb = kk(x1, x2, der=0)
-        KKh1 = kk(x1h1, x2h1, der=1)
-        KKh2 = kk(x1h2, x2h2, der=-1)
-        KKd = kk(x1d, x2d, der=2)
+        KKb = kk(xx, xx, der=0) # kk(x1, x2, der=0)
+        KKh1 = kk(xx, xxd, der=1) # kk(x1h1, x2h1, der=1)
+        KKh2 = kk(xxd, xx, der=-1) # kk(x1h2, x2h2, der=-1)
+        KKd = kk(xxd, xxd, der=2) # kk(x1d, x2d, der=2)
         KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
-        ksb = kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
-        ksh = kk(xs1h, xs2h, der=dd+1)
+        #ksb = kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
+        #ksh = kk(xs1h, xs2h, der=dd+1)
+        ksb = kk(xn, xx, der=-dd) if dd == 1 else kk(xn, xx, der=dd)
+        ksh = kk(xn, xxd, der=dd+1)
         ks = np.vstack((ksb, ksh))
-        kt = kk(xt1, xt2, der=2*dd)
+        kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
         kernel = KK + np.diag(yef ** 2.0)
 
         cholesky_flag = True
@@ -1159,32 +1163,37 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up the problem grids for calculating the required matrices from covf
-        (x1, x2) = np.meshgrid(xx, xx)
-        (xs1, xs2) = np.meshgrid(xx, xn)
-        (xt1, xt2) = np.meshgrid(xn, xn)
+
+        # Move meshgridding into kernel structure
+        #(x1, x2) = np.meshgrid(xx, xx)
+        #(xs1, xs2) = np.meshgrid(xx, xn)
+        #(xt1, xt2) = np.meshgrid(xn, xn)
+
         # Set up predictive grids with slight offset in x1 and x2, forms corners of a box around original xn point
         step = np.amin(np.abs(np.diff(xn)))
         xnl = xn - step * 0.5e-3            # The step is chosen intelligently to be smaller than smallest dxn
         xnu = xn + step * 0.5e-3
-        (xl1, xl2) = np.meshgrid(xx, xnl)
-        (xu1, xu2) = np.meshgrid(xx, xnu)
-        (xll1, xll2) = np.meshgrid(xnl, xnl)
-        (xlu1, xlu2) = np.meshgrid(xnu, xnl)
-        (xuu1, xuu2) = np.meshgrid(xnu, xnu)
 
-        KK = kk(x1, x2)
+        # Move meshgridding into kernel structure
+        #(xl1, xl2) = np.meshgrid(xx, xnl)
+        #(xu1, xu2) = np.meshgrid(xx, xnu)
+        #(xll1, xll2) = np.meshgrid(xnl, xnl)
+        #(xlu1, xlu2) = np.meshgrid(xnu, xnl)
+        #(xuu1, xuu2) = np.meshgrid(xnu, xnu)
+
+        KK = kk(xx, xx) # kk(x1, x2)
         LL = spla.cholesky(KK + np.diag(ye ** 2.0),lower=True)
         alpha = spla.cho_solve((LL, True), yy)
         # Approximation of first derivative of covf (df/dxn1)
-        ksl = kk(xl1, xl2)
-        ksu = kk(xu1, xu2)
+        ksl = kk(xx, xnl) # kk(xl1, xl2)
+        ksu = kk(xx, xnu) # kk(xu1, xu2)
         dks = (ksu.T - ksl.T) / (step * 1.0e-3)
         dvv = np.dot(LL.T, spla.cho_solve((LL, True), dks))
         # Approximation of second derivative of covf (d^2f/dxn1 dxn2)
-        ktll = kk(xll1, xll2)
-        ktlu = kk(xlu1, xlu2)
+        ktll = kk(xnl, xnl) # kk(xll1, xll2)
+        ktlu = kk(xnu, xnl) # kk(xlu1, xlu2)
         ktul = ktlu.T
-        ktuu = kk(xuu1, xuu2)
+        ktuu = kk(xnu, xnu) # kk(xuu1, xuu2)
         dktl = (ktlu - ktll) / (step * 1.0e-3)
         dktu = (ktuu - ktul) / (step * 1.0e-3)
         ddkt = (dktu - dktl) / (step * 1.0e-3)
@@ -1277,16 +1286,18 @@ class GaussianProcessRegression1D():
         yf = np.append(yy, yyd)
         yed = dye if dflag else []
         yef = np.append(ye, yed)
-        (x1, x2) = np.meshgrid(xx, xx)
-        (x1h1, x2h1) = np.meshgrid(xx, xxd)
-        (x1h2, x2h2) = np.meshgrid(xxd, xx)
-        (x1d, x2d) = np.meshgrid(xxd, xxd)
+
+        # Move meshgridding into kernel structure
+        #(x1, x2) = np.meshgrid(xx, xx)
+        #(x1h1, x2h1) = np.meshgrid(xx, xxd)
+        #(x1h2, x2h2) = np.meshgrid(xxd, xx)
+        #(x1d, x2d) = np.meshgrid(xxd, xxd)
 
         # Algorithm, see theory (located in book specified at top of file) for details
-        KKb = kk(x1, x2, der=0)
-        KKh1 = kk(x1h1, x2h1, der=1)
-        KKh2 = kk(x1h2, x2h2, der=-1)
-        KKd = kk(x1d, x2d, der=2)
+        KKb = kk(xx, xx, der=0) # kk(x1, x2, der=0)
+        KKh1 = kk(xx, xxd, der=1) # kk(x1h1, x2h1, der=1)
+        KKh2 = kk(xxd, xx, der=-1) # kk(x1h2, x2h2, der=-1)
+        KKd = kk(xxd, xxd, der=2) # kk(x1d, x2d, der=2)
         KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         kernel = KK + np.diag(yef ** 2.0)
 
@@ -1299,10 +1310,10 @@ class GaussianProcessRegression1D():
 
         gradlml = np.zeros(theta.shape).flatten()
         for ii in np.arange(0, theta.size):
-            HHb = kk(x1, x2, der=0, hder=ii)
-            HHh1 = kk(x1h1, x2h1, der=1, hder=ii)
-            HHh2 = kk(x1h2, x2h2, der=-1, hder=ii)
-            HHd = kk(x1d, x2d, der=2, hder=ii)
+            HHb = kk(xx, xx, der=0, hder=ii) # kk(x1, x2, der=0, hder=ii)
+            HHh1 = kk(xx, xxd, der=1, hder=ii) # kk(x1h1, x2h1, der=1, hder=ii)
+            HHh2 = kk(xxd, xx, der=-1, hder=ii) # kk(x1h2, x2h2, der=-1, hder=ii)
+            HHd = kk(xxd, xxd, der=2, hder=ii) # kk(x1d, x2d, der=2, hder=ii)
             HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
             PP = np.dot(alpha.T, HH)
             if cholesky_flag:

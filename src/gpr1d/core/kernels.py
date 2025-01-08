@@ -53,7 +53,7 @@ class Sum_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
+        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
         ihyp = hder
         for kk in self._kernel_list:
             covm = covm + kk(x1, x2, der, ihyp)
@@ -128,7 +128,7 @@ class Product_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
+        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
         dermat = np.atleast_2d([0] * nks)
         sd = int(np.sign(der))
@@ -145,7 +145,7 @@ class Product_Kernel(_OperatorKernel):
         dermat[oddfilt] = sd * dermat[oddfilt]
         for row in np.arange(0, dermat.shape[0]):
             ihyp = hder
-            covterm = np.ones(x1.shape)
+            covterm = np.ones((x1.size, x2.size))
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
                 covterm = covterm * kk(x1, x2, dermat[row, col], ihyp)
@@ -226,17 +226,17 @@ class Symmetric_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full(x1.shape, np.nan) if self._kernel_list is None else np.zeros(x1.shape)
+        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
         ihyp = hder
         for kk in self._kernel_list:
-            covm = covm + kk(x1, x2, der, ihyp) + kk(-x1, x2, der, ihyp)      # Not sure if division by 2 is necessary to conserve covm
+            covm = covm + 0.5 * kk(x1, x2, der, ihyp) + 0.5 * kk(-x1, x2, der, ihyp)
             if ihyp is not None:
                 nhyps = kk.hyperparameters.size
                 ihyp = ihyp - nhyps
         return covm
 
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self, *args, **kwargs):
         r'''
         Initializes the :code:`Symmetric_Kernel` instance.
 
@@ -313,10 +313,11 @@ class Constant_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         c_hyp = csts[0]
-        rr = np.abs(x1 - x2)
+        rr = np.abs(xm1 - xm2)
         covm = np.zeros(rr.shape)
         if der == 0:
             if hder is None:
@@ -390,10 +391,11 @@ class Noise_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         n_hyp = hyps[0]
-        rr = np.abs(x1 - x2)
+        rr = np.abs(xm1 - xm2)
         covm = np.zeros(rr.shape)
         if der == 0:
             if hder is None:
@@ -404,16 +406,16 @@ class Noise_Kernel(_Kernel):
 #       Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
 #        Commented out for stability reasons.
 #        elif der == 2 or der == -2:
-#            drdx1 = np.sign(x1 - x2)
-#            drdx1[drdx1==0] = 1.0
-#            drdx2 = np.sign(x2 - x1)
-#            drdx2[drdx2==0] = -1.0
+#            drdxm1 = np.sign(xm1 - xm2)
+#            drdxm1[drdxm1==0] = 1.0
+#            drdxm2 = np.sign(xm2 - xm1)
+#            drdxm2[drdxm2==0] = -1.0
 #            trr = rr[rr > 0.0]
 #            ss = 0.0 if trr.size == 0 else np.nanmin(trr)
 #            if hder is None:
-#                covm[rr == 0.0] = -drdx1[rr == 0.0] * drdx2[rr == 0.0] * 2.0 * n_hyp**2.0 / ss**2.0
+#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 2.0 * n_hyp**2.0 / ss**2.0
 #            elif hder == 0:
-#                covm[rr == 0.0] = -drdx1[rr == 0.0] * drdx2[rr == 0.0] * 4.0 * n_hyp / ss**2.0
+#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 4.0 * n_hyp / ss**2.0
         return covm
 
 
@@ -476,10 +478,11 @@ class Linear_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         v_hyp = hyps[0]
-        pp = x1 * x2
+        pp = xm1 * xm2
         covm = np.zeros(pp.shape)
         if der == 0:
             if hder is None:
@@ -487,17 +490,17 @@ class Linear_Kernel(_Kernel):
             elif hder == 0:
                 covm = 2.0 * v_hyp * pp
         elif der == 1:
-            dpdx2 = x1
+            dpdxm2 = xm1
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdx2
+                covm = (v_hyp ** 2.0) * dpdxm2
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdx2
+                covm = 2.0 * v_hyp * dpdxm2
         elif der == -1:
-            dpdx1 = x2
+            dpdxm1 = xm2
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdx1
+                covm = (v_hyp ** 2.0) * dpdxm1
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdx1
+                covm = 2.0 * v_hyp * dpdxm1
         elif der == 2 or der == -2:
             if hder is None:
                 covm = (v_hyp ** 2.0) * np.ones(pp.shape)
@@ -516,10 +519,10 @@ class Linear_Kernel(_Kernel):
         '''
 
         hyps = np.zeros((1, ))
-        if isinstance(var, number_types) and float(var) > 0.0:
+        if isinstance(var, number_types) and np.isfinite(var):
             hyps[0] = float(var)
         else:
-            raise ValueError('Constant hyperparameter must be greater than 0.')
+            raise ValueError('Constant hyperparameter must be a finite number.')
         super().__init__('L', self.__calc_covm, True, hyps)
 
 
@@ -567,11 +570,12 @@ class Poly_Order_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         v_hyp = hyps[0]
         b_hyp = hyps[1]
-        pp = x1 * x2
+        pp = xm1 * xm2
         covm = np.zeros(pp.shape)
         if der == 0:
             if hder is None:
@@ -581,17 +585,17 @@ class Poly_Order_Kernel(_Kernel):
             elif hder == 1:
                 covm = b_hyp * np.ones(pp.shape)
         elif der == 1:
-            dpdx2 = x1
+            dpdxm2 = xm1
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdx2
+                covm = (v_hyp ** 2.0) * dpdxm2
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdx2
+                covm = 2.0 * v_hyp * dpdxm2
         elif der == -1:
-            dpdx1 = x2
+            dpdxm1 = xm2
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdx1
+                covm = (v_hyp ** 2.0) * dpdxm1
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdx1
+                covm = 2.0 * v_hyp * dpdxm1
         elif der == 2 or der == -2:
             if hder is None:
                 covm = (v_hyp ** 2.0) * np.ones(pp.shape)
@@ -612,14 +616,14 @@ class Poly_Order_Kernel(_Kernel):
         '''
 
         hyps = np.zeros((2, ))
-        if isinstance(var, number_types) and float(var) > 0.0:
+        if isinstance(var, number_types) and np.isfinite(var):
             hyps[0] = float(var)
         else:
-            raise ValueError('Multiplicative hyperparameter must be greater than 0.')
-        if isinstance(cst, number_types) and float(cst) > 0.0:
+            raise ValueError('Multiplicative hyperparameter must be a finite number.')
+        if isinstance(cst, number_types) and np.isfinite(var):
             hyps[1] = float(cst)
         else:
-            raise ValueError('Additive hyperparameter must be greater than 0.')
+            raise ValueError('Additive hyperparameter must be a number.')
         super().__init__('P', self.__calc_covm, True, hyps)
 
 
@@ -652,7 +656,7 @@ class SE_Kernel(_Kernel):
     :kwarg ls: float. Hyperparameter representing variability of model in x, ie. length scale.
     '''
 
-    def __calc_covm(self,x1,x2,der=0,hder=None):
+    def __calc_covm(self, x1, x2, der=0, hder=None):
         r'''
         Implementation-specific covariance function.
 
@@ -667,22 +671,23 @@ class SE_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         v_hyp = hyps[0]
         l_hyp = hyps[1]
-        rr = np.abs(x1 - x2)
-        drdx1 = np.sign(x1 - x2)
-        drdx1[drdx1 == 0] = 1.0
-        drdx2 = np.sign(x2 - x1)
-        drdx2[drdx2 == 0] = -1.0
+        rr = np.abs(xm1 - xm2)
+        drdxm1 = np.sign(xm1 - xm2)
+        drdxm1[drdxm1 == 0] = 1.0
+        drdxm2 = np.sign(xm2 - xm1)
+        drdxm2[drdxm2 == 0] = -1.0
         nn = int(np.abs(der))
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
         covm = np.zeros(rr.shape)
         if hder is None:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 1, 2):
@@ -691,7 +696,7 @@ class SE_Kernel(_Kernel):
                 sfac = sfac + cfac * np.power(rr / l_hyp, nn - jj)
             covm = afac * efac * sfac
         elif hder == 0:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * 2.0 * v_hyp / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * v_hyp / np.power(l_hyp, nn)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 1, 2):
@@ -700,7 +705,7 @@ class SE_Kernel(_Kernel):
                 sfac = sfac + cfac * np.power(rr / l_hyp, nn - jj)
             covm = afac * efac * sfac
         elif hder == 1:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn + 1)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn + 1)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 3, 2):
@@ -786,24 +791,25 @@ class RQ_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         rq_amp = hyps[0]
         l_hyp = hyps[1]
         a_hyp = hyps[2]
-        rr = np.abs(x1 - x2)
+        rr = np.abs(xm1 - xm2)
         rqt = 1.0 + np.power(rr, 2.0) / (2.0 * a_hyp * (l_hyp ** 2.0))
-        drdx1 = np.sign(x1 - x2)
-        drdx1[drdx1 == 0] = 1.0
-        drdx2 = np.sign(x2 - x1)
-        drdx2[drdx2 == 0] = -1.0
+        drdxm1 = np.sign(xm1 - xm2)
+        drdxm1[drdxm1 == 0] = 1.0
+        drdxm2 = np.sign(xm2 - xm1)
+        drdxm2[drdxm2 == 0] = -1.0
         nn = int(np.abs(der))
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
         covm = np.zeros(rr.shape)
         if hder is None:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 1, 2):
@@ -813,7 +819,7 @@ class RQ_Kernel(_Kernel):
                 sfac = sfac + cfac * gfac * np.power(rr / l_hyp, nn - jj)
             covm = afac * efac * sfac
         elif hder == 0:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * 2.0 * rq_amp / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * rq_amp / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 1, 2):
@@ -823,7 +829,7 @@ class RQ_Kernel(_Kernel):
                 sfac = sfac + cfac * gfac * np.power(rr / l_hyp, nn - jj)
             covm = afac * efac * sfac
         elif hder == 1:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 3, 2):
@@ -834,7 +840,7 @@ class RQ_Kernel(_Kernel):
                 sfac = sfac + lfac * gfac * np.power(rr / l_hyp, nn - jj + 2)
             covm = afac * efac * sfac
         elif hder == 2:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn) - 1.0)
             sfac = np.zeros(rr.shape)
             for jj in np.arange(0, nn + 1, 2):
@@ -935,6 +941,7 @@ class Matern_HI_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         mat_amp = hyps[0]
@@ -943,19 +950,19 @@ class Matern_HI_Kernel(_Kernel):
         if nu < np.abs(der):
             raise ValueError('Matern nu parameter must be greater than requested derivative order.')
         pp = int(nu)
-        rr = np.abs(x1 - x2)
+        rr = np.abs(xm1 - xm2)
         mht = np.sqrt(2.0 * nu) * rr / mat_hyp
-        drdx1 = np.sign(x1 - x2)
-        drdx1[drdx1 == 0] = 1.0
-        drdx2 = np.sign(x2 - x1)
-        drdx2[drdx2 == 0] = -1.0
+        drdxm1 = np.sign(xm1 - xm2)
+        drdxm1[drdxm1 == 0] = 1.0
+        drdxm2 = np.sign(xm2 - xm1)
+        drdxm2[drdxm2 == 0] = -1.0
         nn = int(np.abs(der))
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
         covm = np.zeros(rr.shape)
         if hder is None:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
             tfac = np.zeros(rr.shape)
@@ -968,7 +975,7 @@ class Matern_HI_Kernel(_Kernel):
                 tfac = tfac + mfac * sfac
             covm = afac * efac * tfac
         elif hder == 0:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * 2.0 * mat_amp * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * mat_amp * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
             tfac = np.zeros(rr.shape)
@@ -981,7 +988,7 @@ class Matern_HI_Kernel(_Kernel):
                 tfac = tfac + mfac * sfac
             covm = afac * efac * tfac
         elif hder == 1:
-            afac = np.power(drdx1, dx1) * np.power(drdx2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu), nn) / np.power(mat_hyp, nn + 1)
+            afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu), nn) / np.power(mat_hyp, nn + 1)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
             ofac = np.zeros(rr.shape)
@@ -1085,50 +1092,51 @@ class NN_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         nn_amp = hyps[0]
         nn_off = hyps[1]
         nn_hyp = hyps[2]
-        rr = np.abs(x1 - x2)
-        pp = x1 * x2
+        rr = np.abs(xm1 - xm2)
+        pp = xm1 * xm2
         nnfac = 2.0 / np.pi
-        nnn = 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * x1 * x2)
-        nnd1 = 1.0 + 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * np.power(x1, 2.0))
-        nnd2 = 1.0 + 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * np.power(x2, 2.0))
+        nnn = 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * xm1 * xm2)
+        nnd1 = 1.0 + 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * np.power(xm1, 2.0))
+        nnd2 = 1.0 + 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * np.power(xm2, 2.0))
         chi = nnd1 * nnd2
         xi = chi - (nnn ** 2.0)
         covm = np.zeros(rr.shape)
         if der == 0:
             covm = (nn_amp ** 2.0) * nnfac * np.arcsin(nnn / np.power(chi, 0.5))
         elif der == 1:
-            dpdx2 = x1
-            dchidx2 = 4.0 * (nn_hyp ** 2.0) * x2 * nnd1
+            dpdxm2 = xm1
+            dchidxm2 = 4.0 * (nn_hyp ** 2.0) * xm2 * nnd1
             nnk = 2.0 * (nn_hyp ** 2.0) / (chi * np.power(xi, 0.5))
-            nnm = dpdx2 * chi - dchidx2 * nnn / (4.0 * (nn_hyp ** 2.0))
+            nnm = dpdxm2 * chi - dchidxm2 * nnn / (4.0 * (nn_hyp ** 2.0))
             covm = (nn_amp ** 2.0) * nnfac * nnk * nnm
         elif der == -1:
-            dpdx1 = x2
-            dchidx1 = 4.0 * (nn_hyp ** 2.0) * x1 * nnd2
+            dpdxm1 = xm2
+            dchidxm1 = 4.0 * (nn_hyp ** 2.0) * xm1 * nnd2
             nnk = 2.0 * (nn_hyp ** 2.0) / (chi * np.power(xi, 0.5))
-            nnm = dpdx1 * chi - dchidx1 * nnn / (4.0 * (nn_hyp ** 2.0))
+            nnm = dpdxm1 * chi - dchidxm1 * nnn / (4.0 * (nn_hyp ** 2.0))
             covm = (nn_amp ** 2.0) * nnfac * nnk * nnm
         elif der == 2 or der == -2:
-            dpdx1 = x2
-            dpdx2 = x1
-            dchidx1 = 4.0 * (nn_hyp ** 2.0) * x1 * nnd2
-            dchidx2 = 4.0 * (nn_hyp ** 2.0) * x2 * nnd1
+            dpdxm1 = xm2
+            dpdxm2 = xm1
+            dchidxm1 = 4.0 * (nn_hyp ** 2.0) * xm1 * nnd2
+            dchidxm2 = 4.0 * (nn_hyp ** 2.0) * xm2 * nnd1
             d2chi = 16.0 * (nn_hyp ** 4.0) * pp
             nnk = 2.0 * (nn_hyp ** 2.0) / (chi * np.power(xi, 0.5))
             nnt1 = chi * (1.0 + (nnn / xi) * (2.0 * (nn_hyp ** 2.0) * pp + d2chi / (8.0 * (nn_hyp ** 2.0))))
-            nnt2 = (-0.5 * chi / xi) * (dpdx2 * dchidx1 + dpdx1 * dchidx2) 
+            nnt2 = (-0.5 * chi / xi) * (dpdxm2 * dchidxm1 + dpdxm1 * dchidxm2) 
             covm = (nn_amp ** 2.0) * nnfac * nnk * (nnt1 + nnt2)
         else:
             raise NotImplementedError(f'Derivatives of order 3 or higher not implemented in {self.name} kernel.')
         return covm
 
 
-    def __init__(self,nna=1.0,nno=1.0,nnv=1.0):
+    def __init__(self, nna=1.0, nno=1.0, nnv=1.0):
         r'''
         Initializes the :code:`NN_Kernel` instance.
 
@@ -1212,12 +1220,13 @@ class Gibbs_Kernel(_Kernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
+        xm1, xm2 = np.meshgrid(x1, x2)
         hyps = self.hyperparameters
         csts = self.constants
         v_hyp = hyps[0]
-        l_hyp1 = self._wfunc(x1, 0)
-        l_hyp2 = self._wfunc(x2, 0)
-        rr = x1 - x2
+        l_hyp1 = self._wfunc(xm1, 0)
+        l_hyp2 = self._wfunc(xm2, 0)
+        rr = xm1 - xm2
         ll = np.power(l_hyp1, 2.0) + np.power(l_hyp2, 2.0)
         mm = l_hyp1 * l_hyp2
         lder = int((int(np.abs(der)) + 1) / 2)
@@ -1230,8 +1239,8 @@ class Gibbs_Kernel(_Kernel):
                 covm = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
             elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                dlh1 = self._wfunc(x1, lder, ghder)
-                dlh2 = self._wfunc(x2, lder, ghder)
+                dlh1 = self._wfunc(xm1, lder, ghder)
+                dlh2 = self._wfunc(xm2, lder, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
@@ -1239,95 +1248,95 @@ class Gibbs_Kernel(_Kernel):
                 covm = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
         elif der == 1:
             if hder is None:
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx2 / (2.0 * l_hyp2)
-                t2 = -l_hyp2 * dldx2 / ll
-                t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll, 2.0)
-                t4 = -drdx2 * 2.0 * rr / ll
+                t1 = dldxm2 / (2.0 * l_hyp2)
+                t2 = -l_hyp2 * dldxm2 / ll
+                t3 = 2.0 * l_hyp2 * dldxm2 * np.power(rr / ll, 2.0)
+                t4 = -drdxm2 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx2 / (2.0 * l_hyp2)
-                t2 = -l_hyp2 * dldx2 / ll
-                t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll, 2.0)
-                t4 = -drdx2 * 2.0 * rr / ll
+                t1 = dldxm2 / (2.0 * l_hyp2)
+                t2 = -l_hyp2 * dldxm2 / ll
+                t3 = 2.0 * l_hyp2 * dldxm2 * np.power(rr / ll, 2.0)
+                t4 = -drdxm2 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx2 / (2.0 * l_hyp2)
-                t2 = -l_hyp2 * dldx2 / ll
-                t3 = 2.0 * l_hyp2 * dldx2 * np.power(rr / ll, 2.0)
-                t4 = -drdx2 * 2.0 * rr / ll
-                dlh1 = self._wfunc(x1, 0, ghder)
-                dlh2 = self._wfunc(x2, 0, ghder)
+                t1 = dldxm2 / (2.0 * l_hyp2)
+                t2 = -l_hyp2 * dldxm2 / ll
+                t3 = 2.0 * l_hyp2 * dldxm2 * np.power(rr / ll, 2.0)
+                t4 = -drdxm2 * 2.0 * rr / ll
+                dlh1 = self._wfunc(xm1, 0, ghder)
+                dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx2 = self._wfunc(x2, lder, ghder)
+                ddldxm2 = self._wfunc(xm2, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
                 dkfac = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
-                dt1 = ddldx2 / (2.0 * l_hyp2) - dldx2 * dlh2 / (2.0 * np.power(l_hyp2, 2.0))
-                dt2 = -dlh2 * dldx2 / ll - l_hyp2 * ddldx2 / ll + l_hyp2 * dldx2 * dll / np.power(ll, 2.0)
-                dt3 = (2.0 * dlh2 * dldx2 + 2.0 * l_hyp2 * ddldx2 - 4.0 * l_hyp2 * dldx2 * dll / ll) * np.power(rr / ll, 2.0)
-                dt4 = drdx2 * 2.0 * rr * dll / np.power(ll, 2.0)
+                dt1 = ddldxm2 / (2.0 * l_hyp2) - dldxm2 * dlh2 / (2.0 * np.power(l_hyp2, 2.0))
+                dt2 = -dlh2 * dldxm2 / ll - l_hyp2 * ddldxm2 / ll + l_hyp2 * dldxm2 * dll / np.power(ll, 2.0)
+                dt3 = (2.0 * dlh2 * dldxm2 + 2.0 * l_hyp2 * ddldxm2 - 4.0 * l_hyp2 * dldxm2 * dll / ll) * np.power(rr / ll, 2.0)
+                dt4 = drdxm2 * 2.0 * rr * dll / np.power(ll, 2.0)
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == -1:
             if hder is None:
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1,lder)
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx1 / (2.0 * l_hyp1)
-                t2 = -l_hyp1 * dldx1 / ll
-                t3 = 2.0 * l_hyp1 * dldx1 * np.power(rr / ll, 2.0)
-                t4 = -drdx1 * 2.0 * rr / ll
+                t1 = dldxm1 / (2.0 * l_hyp1)
+                t2 = -l_hyp1 * dldxm1 / ll
+                t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
+                t4 = -drdxm1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1, lder)
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx1 / (2.0 * l_hyp1)
-                t2 = -l_hyp1 * dldx1 / ll
-                t3 = 2.0 * l_hyp1 * dldx1 * np.power(rr / ll, 2.0)
-                t4 = -drdx1 * 2.0 * rr / ll
+                t1 = dldxm1 / (2.0 * l_hyp1)
+                t2 = -l_hyp1 * dldxm1 / ll
+                t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
+                t4 = -drdxm1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder >= 1 and hder <= 3:
                 ghder = hder - 1
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1, lder)
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
-                t1 = dldx1 / (2.0 * l_hyp1)
-                t2 = -l_hyp1 * dldx1 / ll
-                t3 = 2.0 * l_hyp1 * dldx1 * np.power(rr / ll, 2.0)
-                t4 = -drdx1 * 2.0 * rr / ll
-                dlh1 = self._wfunc(x1, 0, ghder)
-                dlh2 = self._wfunc(x2, 0, ghder)
+                t1 = dldxm1 / (2.0 * l_hyp1)
+                t2 = -l_hyp1 * dldxm1 / ll
+                t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
+                t4 = -drdxm1 * 2.0 * rr / ll
+                dlh1 = self._wfunc(xm1, 0, ghder)
+                dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx1 = self._wfunc(x1, lder, ghder)
+                ddldxm1 = self._wfunc(xm1, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
                 dkfac = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
-                dt1 = ddldx1 / (2.0 * l_hyp1) - dldx1 * dlh1 / (2.0 * np.power(l_hyp1, 2.0))
-                dt2 = -dlh1 * dldx1 / ll - l_hyp1 * ddldx1 / ll + l_hyp1 * dldx1 * dll / np.power(ll, 2.0)
-                dt3 = (2.0 * dlh1 * dldx1 + 2.0 * l_hyp1 * ddldx1 - 4.0 * l_hyp1 * dldx1 * dll / ll) * np.power(rr / ll, 2.0)
-                dt4 = drdx1 * 2.0 * rr * dll / np.power(ll, 2.0)
+                dt1 = ddldxm1 / (2.0 * l_hyp1) - dldxm1 * dlh1 / (2.0 * np.power(l_hyp1, 2.0))
+                dt2 = -dlh1 * dldxm1 / ll - l_hyp1 * ddldxm1 / ll + l_hyp1 * dldxm1 * dll / np.power(ll, 2.0)
+                dt3 = (2.0 * dlh1 * dldxm1 + 2.0 * l_hyp1 * ddldxm1 - 4.0 * l_hyp1 * dldxm1 * dll / ll) * np.power(rr / ll, 2.0)
+                dt4 = drdxm1 * 2.0 * rr * dll / np.power(ll, 2.0)
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == 2 or der == -2:
             if hder is None:
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1, lder)
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2, lder)
-                dd = dldx1 * dldx2
-                ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
-                jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
+                dd = dldxm1 * dldxm2
+                ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
+                jj = drdxm1 * rr * dldxm2 * l_hyp2 + drdxm2 * rr * dldxm1 * l_hyp1
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 d1 = 4.0 * mm * np.power(rr / ll, 4.0)
                 d2 = -12.0 * mm * np.power(rr, 2.0) / np.power(ll, 3.0)
@@ -1336,16 +1345,16 @@ class Gibbs_Kernel(_Kernel):
                 d5 = -1.0 / (4.0 * mm)
                 dt = dd * (d1 + d2 + d3 + d4 + d5)
                 jt = jj / ll * (6.0 / ll - 4.0 * np.power(rr / ll, 2.0)) - ii / ll
-                rt = 2.0 * drdx1 * drdx2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
+                rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
                 covm = kfac * (dt + jt + rt)
             elif hder == 0:
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1,lder)
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2,lder)
-                dd = dldx1 * dldx2
-                ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
-                jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
+                dd = dldxm1 * dldxm2
+                ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
+                jj = drdxm1 * rr * dldxm2 * l_hyp2 + drdxm2 * rr * dldxm1 * l_hyp1
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 d1 = 4.0 * mm * np.power(rr / ll, 4.0)
                 d2 = -12.0 * mm * np.power(rr, 2.0) / np.power(ll, 3.0)
@@ -1354,28 +1363,32 @@ class Gibbs_Kernel(_Kernel):
                 d5 = -1.0 / (4.0 * mm)
                 dt = dd * (d1 + d2 + d3 + d4 + d5)
                 jt = jj / ll * (6.0 / ll - 4.0 * np.power(rr / ll, 2.0)) - ii / ll
-                rt = 2.0 * drdx1 * drdx2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
+                rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
                 covm = kfac * (dt + jt + rt)
             elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                drdx1 = np.ones(rr.shape)
-                dldx1 = self._wfunc(x1, lder)
-                drdx2 = -np.ones(rr.shape)
-                dldx2 = self._wfunc(x2, lder)
-                dd = dldx1 * dldx2
-                ii = drdx1 * rr * dldx2 / l_hyp2 + drdx2 * rr * dldx1 / l_hyp1
-                jj = drdx1 * rr * dldx2 * l_hyp2 + drdx2 * rr * dldx1 * l_hyp1
-                dlh1 = self._wfunc(x1, 0, ghder)
-                dlh2 = self._wfunc(x2, 0, ghder)
+                drdxm1 = np.ones(rr.shape)
+                dldxm1 = self._wfunc(xm1, lder)
+                drdxm2 = -np.ones(rr.shape)
+                dldxm2 = self._wfunc(xm2, lder)
+                dd = dldxm1 * dldxm2
+                ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
+                jj = drdxm1 * rr * dldxm2 * l_hyp2 + drdxm2 * rr * dldxm1 * l_hyp1
+                dlh1 = self._wfunc(xm1, 0, ghder)
+                dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
                 dll = 2.0 * dlh1 + 2.0 * dlh2
-                ddldx1 = self._wfunc(x1, lder, ghder)
-                ddldx2 = self._wfunc(x2, lder, ghder)
-                ddd = ddldx1 * dldx2 + dldx1 * ddldx2
-                dii = drdx1 * rr * ddldx2 / l_hyp2 - drdx1 * rr * dldx2 * dlh2 / np.power(l_hyp2, 2.0) + \
-                      drdx2 * rr * ddldx1 / l_hyp1 - drdx2 * rr * dldx1 * dlh1 / np.power(l_hyp1, 2.0)
-                djj = drdx1 * rr * ddldx2 / l_hyp2 + drdx1 * rr * dldx2 * dlh2 + \
-                      drdx2 * rr * ddldx1 / l_hyp1 + drdx2 * rr * dldx1 * dlh1
+                ddldxm1 = self._wfunc(xm1, lder, ghder)
+                ddldxm2 = self._wfunc(xm2, lder, ghder)
+                ddd = ddldxm1 * dldxm2 + dldxm1 * ddldxm2
+                dii = (
+                    drdxm1 * rr * ddldxm2 / l_hyp2 - drdxm1 * rr * dldxm2 * dlh2 / np.power(l_hyp2, 2.0) +
+                    drdxm2 * rr * ddldxm1 / l_hyp1 - drdxm2 * rr * dldxm1 * dlh1 / np.power(l_hyp1, 2.0)
+                )
+                djj = (
+                    drdxm1 * rr * ddldxm2 / l_hyp2 + drdxm1 * rr * dldxm2 * dlh2 +
+                    drdxm2 * rr * ddldxm1 / l_hyp1 + drdxm2 * rr * dldxm1 * dlh1
+                )
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr,2.0) / ll)
@@ -1397,8 +1410,8 @@ class Gibbs_Kernel(_Kernel):
                 djt2 = -4.0 * djj * np.power(rr, 2.0) / np.power(ll, 3.0) + 12.0 * jj * dll * np.power(rr, 2.0) / np.power(ll, 4.0)
                 djt3 = dii / ll - ii * dll / np.power(ll, 2.0)
                 djt = djt1 + djt2 + djt3
-                rt = 2.0 * drdx1 * drdx2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
-                drt = -2.0 * drdx1 * drdx2 * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
+                rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
+                drt = -2.0 * drdxm1 * drdxm2 * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
                 covm = dkfac * (dt + jt + rt) + kfac * (ddt + djt + drt)
         else:
             raise NotImplementedError(f'Derivatives of order 3 or higher not implemented in {self.name} kernel.')
