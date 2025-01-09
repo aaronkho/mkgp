@@ -15,6 +15,7 @@ These classes were developed by Aaron Ho [1].
 import warnings
 import copy
 import math
+import itertools
 import numpy as np
 import scipy.special as spsp
 
@@ -130,17 +131,38 @@ class Product_Kernel(_OperatorKernel):
 
         covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        dermat = np.atleast_2d([0] * nks)
         sd = int(np.sign(der))
+        dercom = np.atleast_2d(np.array([], dtype=int)).T
         for ii in np.arange(0, int(sd * der)):
-            for jj in np.arange(1, nks):
-                deradd = dermat.copy()
+            if dercom.shape[0] > 0:
+                dercom = np.hstack((np.ones((dercom.shape[0], 1), dtype=int), dercom))
+            for row in np.arange(0, dercom.shape[0]):
+                if dercom.shape[1] > 2 and dercom[row, 0] == 1 and dercom[row, 1] == 1 and dercom[row, 2] != 1:
+                    dernew = np.atleast_2d(np.hstack((dercom[row, 1:].flatten(), np.array([0]))))
+                    dernew[0, 0] = 2
+                    dercom = np.vstack((dernew, dercom))
+            dernew = np.zeros((1, dercom.shape[1]), dtype=int)
+            dernew[0, 0] = ii + 1
+            dercom = np.vstack((dernew, dercom))
+        while dercom.shape[1] < nks:
+            dercom = np.hstack((dercom, np.zeros((dercom.shape[0], 1), dtype=int)))
+        idxcut = None
+        if dercom.shape[1] > nks:
+            for row in np.arange(0, dercom.shape[0]):
+                if dercom[row, nks] == 0:
+                    idxcut = row + 1
+            dercom = dercom[:, :nks]
+        klist = [kk + int(sd * der) + 1 for kk in np.arange(0, nks)]
+        perms = np.array([perm for perm in itertools.permutations(klist)])
+        dermat = np.atleast_2d(np.full((nks, ), int(sd * der), dtype=int))
+        if dercom.shape[0] > 0:
+            dermat = np.diag(dermat.flatten())
+        if dercom.shape[1] > 1:
+            for ii in np.arange(1, dercom.shape[0]):
+                deradd = perms.copy()
+                for jj in np.arange(0, len(klist)):
+                    deradd[deradd == klist[jj]] = dercom[ii, jj]
                 dermat = np.vstack((dermat, deradd))
-            for row in np.arange(0, dermat.shape[0]):
-                rem = row % nks
-                fac = (row - rem) / (nks ** int(sd * der))
-                idx = int((rem + fac) % nks)
-                dermat[row, idx] = dermat[row, idx] + 1
         oddfilt = (np.mod(dermat, 2) != 0)
         dermat[oddfilt] = sd * dermat[oddfilt]
         for row in np.arange(0, dermat.shape[0]):
