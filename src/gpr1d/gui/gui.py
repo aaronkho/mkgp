@@ -579,7 +579,7 @@ class PolyKernelWidget(_KernelWidget):
     def get_initial_guess(self):
         orig_hyps, csts = super().get_initial_guess()
         degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
-        hyps = np.repeat(orig_hyps, degree).flatten()
+        hyps = np.repeat(np.atleast_2d(orig_hyps), degree, axis=0).flatten()
         return hyps, np.array([])
 
 
