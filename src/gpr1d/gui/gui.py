@@ -537,13 +537,13 @@ class PolyKernelWidget(_KernelWidget):
         CoeffHypLabel = QtWidgets.QLabel('Coefficient:')
         CoeffHypLabel.setEnabled(self.aflag)
         CoeffHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        CoeffHypEntry = QtWidgets.QLineEdit('0.0e0')
+        CoeffHypEntry = QtWidgets.QLineEdit('1.0e0')
         CoeffHypEntry.setEnabled(self.aflag)
         CoeffHypEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
-        CoeffLBEntry = QtWidgets.QLineEdit('0.0e0')
+        CoeffLBEntry = QtWidgets.QLineEdit('1.0e0')
         CoeffLBEntry.setEnabled(self.aflag and self.bflag)
         CoeffLBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
-        CoeffUBEntry = QtWidgets.QLineEdit('0.0e0')
+        CoeffUBEntry = QtWidgets.QLineEdit('1.0e0')
         CoeffUBEntry.setEnabled(self.aflag and self.bflag)
         CoeffUBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
         self.add_hyperparameter('coeff', CoeffHypEntry, label=CoeffHypLabel, lbwidget=CoeffLBEntry, ubwidget=CoeffUBEntry)
@@ -551,13 +551,13 @@ class PolyKernelWidget(_KernelWidget):
         ConstHypLabel = QtWidgets.QLabel('Constant:')
         ConstHypLabel.setEnabled(self.aflag)
         ConstHypLabel.setAlignment(QtCore.Qt.AlignRight)
-        ConstHypEntry = QtWidgets.QLineEdit('0.0e0')
+        ConstHypEntry = QtWidgets.QLineEdit('1.0e0')
         ConstHypEntry.setEnabled(self.aflag)
         ConstHypEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
-        ConstLBEntry = QtWidgets.QLineEdit('0.0e0')
+        ConstLBEntry = QtWidgets.QLineEdit('1.0e0')
         ConstLBEntry.setEnabled(self.aflag and self.bflag)
         ConstLBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
-        ConstUBEntry = QtWidgets.QLineEdit('0.0e0')
+        ConstUBEntry = QtWidgets.QLineEdit('1.0e0')
         ConstUBEntry.setEnabled(self.aflag and self.bflag)
         ConstUBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
         self.add_hyperparameter('const', ConstHypEntry, label=ConstHypLabel, lbwidget=ConstLBEntry, ubwidget=ConstUBEntry)
@@ -576,11 +576,26 @@ class PolyKernelWidget(_KernelWidget):
             name = f'Prod({name})'
         return name
 
+    #TODO: Fix!!!!!
     def get_initial_guess(self):
         orig_hyps, csts = super().get_initial_guess()
         degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
-        hyps = np.repeat(np.atleast_2d(orig_hyps), degree, axis=0).flatten()
-        return hyps, np.array([])
+        hyps = np.expand_dims(orig_hyps, axis=0)
+        for ii in range(1, degree):
+            factor = np.power(0.95, ii)
+            hyps = np.stack((hyps, factor * np.expand_dims(orig_hyps, axis=0)), axis=0)
+        return hyps.flatten(), np.array([])
+
+    #TODO: Fix!!!!!
+    def get_bounds(self):
+        hyps, csts = super().get_initial_guess()
+        orig_bounds = super().get_bounds()
+        degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
+        bounds = orig_bounds.copy()
+        for ii in range(1, degree):
+            factor = np.power(0.95, ii)
+            bounds = np.stack((bounds, factor * orig_bounds), axis=1)
+        return bounds
 
 
 class SEKernelWidget(_KernelWidget):
