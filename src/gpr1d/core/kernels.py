@@ -227,31 +227,50 @@ class Kernel2D(_OperatorKernel):
 
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
-	
+        x1 = np.atleast_2d(x1)
+        x2 = np.atleast_2d(x2)
 
-     	x1 = np.atleast_2d(x1)
-     	x2 = np.atleast_2d(x2)
-     	
-     	for c in range(x1.shape[1]):
-            col = self.x1[:, c]
-            kern = _Kernel(col, col) np.dot(col, col.T)
-            self._kernel_list.append(kern)
-        #input each individual sigma in a list   
-     	covm = np.ones(x1.shape)
-        #nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        #dermat = np.atleast_2d([0] * nks)
-
+        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        dermat = np.atleast_2d([0] * nks)
+        sd = int(np.sign(der))
+        for ii in np.arange(0, int(sd * der)):
+            for jj in np.arange(1, nks):
+                deradd = dermat.copy()
+                dermat = np.vstack((dermat, deradd))
+            for row in np.arange(0, dermat.shape[0]):
+                rem = row % nks
+                fac = (row - rem) / (nks ** int(sd * der))
+                idx = int((rem + fac) % nks)
+                dermat[row, idx] = dermat[row, idx] + 1
+        oddfilt = (np.mod(dermat, 2) != 0)
+        dermat[oddfilt] = sd * dermat[oddfilt]
+        
+        #for row in np.arange(0, dermat.shape[0]):
         ihyp = hder
-     	product = 1.0
-     	for ii in range(len(self._kernel_list)):
-     	    kk = self._kernel_list[ii]
-     	    product *= kk(x1[:, ii], x2[:, ii], der, ihyp)
-     	    if ihyp is not None:
-     	        nhyps = kk.hyperparameters.size
-     	        ihyp = ihyp - nhyps
-     	    #sigma = _kernel.compute()
-     	    #product *= sigma
-     	return product
+        covterm = np.ones((x1.size, x2.size))
+        for col in np.arange(len(self._kernel_list)):
+            kk = self._kernel_list[col]
+            x1_col = x1[:, col]
+            x2_col = x2[:, col]
+            covterm = covterm * kk(x1_col, x2_col, der, ihyp)
+            if ihyp is not None:
+                nhyps = kk.hyperparameters.size
+                ihyp = ihyp - nhyps
+        covm = covm + covterm
+        return covm
+
+
+        #ihyp = hder
+        #product = np.ones((x1.size, x2.size))
+        #for ii in range(len(self._kernel_list)):
+     	    #kk = self._kernel_list[ii]
+     	    #product = product * kk(x1[:, ii], x2[:, ii], der, ihyp)
+     	    #if ihyp is not None:
+     	     #   nhyps = kk.hyperparameters.size
+     	      #  ihyp = ihyp - nhyps
+     	    
+        #return product
     
            
      	   
@@ -281,8 +300,7 @@ class Kernel2D(_OperatorKernel):
             raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
         super().__init__('Prod', self.__calc_covm, True, uklist)
 
-
-    def __call__(self, x1, x2, der=0, hder=None):
+    def __copy__(self, x1, x2, der=0, hder=None):
     
         r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
