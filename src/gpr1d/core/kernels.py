@@ -444,9 +444,9 @@ class Noise_Kernel(_Kernel):
 #            trr = rr[rr > 0.0]
 #            ss = 0.0 if trr.size == 0 else np.nanmin(trr)
 #            if hder is None:
-#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 2.0 * n_hyp**2.0 / ss**2.0
+#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 2.0 * (n_hyp ** 2.0) / (ss ** 2.0)
 #            elif hder == 0:
-#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 4.0 * n_hyp / ss**2.0
+#                covm[rr == 0.0] = -drdxm1[rr == 0.0] * drdxm2[rr == 0.0] * 4.0 * n_hyp / (ss ** 2.0)
         return covm
 
 
@@ -607,26 +607,31 @@ class Poly_Order_Kernel(_Kernel):
         v_hyp = hyps[0]
         b_hyp = hyps[1]
         pp = xm1 * xm2
+        #mm = xm1 + xm2
         covm = np.zeros(pp.shape)
         if der == 0:
             if hder is None:
-                covm = (v_hyp ** 2.0) * pp + (b_hyp ** 2.0)
+                covm = (v_hyp ** 2.0) * pp + (b_hyp ** 2.0) * np.ones(pp.shape) # + v_hyp * b_hyp * mm
             elif hder == 0:
-                covm = 2.0 * v_hyp * pp
+                covm = 2.0 * v_hyp * pp # + b_hyp * mm
             elif hder == 1:
-                covm = b_hyp * np.ones(pp.shape)
+                covm = b_hyp * np.ones(pp.shape) # + v_hyp * mm
         elif der == 1:
             dpdxm2 = xm1
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdxm2
+                covm = (v_hyp ** 2.0) * dpdxm2 # + v_hyp * b_hyp * np.ones(mm.shape)
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdxm2
+                covm = 2.0 * v_hyp * dpdxm2 # + b_hyp * np.ones(mm.shape)
+            #elif hder == 1:
+            #    covm = v_hyp * np.ones(pp.shape)
         elif der == -1:
             dpdxm1 = xm2
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdxm1
+                covm = (v_hyp ** 2.0) * dpdxm1 # + v_hyp * b_hyp * np.ones(mm.shape)
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdxm1
+                covm = 2.0 * v_hyp * dpdxm1 # + b_hyp * np.ones(mm.shape)
+            #elif hder == 1:
+            #    covm = v_hyp * np.ones(pp.shape)
         elif der == 2 or der == -2:
             if hder is None:
                 covm = (v_hyp ** 2.0) * np.ones(pp.shape)
