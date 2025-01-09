@@ -132,17 +132,24 @@ class Product_Kernel(_OperatorKernel):
         covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
         sd = int(np.sign(der))
+        ad = int(sd * der)
         dercom = np.atleast_2d(np.array([], dtype=int)).T
-        for ii in np.arange(0, int(sd * der)):
+        for ii in np.arange(0, ad):
+            oddfilt = (np.mod(np.abs(dercom), 2) != 0)
+            if np.any(oddfilt):
+                dercom[oddfilt] = -dercom[oddfilt]
             if dercom.shape[0] > 0:
-                dercom = np.hstack((np.ones((dercom.shape[0], 1), dtype=int), dercom))
+                dernew = np.ones((dercom.shape[0], 1), dtype=int)
+                for row in np.arange(0, dercom.shape[0]):
+                    dernew[row, 0] *= sd * ((-1) ** row)
+                dercom = np.hstack((dernew, dercom))
             for row in np.arange(0, dercom.shape[0]):
-                if dercom.shape[1] > 2 and dercom[row, 0] == 1 and dercom[row, 1] == 1 and dercom[row, 2] != 1:
+                if dercom.shape[1] > 2 and np.abs(dercom[row, 0]) == 1 and np.abs(dercom[row, 1]) == 1 and np.abs(dercom[row, 2]) != 1:
                     dernew = np.atleast_2d(np.hstack((dercom[row, 1:].flatten(), np.array([0]))))
                     dernew[0, 0] = 2
                     dercom = np.vstack((dernew, dercom))
             dernew = np.zeros((1, dercom.shape[1]), dtype=int)
-            dernew[0, 0] = ii + 1
+            dernew[0, 0] = int(sd ** (ii + 1)) * (ii + 1)
             dercom = np.vstack((dernew, dercom))
         while dercom.shape[1] < nks:
             dercom = np.hstack((dercom, np.zeros((dercom.shape[0], 1), dtype=int)))
@@ -152,9 +159,10 @@ class Product_Kernel(_OperatorKernel):
                 if dercom[row, nks] == 0:
                     idxcut = row + 1
             dercom = dercom[:, :nks]
-        klist = [kk + int(sd * der) + 1 for kk in np.arange(0, nks)]
+        klist = [kk + ad + 1 for kk in np.arange(0, nks)]
         perms = np.array([perm for perm in itertools.permutations(klist)])
-        dermat = np.atleast_2d(np.full((nks, ), int(sd * der), dtype=int))
+        bd = sd * ad if ad % 2 != 0 else ad
+        dermat = np.atleast_2d(np.full((nks, ), bd, dtype=int))
         if dercom.shape[0] > 0:
             dermat = np.diag(dermat.flatten())
         if dercom.shape[1] > 1:
@@ -163,8 +171,6 @@ class Product_Kernel(_OperatorKernel):
                 for jj in np.arange(0, len(klist)):
                     deradd[deradd == klist[jj]] = dercom[ii, jj]
                 dermat = np.vstack((dermat, deradd))
-        oddfilt = (np.mod(dermat, 2) != 0)
-        dermat[oddfilt] = sd * dermat[oddfilt]
         for row in np.arange(0, dermat.shape[0]):
             ihyp = hder
             covterm = np.ones((x1.size, x2.size)).T
