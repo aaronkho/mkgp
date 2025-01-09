@@ -518,6 +518,86 @@ class _OptimizerWidget(QtWidgets.QWidget):
 ##### Custom implementations to be placed below #####
 
 
+class PolyKernelWidget(_KernelWidget):
+
+    def __init__(self, fOn=True, fRestart=False, **kwargs):
+        super().__init__('P', fOn, fRestart, **kwargs)
+        self.PolyKernelUI()
+
+    def PolyKernelUI(self):
+
+        DegreeCstLabel = QtWidgets.QLabel('Degree:')
+        DegreeCstLabel.setEnabled(self.aflag)
+        DegreeCstLabel.setAlignment(QtCore.Qt.AlignRight)
+        DegreeCstEntry = QtWidgets.QLineEdit('1')
+        DegreeCstEntry.setEnabled(self.aflag)
+        DegreeCstEntry.setValidator(QtGui.QIntValidator(1, 10, None))
+        self.add_constant('deg', DegreeCstEntry, label=DegreeCstLabel)
+
+        CoeffHypLabel = QtWidgets.QLabel('Coefficient:')
+        CoeffHypLabel.setEnabled(self.aflag)
+        CoeffHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        CoeffHypEntry = QtWidgets.QLineEdit('1.0e0')
+        CoeffHypEntry.setEnabled(self.aflag)
+        CoeffHypEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        CoeffLBEntry = QtWidgets.QLineEdit('1.0e0')
+        CoeffLBEntry.setEnabled(self.aflag and self.bflag)
+        CoeffLBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        CoeffUBEntry = QtWidgets.QLineEdit('1.0e0')
+        CoeffUBEntry.setEnabled(self.aflag and self.bflag)
+        CoeffUBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        self.add_hyperparameter('coeff', CoeffHypEntry, label=CoeffHypLabel, lbwidget=CoeffLBEntry, ubwidget=CoeffUBEntry)
+
+        ConstHypLabel = QtWidgets.QLabel('Constant:')
+        ConstHypLabel.setEnabled(self.aflag)
+        ConstHypLabel.setAlignment(QtCore.Qt.AlignRight)
+        ConstHypEntry = QtWidgets.QLineEdit('1.0e0')
+        ConstHypEntry.setEnabled(self.aflag)
+        ConstHypEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        ConstLBEntry = QtWidgets.QLineEdit('1.0e0')
+        ConstLBEntry.setEnabled(self.aflag and self.bflag)
+        ConstLBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        ConstUBEntry = QtWidgets.QLineEdit('1.0e0')
+        ConstUBEntry.setEnabled(self.aflag and self.bflag)
+        ConstUBEntry.setValidator(QtGui.QDoubleValidator(-np.inf, np.inf, 100, None))
+        self.add_hyperparameter('const', ConstHypEntry, label=ConstHypLabel, lbwidget=ConstLBEntry, ubwidget=ConstUBEntry)
+
+        kbox = self.make_layout()
+        self.setLayout(kbox)
+
+    def get_name(self):
+        orig_name = super().get_name()
+        hyps, csts = super().get_initial_guess()
+        degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
+        name = orig_name
+        for ii in range(degree - 1):
+            name += f'-{orig_name}'
+        if degree > 1:
+            name = f'Prod({name})'
+        return name
+
+    #TODO: Fix!!!!!
+    def get_initial_guess(self):
+        orig_hyps, csts = super().get_initial_guess()
+        degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
+        hyps = np.expand_dims(orig_hyps, axis=0)
+        for ii in range(1, degree):
+            factor = np.power(0.95, ii)
+            hyps = np.stack((hyps, factor * np.expand_dims(orig_hyps, axis=0)), axis=0)
+        return hyps.flatten(), np.array([])
+
+    #TODO: Fix!!!!!
+    def get_bounds(self):
+        hyps, csts = super().get_initial_guess()
+        orig_bounds = super().get_bounds()
+        degree = int(np.rint(csts[0])) if len(csts) > 0 else 1
+        bounds = orig_bounds.copy()
+        for ii in range(1, degree):
+            factor = np.power(0.95, ii)
+            bounds = np.stack((bounds, factor * orig_bounds), axis=1)
+        return bounds
+
+
 class SEKernelWidget(_KernelWidget):
 
     def __init__(self, fOn=True, fRestart=False, **kwargs):
@@ -1227,11 +1307,12 @@ class GPR1D_GUI(QtWidgets.QWidget):
 
         self.YKernelSelectionLabel = QtWidgets.QLabel('Kernel:')
         self.YKernelSelectionList = QtWidgets.QComboBox()
+        self.YKernelSelectionList.addItem('Polynomial')
         self.YKernelSelectionList.addItem('Squared Exponential')
         self.YKernelSelectionList.addItem('Rational Quadratic')
         self.YKernelSelectionList.addItem('Matern Half-Integer')
         self.YKernelSelectionList.addItem('Gibbs Kernel')
-        self.YKernelSelectionList.setCurrentIndex(0)
+        self.YKernelSelectionList.setCurrentIndex(2)
         self.YKernelSelectionList.currentIndexChanged.connect(self._switch_kernel_ui_y)
 
         self.YOptimizeBox = QtWidgets.QCheckBox('Optimize')
@@ -1288,12 +1369,14 @@ class GPR1D_GUI(QtWidgets.QWidget):
         self.YNRestartsEntry.setEnabled(self.YKernelRestartBox.isChecked())
         self.YNRestartsEntry.setValidator(QtGui.QIntValidator(1, 1000, None))
 
+        self.YPolyKernelSettings = PolyKernelWidget(True, self.YKernelRestartBox.isChecked())
         self.YSEKernelSettings = SEKernelWidget(True, self.YKernelRestartBox.isChecked())
         self.YRQKernelSettings = RQKernelWidget(True, self.YKernelRestartBox.isChecked())
         self.YMHKernelSettings = MHKernelWidget(True, self.YKernelRestartBox.isChecked())
         self.YGGKernelSettings = GibbsKernelWidget(True, self.YKernelRestartBox.isChecked())
 
         self.YKernelSettings = QtWidgets.QStackedLayout()
+        self.YKernelSettings.addWidget(self.YPolyKernelSettings)
         self.YKernelSettings.addWidget(self.YSEKernelSettings)
         self.YKernelSettings.addWidget(self.YRQKernelSettings)
         self.YKernelSettings.addWidget(self.YMHKernelSettings)
@@ -1356,11 +1439,12 @@ class GPR1D_GUI(QtWidgets.QWidget):
         self.EKernelSelectionLabel.setEnabled(self.HeteroscedasticBox.isChecked())
         self.EKernelSelectionList = QtWidgets.QComboBox()
         self.EKernelSelectionList.setEnabled(self.HeteroscedasticBox.isChecked())
+        self.EKernelSelectionList.addItem('Polynomial')
         self.EKernelSelectionList.addItem('Squared Exponential')
         self.EKernelSelectionList.addItem('Rational Quadratic')
         self.EKernelSelectionList.addItem('Matern Half-Integer')
         self.EKernelSelectionList.addItem('Gibbs Kernel')
-        self.EKernelSelectionList.setCurrentIndex(1)
+        self.EKernelSelectionList.setCurrentIndex(2)
         self.EKernelSelectionList.currentIndexChanged.connect(self._switch_kernel_ui_e)
 
         self.EOptimizeBox = QtWidgets.QCheckBox('Optimize')
@@ -1422,12 +1506,14 @@ class GPR1D_GUI(QtWidgets.QWidget):
         self.ENRestartsEntry.setEnabled(self.HeteroscedasticBox.isChecked() and self.EKernelRestartBox.isChecked())
         self.ENRestartsEntry.setValidator(QtGui.QIntValidator(1, 1000, None))
 
+        self.EPolyKernelSettings = PolyKernelWidget(self.HeteroscedasticBox.isChecked(), self.EKernelRestartBox.isChecked())
         self.ESEKernelSettings = SEKernelWidget(self.HeteroscedasticBox.isChecked(), self.EKernelRestartBox.isChecked())
         self.ERQKernelSettings = RQKernelWidget(self.HeteroscedasticBox.isChecked(), self.EKernelRestartBox.isChecked())
         self.EMHKernelSettings = MHKernelWidget(self.HeteroscedasticBox.isChecked(), self.EKernelRestartBox.isChecked())
         self.EGGKernelSettings = GibbsKernelWidget(self.HeteroscedasticBox.isChecked(), self.EKernelRestartBox.isChecked())
 
         self.EKernelSettings = QtWidgets.QStackedLayout()
+        self.EKernelSettings.addWidget(self.EPolyKernelSettings)
         self.EKernelSettings.addWidget(self.ESEKernelSettings)
         self.EKernelSettings.addWidget(self.ERQKernelSettings)
         self.EKernelSettings.addWidget(self.EMHKernelSettings)

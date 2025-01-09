@@ -54,6 +54,18 @@ gpr1d_gui = "gpr1d.gui.gui:main"
 [tool.setuptools.dynamic]
 version = {attr = "gpr1d.__version__"}
 
+[tool.pytest.ini_options]
+markers = [
+    "base_classes",
+    "helpers",
+    "kernels",
+    "operator_kernels",
+    "empty_object",
+    "evaluation",
+    "simple_version",
+    "optimization",
+]
+
 [tool.pixi.project]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
