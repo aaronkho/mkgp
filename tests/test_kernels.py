@@ -403,9 +403,9 @@ class TestSumOperationKernel():
     ref_dcov = np.atleast_2d([[0.0, 0.54134113295], [-0.54134113295, 0.0]])
     ref_ddcov = np.atleast_2d([[4.0, -1.62402339884], [-1.62402339884, 4.0]])
     ref_hdcov = [
-        np.atleast_2d([[2.0, 0.27067056647], [0.27067056647, 2.0]]),
-        np.atleast_2d([[0.0, 1.08268226589], [1.08268226589, 0.0]]),
-        np.atleast_2d([[2.0, 0.0], [0.0, 2.0]]),
+        np.atleast_2d([[3.0, 0.27067056647], [0.27067056647, 3.0]]),
+        np.atleast_2d([[1.0, 1.08268226589], [1.08268226589, 1.0]]),
+        np.atleast_2d([[3.0, 0.13533528324], [0.13533528324, 3.0]]),
     ]
 
     def test_eval(self, sum_kernel):
@@ -438,8 +438,8 @@ class TestProductOperationKernel():
     ref_dcov = np.atleast_2d([[0.0, 0.0], [0.0, 32.0]])
     ref_ddcov = np.atleast_2d([[0.0, 0.0], [0.0, 64.0]])
     ref_hdcov = [
-        np.atleast_2d([[0.0, 0.0], [0.0, 0.0]]), 
-        np.atleast_2d([[0.0, 0.0], [0.0, 0.0]]),
+        np.atleast_2d([[0.0, 0.0], [0.0, 16.0]]),
+        np.atleast_2d([[0.0, 0.0], [0.0, 16.0]]),
     ]
 
     def test_eval(self, product_kernel):
