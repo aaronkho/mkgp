@@ -57,9 +57,10 @@ class Sum_Kernel(_OperatorKernel):
         covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         ihyp = hder
         for kk in self._kernel_list:
-            covm = covm + kk(x1, x2, der, ihyp)
+            nhyps = kk.hyperparameters.size
+            khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+            covm = covm + kk(x1, x2, der, khder)
             if ihyp is not None:
-                nhyps = kk.hyperparameters.size
                 ihyp = ihyp - nhyps
         return covm
 
@@ -172,13 +173,14 @@ class Product_Kernel(_OperatorKernel):
                     deradd[deradd == klist[jj]] = dercom[ii, jj]
                 dermat = np.vstack((dermat, deradd))
         for row in np.arange(0, dermat.shape[0]):
-            ihyp = hder
             covterm = np.ones((x1.size, x2.size)).T
+            ihyp = hder
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
-                covterm = covterm * kk(x1, x2, dermat[row, col], ihyp)
+                nhyps = kk.hyperparameters.size
+                khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                covterm = covterm * kk(x1, x2, dermat[row, col], khder)
                 if ihyp is not None:
-                    nhyps = kk.hyperparameters.size
                     ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
@@ -257,9 +259,10 @@ class Symmetric_Kernel(_OperatorKernel):
         covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
         ihyp = hder
         for kk in self._kernel_list:
-            covm = covm + 0.5 * kk(x1, x2, der, ihyp) + 0.5 * kk(-x1, x2, der, ihyp)
+            nhyps = kk.hyperparameters.size
+            khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+            covm = covm + 0.5 * kk(x1, x2, der, khder) + 0.5 * kk(-x1, x2, der, khder)
             if ihyp is not None:
-                nhyps = kk.hyperparameters.size
                 ihyp = ihyp - nhyps
         return covm
 
