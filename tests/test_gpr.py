@@ -21,6 +21,7 @@ def check_gp_results(results,cmean=None,cstd=None,cdmean=None,cdstd=None,rtol=1.
     return np.all(checks)
 
 
+@pytest.mark.empty_object
 @pytest.mark.usefixtures("empty_gpr_object")
 class TestGPRUninitialized(object):
 
@@ -100,6 +101,7 @@ class TestGPRUninitialized(object):
         pytest.raises(ValueError,empty_gpr_object.sample_GP_derivative,1)
 
 
+@pytest.mark.evaluation
 @pytest.mark.usefixtures("unoptimized_gpr_object","linear_kernel","linear_test_data","rq_kernel")
 class TestGPREvaluation(object):
 
@@ -165,6 +167,7 @@ class TestGPREvaluation(object):
         assert np.isclose(unoptimized_gpr_object.get_gp_lml(),xy_lml) and np.isclose(unoptimized_gpr_object.get_gp_null_lml(),xy_null_lml)
 
 
+@pytest.mark.simple_version
 @pytest.mark.usefixtures("simplified_unoptimized_gpr_object","unoptimized_gpr_object","linear_test_data")
 class TestGPRSimplifiedVersion(object):
 
@@ -185,6 +188,7 @@ class TestGPRSimplifiedVersion(object):
         assert simplified_unoptimized_gpr_object.sample(simplified_unoptimized_gpr_object.get_gp_x()).shape == (31,)
 
 
+@pytest.mark.optimization
 @pytest.mark.usefixtures("preoptimization_gpr_object","rq_kernel")
 class TestGPROptimization(object):
 

@@ -20,6 +20,7 @@ def check_kernel_hyperparameter_derivatives(kernel, x1, x2, comparison):
     return np.all(hderiv_tests)
 
 
+@pytest.mark.base_classes
 @pytest.mark.usefixtures('empty_warping_function', 'empty_kernel', 'empty_operator_kernel')
 class TestBaseClasses():
 
@@ -54,6 +55,7 @@ class TestBaseClasses():
         pytest.raises(NotImplementedError, empty_operator_kernel, [0.0], [0.0])
 
 
+@pytest.mark.helpers
 @pytest.mark.usefixtures('se_kernel', 'gibbs_inverse_gaussian_kernel', 'sum_kernel')
 class TestAutoKernelCreation():
 
@@ -85,6 +87,7 @@ class TestAutoKernelCreation():
         assert gpobj == sum_kernel
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('constant_kernel')
 class TestConstantKernel():
 
@@ -117,6 +120,7 @@ class TestConstantKernel():
             pytest.raises(NotImplementedError, constant_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('noise_kernel')
 class TestNoiseKernel():
 
@@ -149,6 +153,7 @@ class TestNoiseKernel():
             pytest.raises(NotImplementedError, noise_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('linear_kernel')
 class TestLinearKernel():
 
@@ -181,6 +186,7 @@ class TestLinearKernel():
             pytest.raises(NotImplementedError, linear_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('poly_order_kernel')
 class TestPolyOrderKernel():
 
@@ -214,6 +220,7 @@ class TestPolyOrderKernel():
             pytest.raises(NotImplementedError, poly_order_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('se_kernel')
 class TestSquareExponentialKernel():
 
@@ -247,6 +254,7 @@ class TestSquareExponentialKernel():
             pytest.raises(NotImplementedError, se_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('rq_kernel')
 class TestRationalQuadraticKernel():
 
@@ -281,6 +289,7 @@ class TestRationalQuadraticKernel():
             pytest.raises(NotImplementedError, rq_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('matern_hi_kernel')
 class TestMaternHalfIntegerKernel():
 
@@ -314,6 +323,7 @@ class TestMaternHalfIntegerKernel():
             pytest.raises(NotImplementedError, matern_hi_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('gibbs_constant_kernel')
 class TestGibbsKernelWithConstant():
 
@@ -347,6 +357,7 @@ class TestGibbsKernelWithConstant():
             pytest.raises(NotImplementedError, gibbs_constant_kernel, **kwargs)
 
 
+@pytest.mark.kernels
 @pytest.mark.usefixtures('gibbs_inverse_gaussian_kernel')
 class TestGibbsKernelWithInverseGaussian():
 
@@ -382,6 +393,7 @@ class TestGibbsKernelWithInverseGaussian():
             pytest.raises(NotImplementedError, gibbs_inverse_gaussian_kernel, **kwargs)
 
 
+@pytest.mark.operator_kernels
 @pytest.mark.usefixtures('sum_kernel')
 class TestSumOperationKernel():
 
@@ -416,6 +428,7 @@ class TestSumOperationKernel():
             pytest.raises(NotImplementedError, sum_kernel, **kwargs)
 
 
+@pytest.mark.operator_kernels
 @pytest.mark.usefixtures('product_kernel')
 class TestProductOperationKernel():
 
