@@ -436,7 +436,7 @@ class TestProductOperationKernel():
     x2_vector = np.array([0.0, 1.0])
     ref_cov = np.atleast_2d([[0.0, 0.0], [0.0, 16.0]])
     ref_dcov = np.atleast_2d([[0.0, 0.0], [0.0, 32.0]])
-    ref_ddcov = np.atleast_2d([[0.0, 0.0], [0.0, 64.0]])
+    ref_ddcov = np.atleast_2d([[0.0, 32.0], [0.0, 64.0]])
     ref_hdcov = [
         np.atleast_2d([[0.0, 0.0], [0.0, 0.0]]), 
         np.atleast_2d([[0.0, 0.0], [0.0, 0.0]]),
