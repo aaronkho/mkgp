@@ -1063,12 +1063,13 @@ class GaussianProcessRegression1D():
 
         # Set up the problem grids for calculating the required matrices from covf
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
-        xxd = dxx if dflag else []
+        xxd = dxx if dflag else np.array([])
         xf = np.append(xx, xxd)
-        yyd = dyy if dflag else []
+        yyd = dyy if dflag else np.array([])
         yf = np.append(yy, yyd)
-        yed = dye if dflag else []
+        yed = dye if dflag else np.array([])
         yef = np.append(ye, yed)
+        ndim = xx.shape[1] if xx.ndim > 1 else 1
 
         # Move meshgridding into kernel structure
         #(x1, x2) = np.meshgrid(xx, xx)
@@ -1084,13 +1085,28 @@ class GaussianProcessRegression1D():
         KKh1 = kk(xx, xxd, der=1) # kk(x1h1, x2h1, der=1)
         KKh2 = kk(xxd, xx, der=-1) # kk(x1h2, x2h2, der=-1)
         KKd = kk(xxd, xxd, der=2) # kk(x1d, x2d, der=2)
-        KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
-        #ksb = kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
-        #ksh = kk(xs1h, xs2h, der=dd+1)
-        ksb = kk(xn, xx, der=-dd) if dd == 1 else kk(xn, xx, der=dd)
-        ksh = kk(xn, xxd, der=dd+1)
-        ks = np.vstack((ksb, ksh))
+        if KKb.ndim > 2:
+            KKb = np.squeeze(KKb)
+        if KKh1.ndim > 2:
+            KKh1 = KKh1.T.reshape(xx.shape[0], -1).T
+        if KKh2.ndim > 2:
+            KKh2 = KKh2.reshape(xx.shape[0], -1)
+        if KKd.size > 0 and KKd.ndim > 2:
+            KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
+        #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
+        KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
+
+        ksb = kk(xn, xx, der=-dd) if dd == 1 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
+        ksh = kk(xn, xxd, der=dd+1) # kk(xs1h, xs2h, der=dd+1)
+        if ksb.ndim > 2:
+            ksb = np.squeeze(ksb)
+        if ksh.size > 0 and ksh.ndim > ksb.ndim:
+            hshape = [ndim for ii in range(ndim - 1)]
+            ksh = ksh.T.reshape(ndim * xn.shape[0], *hshape, -1)
+        ks = np.concatenate((ksb, ksh), axis=0) # np.vstack((ksb, ksh))
         kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
+        if kt.ndim > 2:
+            kt = np.squeeze(kt)
         kernel = KK + np.diag(yef ** 2.0)
 
         cholesky_flag = True
@@ -1098,13 +1114,10 @@ class GaussianProcessRegression1D():
             LL = spla.cholesky(kernel, lower=True)
             alpha = spla.cho_solve((LL, True), yf)
             kv = spla.cho_solve((LL, True), ks)
-            #vv = np.dot(LL.T, spla.cho_solve((LL, True), ks))
-            #kvs = np.dot(vv.T, vv)
             ldet = 2.0 * np.sum(np.log(np.diag(LL)))
         else:
             alpha = spla.solve(kernel, yf)
             kv = spla.solve(kernel, ks)
-            #kvs = np.dot(ks.T, kv)
             ldet = np.log(spla.det(kernel))
 
         barF = np.dot(ks.T, alpha)          # Mean function
@@ -1125,6 +1138,10 @@ class GaussianProcessRegression1D():
             yft = np.power(yf[zfilt] / yef[zfilt], 2.0)
             yeft = 2.0 * np.log(yef[zfilt])
         lmlz = -0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi)
+
+        if ndim > 1:
+            barF = barF.reshape(xx.shape[0], ndim ** dd)
+            varF = varF.reshape(xx.shape[0], barF.shape[-1], barF.shape[-1], xx.shape[0])
 
         return (barF, varF, lml, lmlz)
 
@@ -1160,18 +1177,16 @@ class GaussianProcessRegression1D():
         #(x1, x2) = np.meshgrid(xx, xx)
         #(xs1, xs2) = np.meshgrid(xx, xn)
         #(xt1, xt2) = np.meshgrid(xn, xn)
-
-        # Set up predictive grids with slight offset in x1 and x2, forms corners of a box around original xn point
-        step = np.amin(np.abs(np.diff(xn)))
-        xnl = xn - step * 0.5e-3            # The step is chosen intelligently to be smaller than smallest dxn
-        xnu = xn + step * 0.5e-3
-
-        # Move meshgridding into kernel structure
         #(xl1, xl2) = np.meshgrid(xx, xnl)
         #(xu1, xu2) = np.meshgrid(xx, xnu)
         #(xll1, xll2) = np.meshgrid(xnl, xnl)
         #(xlu1, xlu2) = np.meshgrid(xnu, xnl)
         #(xuu1, xuu2) = np.meshgrid(xnu, xnu)
+
+        # Set up predictive grids with slight offset in x1 and x2, forms corners of a box around original xn point
+        step = np.amin(np.abs(np.diff(xn)))
+        xnl = xn - step * 0.5e-3            # The step is chosen intelligently to be smaller than smallest dxn
+        xnu = xn + step * 0.5e-3
 
         KK = kk(xx, xx) # kk(x1, x2)
         LL = spla.cholesky(KK + np.diag(ye ** 2.0),lower=True)
@@ -1189,6 +1204,7 @@ class GaussianProcessRegression1D():
         dktl = (ktlu - ktll) / (step * 1.0e-3)
         dktu = (ktuu - ktul) / (step * 1.0e-3)
         ddkt = (dktu - dktl) / (step * 1.0e-3)
+
         barF = np.dot(dks.T, alpha)          # Mean function
         varF = ddkt - np.dot(dvv.T, dvv)     # Variance of mean function
         lml = -0.5 * np.dot(yy.T, alpha) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xx.size * np.log(2.0 * np.pi)
@@ -1272,12 +1288,13 @@ class GaussianProcessRegression1D():
         # Set up the problem grids for calculating the required matrices from covf
         theta = kk.hyperparameters
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
-        xxd = dxx if dflag else []
+        xxd = dxx if dflag else np.array([])
         xf = np.append(xx, xxd)
-        yyd = dyy if dflag else []
+        yyd = dyy if dflag else np.array([])
         yf = np.append(yy, yyd)
-        yed = dye if dflag else []
+        yed = dye if dflag else np.array([])
         yef = np.append(ye, yed)
+        ndim = xx.shape[1] if xx.ndim > 1 else 1
 
         # Move meshgridding into kernel structure
         #(x1, x2) = np.meshgrid(xx, xx)
@@ -1290,7 +1307,16 @@ class GaussianProcessRegression1D():
         KKh1 = kk(xx, xxd, der=1) # kk(x1h1, x2h1, der=1)
         KKh2 = kk(xxd, xx, der=-1) # kk(x1h2, x2h2, der=-1)
         KKd = kk(xxd, xxd, der=2) # kk(x1d, x2d, der=2)
-        KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
+        if KKb.ndim > 2:
+            KKb = np.squeeze(KKb)
+        if KKh1.ndim > 2:
+            KKh1 = KKh1.T.reshape(xx.shape[0], -1).T
+        if KKh2.ndim > 2:
+            KKh2 = KKh2.reshape(xx.shape[0], -1)
+        if KKd.ndim > 2:
+            KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
+        #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
+        KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
         kernel = KK + np.diag(yef ** 2.0)
 
         cholesky_flag = True
@@ -1306,7 +1332,16 @@ class GaussianProcessRegression1D():
             HHh1 = kk(xx, xxd, der=1, hder=ii) # kk(x1h1, x2h1, der=1, hder=ii)
             HHh2 = kk(xxd, xx, der=-1, hder=ii) # kk(x1h2, x2h2, der=-1, hder=ii)
             HHd = kk(xxd, xxd, der=2, hder=ii) # kk(x1d, x2d, der=2, hder=ii)
-            HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
+            if HHb.ndim > 2:
+                HHb = np.squeeze(HHb)
+            if HHh1.ndim > 2:
+                HHh1 = HHh1.T.reshape(xx.shape[0], -1).T
+            if HHh2.ndim > 2:
+                HHh2 = HHh2.reshape(xx.shape[0], -1)
+            if HHd.ndim > 2:
+                HHd = np.transpose(HHd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
+            #HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
+            HH = np.concatenate((np.concatenate((HHb, HHh1.T), axis=1), np.concatenate((HHh2.T, HHd), axis=1)), axis=0)
             PP = np.dot(alpha.T, HH)
             if cholesky_flag:
                 QQ = spla.cho_solve((LL, True), HH)
