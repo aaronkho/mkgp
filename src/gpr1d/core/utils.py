@@ -30,7 +30,7 @@ __all__ = [
 ]
 
 
-def KernelConstructor(name):
+def KernelConstructor(name, dtype=None):
     r'''
     Function to construct a kernel solely based on the kernel codename.
 
@@ -62,42 +62,42 @@ def KernelConstructor(name):
                     names.append(rname)
             kklist = []
             for ii in range(len(names)):
-                kklist.append(KernelConstructor(names[ii]))
+                kklist.append(KernelConstructor(names[ii], dtype=dtype))
             if re.search(r'^Sum$', m.group(1)):
-                kernel = Sum_Kernel(klist=kklist)
+                kernel = Sum_Kernel(klist=kklist, dtype=dtype)
             elif re.search(r'^Prod$', m.group(1)):
-                kernel = Product_Kernel(klist=kklist)
+                kernel = Product_Kernel(klist=kklist, dtype=dtype)
             elif re.search(r'^Sym$', m.group(1)):
-                kernel = Symmetric_Kernel(klist=kklist)
+                kernel = Symmetric_Kernel(klist=kklist, dtype=dtype)
         else:
             if re.search(r'^C$', name):
-                kernel = Constant_Kernel()
+                kernel = Constant_Kernel(dtype=dtype)
             elif re.search(r'^n$', name):
-                kernel = Noise_Kernel()
+                kernel = Noise_Kernel(dtype=dtype)
             elif re.search(r'^L$', name):
-                kernel = Linear_Kernel()
+                kernel = Linear_Kernel(dtype=dtype)
             elif re.search(r'^P$', name):
-                kernel = Poly_Order_Kernel()
+                kernel = Poly_Order_Kernel(dtype=dtype)
             elif re.search(r'^SE$', name):
-                kernel = SE_Kernel()
+                kernel = SE_Kernel(dtype=dtype)
             elif re.search(r'^RQ$', name):
-                kernel = RQ_Kernel()
+                kernel = RQ_Kernel(dtype=dtype)
             elif re.search(r'^MH$', name):
-                kernel = Matern_HI_Kernel()
+                kernel = Matern_HI_Kernel(dtype=dtype)
             elif re.search(r'^NN$', name):
-                kernel = NN_Kernel()
+                kernel = NN_Kernel(dtype=dtype)
             elif re.search(r'^Gw', name):
                 wname = re.search(r'^Gw(.*)$', name).group(1)
                 wfunc = None
                 if re.search(r'^C$', wname):
-                    wfunc = Constant_WarpingFunction()
+                    wfunc = Constant_WarpingFunction(dtype=dtype)
                 elif re.search(r'^IG$', wname):
-                    wfunc = IG_WarpingFunction()
-                kernel = Gibbs_Kernel(wfunc=wfunc)
+                    wfunc = IG_WarpingFunction(dtype=dtype)
+                kernel = Gibbs_Kernel(wfunc=wfunc, dtype=dtype)
     return kernel
 
 
-def KernelReconstructor(name, pars=None):
+def KernelReconstructor(name, pars=None, dtype=None):
     r'''
     Function to reconstruct any :code:`_Kernel` instance from its codename and parameter list,
     useful for saving only necessary data to represent a :code:`GaussianProcessRregression1D`
@@ -115,12 +115,13 @@ def KernelReconstructor(name, pars=None):
     :returns: object. The desired :code:`_Kernel` instance, with the supplied parameters already set if parameters were valid. Returns :code:`None` if given kernel codename was invalid.
     '''
 
-    kernel = KernelConstructor(name)
+    dt = dtype if dtype is not None else default_dtype
+    kernel = KernelConstructor(name, dtype=dt)
     pvec = None
-    if isinstance(pars, (list, tuple)):
-        pvec = np.array(pars).flatten()
-    elif isinstance(pars, np.ndarray):
-        pvec = pars.flatten()
+    if isinstance(pars, array_types):
+        pvec = np.array(pars, dtype=dt).flatten()
+    #elif isinstance(pars, np.ndarray):
+    #    pvec = pars.flatten()
     if isinstance(kernel, _Kernel) and pvec is not None:
         nhyp = kernel.hyperparameters.size
         ncst = kernel.constants.size
