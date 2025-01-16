@@ -2424,6 +2424,7 @@ class GaussianProcessRegression1D():
 
         if isinstance(self._ekk, _Kernel) and self._ye is not None and self._yy.size == self._ye.size:
             #ndim = self._xx.shape[1] if self._xx.ndim > 1 else 1
+            enr = self._enr if self._enr is not None else 0
             elml = None
             ekk = None
             xntest = np.zeros(np.atleast_1d(self._xx[0]).shape, dtype=self._dtype)
@@ -2433,7 +2434,7 @@ class GaussianProcessRegression1D():
 #            adye = np.full(dye.shape, np.nanmax([0.2 * np.mean(np.abs(dye)), 1.0e-3 * np.nanmax(np.abs(self._dyy))]), dtype=self._dtype) if dye is not None else None
 #            if adye is not None:
 #                adye[adye < 1.0e-2] = 1.0e-2
-            if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None:
+            if self._ekk.bounds is not None and self._eeps is not None and self._egpye is None and enr > 0:
                 elp = self._elp
                 ekk = copy.copy(self._ekk)
                 ekkvec = []
@@ -2471,7 +2472,7 @@ class GaussianProcessRegression1D():
                 except (ValueError, np.linalg.linalg.LinAlgError):
                     ekkvec.append(None)
                     elmlvec.append(np.nan)
-                for jj in range(self._enr):
+                for jj in range(enr):
                     ekb = np.log10(self._ekk.bounds)
                     etheta = np.abs(ekb[1, :] - ekb[0, :]).flatten() * np.random.random_sample((ekb.shape[1], )) + np.nanmin(ekb, axis=0).flatten()
                     ekk.hyperparameters = np.power(10.0, etheta)
@@ -2515,7 +2516,7 @@ class GaussianProcessRegression1D():
                     self._ekk = copy.copy(ekkvec[eimax])
                 else:
                     raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-            elif self._eeps is not None and self._egpye is None:
+            elif self._eeps is not None and self._egpye is None and enr > 0:
                 elp = self._elp
                 ekk = copy.copy(self._ekk)
                 (elml, ekk) = itemgetter(2, 4)(self.__basic_fit(
