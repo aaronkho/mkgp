@@ -6,6 +6,7 @@ Some helpful functions and classes for reproducability and user-friendliness
 import re
 import numpy as np
 
+from .definitions import number_types, array_types, default_dtype
 from .kernels import (
     _Kernel,
     Constant_Kernel,
@@ -131,3 +132,58 @@ def KernelReconstructor(name, pars=None):
             kernel.hyperparameters = theta
     return kernel
 
+
+def diagonal(matrix, dtype=None):
+    r'''
+    Function to compute diagonal of N x [D x ...] x N matrix.
+
+    :returns: array. The desired N x D matrix, which contains the diagonal of the inner matrix in dimension D.
+    '''
+    dt = dtype if dtype is not None else default_dtype
+    mat = None
+    diag = None
+    if isinstance(matrix, array_types):
+        mat = np.array(matrix, dtype=dt)
+    if mat is not None and mat.ndim > 1 and mat.shape[0] == mat.shape[-1]:
+        if mat.ndim > 2:
+            diag = np.zeros((mat.shape[0], mat.ndim - 2), dtype=dt)
+            for ii in range(mat.shape[0]):
+                for jj in range(mat.ndim - 2):
+                    index = [jj] * (mat.ndim - 2)
+                    diag[ii, jj] = mat[ii, *index, ii]
+        else:
+            diag = np.diag(mat)
+    return diag
+
+
+def diagonalize(diagonal, full=True, dtype=None):
+    r'''
+    Function to compute diagonal matrix from N x D matrix.
+
+    :returns: array. The desired N x [D x ...] x N matrix, which expands the given diagonal across the 2- or D-dimensional inner matrix.
+    '''
+    dt = dtype if dtype is not None else default_dtype
+    diag = None
+    mat = None
+    if isinstance(diagonal, array_types):
+        diag = np.array(diagonal, dtype=dt)
+    if diag is not None and diag.ndim > 0 and diag.ndim <= 2:
+        if diag.ndim == 2:
+            ndim = diag.shape[-1] if full else 2
+            dshape = [diag.shape[-1]] * ndim
+            mat = np.zeros((diag.shape[0], *dshape, diag.shape[0]), dtype=dt)
+            for ii in range(mat.shape[0]):
+                for jj in range(dshape[0]):
+                    element = [jj] * mat.shape[0]
+                    mat[ii, *element, ii] = diag[ii, jj]
+        elif diag.ndim == 1:
+            if full:
+                dshape = [diag.shape[0]] * diag.shape[0]
+                mat = np.zeros(dshape, dtype=dt)
+                for ii in range(mat.shape[0]):
+                    for jj in range(dshape[0]):
+                        element = [jj] * mat.shape[0]
+                        mat[*element] = diag[jj]
+            else:
+                mat = np.diag(diag)
+    return mat
