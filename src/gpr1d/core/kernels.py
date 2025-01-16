@@ -134,44 +134,28 @@ class Product_Kernel(_OperatorKernel):
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
         sd = int(np.sign(der))
         ad = int(sd * der)
-        dercom = np.atleast_2d(np.array([], dtype=int)).T
-        for ii in np.arange(0, ad):
-            oddfilt = (np.mod(np.abs(dercom), 2) != 0)
-            if np.any(oddfilt):
-                dercom[oddfilt] = -dercom[oddfilt]
-            if dercom.shape[0] > 0:
-                dernew = np.ones((dercom.shape[0], 1), dtype=int)
-                for row in np.arange(0, dercom.shape[0]):
-                    dernew[row, 0] *= sd * ((-1) ** row)
-                dercom = np.hstack((dernew, dercom))
-            for row in np.arange(0, dercom.shape[0]):
-                if dercom.shape[1] > 2 and np.abs(dercom[row, 0]) == 1 and np.abs(dercom[row, 1]) == 1 and np.abs(dercom[row, 2]) != 1:
-                    dernew = np.atleast_2d(np.hstack((dercom[row, 1:].flatten(), np.array([0]))))
-                    dernew[0, 0] = 2
-                    dercom = np.vstack((dernew, dercom))
-            dernew = np.zeros((1, dercom.shape[1]), dtype=int)
-            dernew[0, 0] = int(sd ** (ii + 1)) * (ii + 1)
-            dercom = np.vstack((dernew, dercom))
-        while dercom.shape[1] < nks:
-            dercom = np.hstack((dercom, np.zeros((dercom.shape[0], 1), dtype=int)))
-        idxcut = None
-        if dercom.shape[1] > nks:
-            for row in np.arange(0, dercom.shape[0]):
-                if dercom[row, nks] == 0:
-                    idxcut = row + 1
-            dercom = dercom[:, :nks]
-        klist = [kk + ad + 1 for kk in np.arange(0, nks)]
-        perms = np.array([perm for perm in itertools.permutations(klist)])
-        bd = sd * ad if ad % 2 != 0 else ad
-        dermat = np.atleast_2d(np.full((nks, ), bd, dtype=int))
-        if dercom.shape[0] > 0:
-            dermat = np.diag(dermat.flatten())
-        if dercom.shape[1] > 1:
-            for ii in np.arange(1, dercom.shape[0]):
-                deradd = perms.copy()
-                for jj in np.arange(0, len(klist)):
-                    deradd[deradd == klist[jj]] = dercom[ii, jj]
-                dermat = np.vstack((dermat, deradd))
+        fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
+        # Each row of dermat represents a single chain rule term if derivatives are requested
+        #crdmat = np.zeros((ad, ), dtype=int)
+        dermat = np.atleast_2d(np.zeros((nks, ), dtype=int))
+        if der != 0:
+            vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
+            ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
+            # Each element represents partial derivative w.r.t. named kernel index
+            dmesh = np.stack(np.meshgrid(*ddims), axis=-1)
+            meshshape = dmesh.shape[:-1]
+            dermat = np.empty((*meshshape, 0), dtype=int)
+            for dim in vdim:                   # Loop over kernel indices
+                pos = np.count_nonzero(dmesh == dim, axis=-1)
+                neg = np.count_nonzero(dmesh == -dim, axis=-1)
+                oder = pos + neg               # Derivative order on named kernel index from total number of appearances
+                sder = np.power(-1, neg)       # Derivative sign on named kernel index from number of negative value appearances
+                oddfilt = (np.mod(oder, 2) != 0)
+                oder[oddfilt] = sder[oddfilt] * oder[oddfilt]
+                dermat = np.concatenate((dermat, np.expand_dims(oder, axis=-1)), axis=-1)
+            # Reshape such that each row represents one chain rule term
+            #crdmat = np.abs(dmesh).reshape(-1, ad) - 1
+            dermat = dermat.reshape(-1, nks)
         for row in np.arange(0, dermat.shape[0]):
             covterm = np.ones((x1.size, x2.size)).T
             ihyp = hder
