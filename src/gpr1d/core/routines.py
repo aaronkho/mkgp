@@ -720,7 +720,7 @@ class GaussianProcessRegression1D():
         sigF = None
         varF = self.get_gp_variance(noise_flag=noise_flag, noise_mult=noise_mult)
         if varF is not None:
-            sigF = np.sqrt(np.diag(varF))
+            sigF = np.sqrt(diagonal(varF)) # np.sqrt(np.diag(varF))
         return sigF
 
 
@@ -776,7 +776,7 @@ class GaussianProcessRegression1D():
         dsigF = None
         dvarF = self.get_gp_drv_variance(noise_flag=noise_flag, process_noise_fraction=process_noise_fraction)
         if dvarF is not None:
-            dsigF = np.sqrt(np.diag(dvarF))
+            dsigF = np.sqrt(diagonal(dvarF)) # np.sqrt(np.diag(dvarF))
         return dsigF
 
 
@@ -990,7 +990,7 @@ class GaussianProcessRegression1D():
         sigE = None
         varE = self.get_error_gp_variance()
         if varE is not None:
-            sigE = np.sqrt(np.diag(varE))
+            sigE = np.sqrt(diagonal(varE)) # np.sqrt(np.diag(varE))
         return sigE
 
 
@@ -1065,13 +1065,28 @@ class GaussianProcessRegression1D():
 
         # Set up the problem grids for calculating the required matrices from covf
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
-        xxd = dxx if dflag else np.empty((0, ), dtype=self._dtype)
-        xf = np.append(xx, xxd)
-        yyd = dyy if dflag else np.empty((0, ), dtype=self._dtype)
-        yf = np.append(yy, yyd)
-        yed = dye if dflag else np.empty((0, ), dtype=self._dtype)
-        yef = np.append(ye, yed)
         ndim = xx.shape[1] if xx.ndim > 1 else 1
+        xshape = (0, *xx.shape[1:]) if xx.ndim > 1 else (0, )
+        yshape = (0, *yy.shape[1:]) if yy.ndim > 1 else (0, )
+        xxd = dxx if dflag else np.empty(xshape, dtype=self._dtype)
+        yyd = dyy if dflag else np.empty(yshape, dtype=self._dtype)
+        yed = dye if dflag else np.empty(yshape, dtype=self._dtype)
+
+        # Set up the vectors needed for evaluating the final GP
+        xreshape = (-1, *xx.shape[1:]) if xx.ndim > 1 else (-1, )
+        yreshape = (-1, *yy.shape[1:]) if yy.ndim > 1 else (-1, )
+        yydf = yyd.reshape(*yreshape)
+        yedf = yed.reshape(*yreshape)
+        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(*xreshape)
+        xf = np.concatenate((xx, xxdf), axis=0)
+        yf = np.concatenate((yy, yydf), axis=0)
+        yef = np.concatenate((ye, yedf), axis=0)
+        mask = np.isfinite(yf)
+        kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
+        if np.any(np.invert(mask)):
+            xf = xf[mask]
+            yf = yf[mask]
+            yef = yef[mask]
 
         # Move meshgridding into kernel structure
         #(x1, x2) = np.meshgrid(xx, xx)
@@ -1097,6 +1112,8 @@ class GaussianProcessRegression1D():
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
+        if np.any(np.invert(kmask)):
+            KK = KK[kmask]
 
         ksb = kk(xn, xx, der=-dd) if dd == 1 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
         ksh = kk(xn, xxd, der=dd+1) # kk(xs1h, xs2h, der=dd+1)
@@ -1105,11 +1122,13 @@ class GaussianProcessRegression1D():
         if ksh.size > 0 and ksh.ndim > ksb.ndim:
             hshape = [ndim for ii in range(ndim - 1)]
             ksh = ksh.T.reshape(ndim * xn.shape[0], *hshape, -1)
+        if np.any(np.invert(mask)):
+            ksh = ksh[mask]
         ks = np.concatenate((ksb, ksh), axis=0) # np.vstack((ksb, ksh))
         kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
         if kt.ndim > 2:
             kt = np.squeeze(kt)
-        kernel = KK + np.diag(yef ** 2.0)
+        kernel = KK + np.diag(yef ** 2.0)   # Should be fine since kernel output is always 2D
 
         cholesky_flag = True
         if cholesky_flag:
@@ -1292,13 +1311,27 @@ class GaussianProcessRegression1D():
         # Set up the problem grids for calculating the required matrices from covf
         theta = kk.hyperparameters
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
-        xxd = dxx if dflag else np.empty((0, ), dtype=self._dtype)
-        xf = np.append(xx, xxd)
-        yyd = dyy if dflag else np.empty((0, ), dtype=self._dtype)
-        yf = np.append(yy, yyd)
-        yed = dye if dflag else np.empty((0, ), dtype=self._dtype)
-        yef = np.append(ye, yed)
         ndim = xx.shape[1] if xx.ndim > 1 else 1
+        xshape = (0, *xx.shape[1:]) if xx.ndim > 1 else (0, )
+        yshape = (0, *yy.shape[1:]) if yy.ndim > 1 else (0, )
+        xxd = dxx if dflag else np.empty(xshape, dtype=self._dtype)
+        yyd = dyy if dflag else np.empty(yshape, dtype=self._dtype)
+        yed = dye if dflag else np.empty(yshape, dtype=self._dtype)
+
+        xreshape = (-1, *xx.shape[1:]) if xx.ndim > 1 else (-1, )
+        yreshape = (-1, *yy.shape[1:]) if yy.ndim > 1 else (-1, )
+        yydf = yyd.reshape(*yreshape)
+        yedf = yed.reshape(*yreshape)
+        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(*xreshape)
+        xf = np.concatenate((xx, xxdf), axis=0)
+        yf = np.concatenate((yy, yydf), axis=0)
+        yef = np.concatenate((ye, yedf), axis=0)
+        mask = np.isfinite(yf)
+        kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
+        if np.any(np.invert(mask)):
+            xf = xf[mask]
+            yf = yf[mask]
+            yef = yef[mask]
 
         # Move meshgridding into kernel structure
         #(x1, x2) = np.meshgrid(xx, xx)
@@ -1322,6 +1355,8 @@ class GaussianProcessRegression1D():
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
         kernel = KK + np.diag(yef ** 2.0)
+        if np.any(np.invert(kmask)):
+            KK = KK[kmask]
 
         cholesky_flag = True
         if cholesky_flag:
@@ -1346,6 +1381,8 @@ class GaussianProcessRegression1D():
                 HHd = np.transpose(HHd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
             #HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
             HH = np.concatenate((np.concatenate((HHb, HHh1.T), axis=1), np.concatenate((HHh2.T, HHd), axis=1)), axis=0)
+            if np.any(np.invert(kmask)):
+                HH = HH[kmask]
             PP = np.dot(alpha.T, HH)
             if cholesky_flag:
                 QQ = spla.cho_solve((LL, True), HH)
@@ -2003,8 +2040,8 @@ class GaussianProcessRegression1D():
         good = np.all([np.isfinite(xx), np.isfinite(yy)], axis=0)
         if ndim > 1:
             good = np.all(good, axis=1)
-        xe = xe[good] if xe.shape == xx.shape else np.full(xx[good].shape, xe[0])
-        ye = ye[good] if ye.shape == yy.shape else np.full(yy[good].shape, ye[0])
+        xe = xe[good] if xe.shape == xx.shape else np.tile(xe[0], (xx[good].shape[0], 1))
+        ye = ye[good] if ye.shape == yy.shape else np.tile(ye[0], (yy[good].shape[0], 1))
         xx = xx[good]
         yy = yy[good]
         xsc = np.nanmax(np.abs(xx)) if np.nanmax(np.abs(xx)) > 1.0e3 else 1.0   # Scaling avoids overflow when squaring
@@ -2013,15 +2050,15 @@ class GaussianProcessRegression1D():
         xe = xe / xsc
         yy = yy / ysc
         ye = ye / ysc
-        nn = np.array([], dtype=self._dtype)
-        cxx = np.array([], dtype=self._dtype)
-        cxe = np.array([], dtype=self._dtype)
-        cyy = np.array([], dtype=self._dtype)
-        cye = np.array([], dtype=self._dtype)
+        nn = np.empty((0, ), dtype=self._dtype)
+        cxx = np.empty((0, ndim), dtype=self._dtype) if ndim > 1 else np.empty((0, ), dtype=self._dtype)
+        cxe = copy.deepcopy(nn)
+        cyy = copy.deepcopy(nn)
+        cye = copy.deepcopy(nn)
         for ii in range(xx.shape[0]):
             if yy[ii] >= lb and yy[ii] <= ub:
                 fflag = False
-                for jj in range(cxx.size):
+                for jj in range(cxx.shape[0]):
                     if np.sqrt(np.sum(np.power(cxx[jj] - xx[ii], 2.0))) < cn and not fflag:  # Use Euclidean distance
                         cxe[jj] = np.sqrt(((cxe[jj] ** 2.0) * nn[jj] + (xe[ii] ** 2.0) + (cxx[jj] ** 2.0) * nn[jj] + (xx[ii] ** 2.0)) / (nn[jj] + 1.0) - ((cxx[jj] * nn[jj] + xx[ii]) / ((nn[jj] + 1.0)) ** 2.0))
                         cxx[jj] = (cxx[jj] * nn[jj] + xx[ii]) / (nn[jj] + 1.0)
@@ -2030,11 +2067,11 @@ class GaussianProcessRegression1D():
                         nn[jj] = nn[jj] + 1.0
                         fflag = True
                 if not fflag:
-                    nn = np.hstack((nn, np.array([1.0])))
-                    cxx = np.hstack((cxx, np.atleast_1d(xx[ii])))
-                    cxe = np.hstack((cxe, np.atleast_1d(xe[ii])))
-                    cyy = np.hstack((cyy, np.atleast_1d(yy[ii])))
-                    cye = np.hstack((cye, np.atleast_1d(ye[ii])))
+                    nn = np.concatenate((nn, np.array([1.0])), axis=0)
+                    cxx = np.concatenate((cxx, np.atleast_1d(xx[ii])), axis=0)
+                    cxe = np.concatenate((cxe, np.atleast_1d(xe[ii])), axis=0)
+                    cyy = np.concatenate((cyy, np.atleast_1d(yy[ii])), axis=0)
+                    cye = np.concatenate((cye, np.atleast_1d(ye[ii])), axis=0)
         cxx = cxx * xsc
         cxe = cxe * xsc
         cyy = cyy * ysc
@@ -2303,7 +2340,7 @@ class GaussianProcessRegression1D():
             (barF, varF, lml, lmlz) = self._gp_base_alg(xn, nkk, lp, xx, yy, ye, dxx, dyy, dye, dd)
             barF = barF * sc if do_drv else barF * sc + myy
             varF = varF * sc**2.0
-            errF = varF if rtn_cov else np.sqrt(np.diag(varF))
+            errF = varF if rtn_cov else np.sqrt(diagonal(varF)) # np.sqrt(np.diag(varF))
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
         return (barF, errF, lml, lmlz, nkk)
@@ -2402,7 +2439,7 @@ class GaussianProcessRegression1D():
             (barF, varF, lml) = self._gp_brute_deriv1(xn, kk, lp, xx, yy, ye)
             barF = barF * sc
             varF = varF * (sc ** 2.0)
-            errF = varF if rtn_cov else np.sqrt(np.diag(varF))
+            errF = varF if rtn_cov else np.sqrt(diagonal(varF)) # np.sqrt(np.diag(varF))
         else:
             raise ValueError('Check GP inputs to make sure they are valid.')
         return (barF, errF, lml)
@@ -2931,8 +2968,8 @@ class GaussianProcessRegression1D():
             ))
             self._dbarF = copy.deepcopy(dbarF) if dbarF is not None else None
             self._dvarF = copy.deepcopy(dvarF) if dvarF is not None else None
-            self._varN = np.diag(np.power(self._barE, 2.0)) if self._barE is not None else np.diag(np.zeros(self._xF.shape))
-            self._dvarN = np.diag(np.power(self._dbarE, 2.0)) if self._dbarE is not None else np.diag(np.zeros(self._xF.shape))
+            self._varN = diagonalize(np.power(self._barE, 2.0), full=False) if self._barE is not None else diagonalize(np.zeros(self._xF.shape), full=False)
+            self._dvarN = diagonalize(np.power(self._dbarE, 2.0), full=False) if self._dbarE is not None else diagonalize(np.zeros(self._xF.shape), full=False)
 
             # It seems that the second derivative term is not necessary, should be used to refine the mathematics!
 #            ddfac = copy.deepcopy(self._ddbarE) if self._ddbarE is not None else 0.0
