@@ -49,7 +49,8 @@ class _Kernel():
         hyps=None,
         csts=None,
         htags=None,
-        ctags=None
+        ctags=None,
+        dtype=None
     ):
         r'''
         Initializes the :code:`_Kernel` instance.
@@ -75,10 +76,11 @@ class _Kernel():
         :returns: none.
         '''
 
+        self._dtype = dtype if dtype is not None else default_dtype
         self._fname = name
         self._function = func if callable(func) else None
-        self._hyperparameters = np.array(hyps, dtype=default_dtype).flatten() if isinstance(hyps, array_types) else None
-        self._constants = np.array(csts, dtype=default_dtype).flatten() if isinstance(csts, array_types) else None
+        self._hyperparameters = np.array(hyps, dtype=self._dtype).flatten() if isinstance(hyps, array_types) else None
+        self._constants = np.array(csts, dtype=self._dtype).flatten() if isinstance(csts, array_types) else None
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
@@ -107,13 +109,13 @@ class _Kernel():
             dert = 0
             hdert = None
             if isinstance(x1, number_types):
-                xt1 = np.array(np.atleast_1d(x1), dtype=default_dtype)
+                xt1 = np.array(np.atleast_1d(x1), dtype=self._dtype)
             elif isinstance(x1, array_types):
-                xt1 = np.array(np.atleast_1d(x1), dtype=default_dtype)
+                xt1 = np.array(np.atleast_1d(x1), dtype=self._dtype)
             if isinstance(x2, number_types):
-                xt2 = np.array(np.atleast_1d(x2), dtype=default_dtype)
+                xt2 = np.array(np.atleast_1d(x2), dtype=self._dtype)
             elif isinstance(x2, array_types):
-                xt2 = np.array(np.atleast_1d(x2), dtype=default_dtype)
+                xt2 = np.array(np.atleast_1d(x2), dtype=self._dtype)
             if isinstance(der, number_types):
                 dert = int(der)
             if isinstance(hder, number_types):
@@ -244,7 +246,7 @@ class _Kernel():
 
         userhyps = None
         if isinstance(theta, array_types):
-            userhyps = np.array(theta).flatten()
+            userhyps = np.array(theta, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} Kernel hyperparameters must be given as an array-like object.')
         nhyps = self._hyperparameters.size
@@ -260,7 +262,7 @@ class _Kernel():
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
                     userhyps[:nhyps] = htemp
-                self._hyperparameters = np.array(userhyps[:nhyps], dtype=default_dtype)
+                self._hyperparameters = np.array(userhyps[:nhyps], dtype=self._dtype)
             else:
                 raise ValueError(f'{self.name} Kernel hyperparameters must contain at least {nhyps} elements.')
         else:
@@ -279,13 +281,13 @@ class _Kernel():
 
         usercsts = None
         if isinstance(consts, array_types):
-            usercsts = np.array(consts).flatten()
+            usercsts = np.array(consts, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} Kernel constants must be given as an array-like object.')
         ncsts = self._constants.size
         if ncsts > 0:
             if usercsts.size >= ncsts:
-                self._constants = np.array(usercsts[:ncsts], dtype=default_dtype)
+                self._constants = np.array(usercsts[:ncsts], dtype=self._dtype)
             else:
                 raise ValueError(f'{self.name} Kernel constants must contain at least {ncsts} elements.')
         else:
@@ -304,7 +306,7 @@ class _Kernel():
 
         userbnds = None
         if isinstance(bounds, array_types):
-            userbnds = np.atleast_2d(bounds)
+            userbnds = np.atleast_2d(np.array(bounds, dtype=self._dtype))
         else:
             raise TypeError(f'{self.name} Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.')
         if userbnds.shape[0] != 2:
@@ -312,8 +314,8 @@ class _Kernel():
         nhyps = self._hyperparameters.size
         if nhyps > 0:
             if userbnds.shape[1] >= nhyps:
-                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=default_dtype)
-                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=default_dtype)
+                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=self._dtype)
+                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=self._dtype)
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
@@ -354,7 +356,8 @@ class _OperatorKernel(_Kernel):
         name='Op',
         func=None,
         hderf=False,
-        klist=None
+        klist=None,
+        dtype=None
     ):
         r'''
         Initializes the :code:`_OperatorKernel` instance.
@@ -370,7 +373,7 @@ class _OperatorKernel(_Kernel):
         :returns: none.
         '''
 
-        super().__init__(name, func, hderf)
+        super().__init__(name=name, func=func, hderf=hderf, dtype=dtype)
         self._kernel_list = klist if klist is not None else []
 
 
@@ -592,7 +595,8 @@ class _WarpingFunction():
         hyps=None,
         csts=None,
         htags=None,
-        ctags=None
+        ctags=None,
+        dtype=None
     ):
         r'''
         Initializes the :code:`_WarpingFunction` instance.
@@ -618,10 +622,11 @@ class _WarpingFunction():
         :returns: none.
         '''
 
+        self._dtype = dtype if dtype is not None else default_dtype
         self._fname = name
         self._function = func if func is not None else None
-        self._hyperparameters = np.array(hyps, dtype=default_dtype) if isinstance(hyps, array_types) else None
-        self._constants = np.array(csts, dtype=default_dtype) if isinstance(csts, array_types) else None
+        self._hyperparameters = np.array(hyps, dtype=self._dtype) if isinstance(hyps, array_types) else None
+        self._constants = np.array(csts, dtype=self._dtype) if isinstance(csts, array_types) else None
         self._hyp_lbounds = None
         self._hyp_ubounds = None
         self._hderflag = hderf
@@ -766,7 +771,7 @@ class _WarpingFunction():
 
         userhyps = None
         if isinstance(theta, array_types):
-            userhyps = np.array(theta).flatten()
+            userhyps = np.array(theta, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} WarpingFunction hyperparameters must be given as an array-like object.')
         nhyps = self.hyperparameters.size
@@ -782,7 +787,7 @@ class _WarpingFunction():
                     ucheck = (htemp > self._hyp_ubounds)
                     htemp[ucheck] = self._hyp_ubounds[ucheck]
                     userhyps[:nhyps] = htemp
-                self._hyperparameters = np.array(userhyps[:nhyps], dtype=default_dtype)
+                self._hyperparameters = np.array(userhyps[:nhyps], dtype=self._dtype)
             else:
                 raise ValueError(f'{self.name} WarpingFunction hyperparameters must contain at least {nhyps} elements.')
         else:
@@ -801,13 +806,13 @@ class _WarpingFunction():
 
         usercsts = None
         if isinstance(consts, array_types):
-            usercsts = np.array(consts).flatten()
+            usercsts = np.array(consts, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} WarpingFunction constants must be given as an array-like object.')
         ncsts = self.constants.size
         if ncsts > 0:
             if usercsts.size >= ncsts:
-                self._constants = np.array(usercsts[:ncsts], dtype=default_dtype)
+                self._constants = np.array(usercsts[:ncsts], dtype=self._dtype)
             else:
                 raise ValueError(f'{self.name} WarpingFunction constants must contain at least {ncsts} elements.')
         else:
@@ -826,7 +831,7 @@ class _WarpingFunction():
 
         userbnds = None
         if isinstance(bounds, array_types):
-            userbnds = np.atleast_2d(bounds)
+            userbnds = np.atleast_2d(np.array(bounds, dtype=self._dtype))
         else:
             raise TypeError(f'{self.name} WarpingFunction bounds must be given as a 2D-array-like object with exactly 2 rows.')
         if userbnds.shape[0] != 2:
@@ -834,8 +839,8 @@ class _WarpingFunction():
         nhyps = self.hyperparameters.size
         if nhyps > 0:
             if userbnds.shape[1] >= nhyps:
-                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=default_dtype)
-                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=default_dtype)
+                self._hyp_lbounds = np.array(userbnds[0, :nhyps], dtype=self._dtype)
+                self._hyp_ubounds = np.array(userbnds[1, :nhyps], dtype=self._dtype)
                 if self._force_bounds:
                     self.hyperparameters = self._hyperparameters.copy()
             else:
