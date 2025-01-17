@@ -161,7 +161,7 @@ class Product_Kernel(_OperatorKernel):
                     ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
-
+        #embed()
 
     def __init__(self, *args, **kwargs):
         r'''
@@ -229,37 +229,83 @@ class Kernel2D(_OperatorKernel):
         '''
         x1 = np.atleast_2d(x1)
         x2 = np.atleast_2d(x2)
-
-        covm = np.full((x1.size, x2.size), np.nan) if self._kernel_list is None else np.zeros((x1.size, x2.size))
-        nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        dermat = np.atleast_2d([0] * nks)
-        sd = int(np.sign(der))
-        for ii in np.arange(0, int(sd * der)):
-            for jj in np.arange(1, nks):
-                deradd = dermat.copy()
-                dermat = np.vstack((dermat, deradd))
-            for row in np.arange(0, dermat.shape[0]):
-                rem = row % nks
-                fac = (row - rem) / (nks ** int(sd * der))
-                idx = int((rem + fac) % nks)
-                dermat[row, idx] = dermat[row, idx] + 1
-        oddfilt = (np.mod(dermat, 2) != 0)
-        dermat[oddfilt] = sd * dermat[oddfilt]
         
-        #for row in np.arange(0, dermat.shape[0]):
-        ihyp = hder
-        covterm = np.ones((x1.size, x2.size))
-        for col in np.arange(len(self._kernel_list)):
-            kk = self._kernel_list[col]
-            x1_col = x1[:, col]
-            x2_col = x2[:, col]
-            covterm = covterm * kk(x1_col, x2_col, der, ihyp)
-            if ihyp is not None:
+         
+        covm = np.full((x1.shape[0], x2.shape[0]), np.nan).T if self._kernel_list is None else np.zeros((x1.shape[0], x2.shape[0])).T
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        sd = int(np.sign(der))
+        ad = int(sd * der)
+        fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
+        # Each row of dermat represents a single chain rule term if derivatives are requested
+        crdmat = np.zeros((ad, ), dtype=int)
+        dermat = np.atleast_2d(np.zeros((nks, ), dtype=int))
+        if der != 0:
+            vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
+            ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
+            # Each element represents partial derivative w.r.t. named kernel index
+            dmesh = np.stack(np.meshgrid(*ddims), axis=-1)
+            meshshape = dmesh.shape[:-1]
+            dermat = np.empty((*meshshape, 0), dtype=int)
+            if dmesh.size == 0:
+                crdmat = np.zeros((ad, ), dtype=int)
+            else:
+                crdmat = np.abs(dmesh).reshape(-1, ad) -1
+            for dim in vdim:                   # Loop over kernel indices
+                pos = np.count_nonzero(dmesh == dim, axis=-1)
+                neg = np.count_nonzero(dmesh == -dim, axis=-1)
+                oder = pos + neg               # Derivative order on named kernel index from total number of appearances
+                sder = np.power(-1, neg)       # Derivative sign on named kernel index from number of negative value appearances
+                oddfilt = (np.mod(oder, 2) != 0)
+                oder[oddfilt] = sder[oddfilt] * oder[oddfilt]
+                dermat = np.concatenate((dermat, np.expand_dims(oder, axis=-1)), axis=-1)
+            # Reshape such that each row represents one chain rule term
+            crdmat = np.abs(dmesh).reshape(-1, ad) - 1
+            dermat = dermat.reshape(-1, nks)
+        else:
+            crdmat = np.zeros((1, 1), dtype=int)
+        ishape = [dermat.shape[1] for ii in range(crdmat.shape[1])] if der != 0 else [1]
+        covm = np.zeros((x1.shape[0], *ishape, x2.shape[0]))
+        from IPython import embed
+        embed()
+        
+        for row in np.arange(0, dermat.shape[0]):
+            covterm = np.ones((x1.shape[0], x2.shape[0])).T
+            ihyp = hder
+            for col in np.arange(0, dermat.shape[1]):
+                kk = self._kernel_list[col]
+                x1_col = x1[:, col]
+                x2_col = x2[:, col]
                 nhyps = kk.hyperparameters.size
-                ihyp = ihyp - nhyps
-        covm = covm + covterm
-        return covm
+                khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                covterm = covterm * kk(x1_col, x2_col, dermat[row, col], khder)
+                if ihyp is not None:
+                    ihyp = ihyp - nhyps
+            #if crdmat.shape[0] > row and crdmat[row].shape == (2,):
+            #   row_idx, col_idx = crdmat[row]
+               
+                covm[:, *crdmat[row], :] = covterm
+            #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
+        if der == 0:
+            covm = covm.reshape(x1.shape[0], x2.shape[0])
 
+        embed()
+        return covm
+        #for row in np.arange(0, dermat.shape[0]):
+        #ihyp = hder
+        #embed()
+        #covterm = np.ones((x1.shape[0], x2.shape[0])).T
+        #for col in np.arange(len(self._kernel_list)):
+         #   kk = self._kernel_list[col]
+          #  x1_col = x1[:, col]
+           # x2_col = x2[:, col]
+            #embed()
+            #covterm = covterm * kk(x1_col, x2_col, der, ihyp)
+            #if ihyp is not None:
+             #   nhyps = kk.hyperparameters.size
+              #  ihyp = ihyp - nhyps
+        #covm = covm + covterm
+        #return covm
+        embed()
 
         #ihyp = hder
         #product = np.ones((x1.size, x2.size))
@@ -298,10 +344,9 @@ class Kernel2D(_OperatorKernel):
                     uklist.append(kk)
         else:
             raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
-        super().__init__('Prod', self.__calc_covm, True, uklist)
+        super().__init__('K2', self.__calc_covm, True, uklist)
 
-    def __copy__(self, x1, x2, der=0, hder=None):
-    
+    def __copy__(self):
         r'''
         Implementation-specific copy function, needed for robust hyperparameter optimization routine.
 
@@ -311,8 +356,9 @@ class Kernel2D(_OperatorKernel):
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
-        kcopy = Product_Kernel(klist=kcopy_list)
+        kcopy = Kernel2D(klist=kcopy_list)
         return kcopy
+
 
 class Symmetric_Kernel(_OperatorKernel):
     r'''
