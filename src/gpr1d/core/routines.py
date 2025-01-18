@@ -2042,7 +2042,7 @@ class GaussianProcessRegression1D():
         '''
 
         ndim = xx.shape[1] if xx.ndim > 1 else 1
-        gg = np.concatenate((np.atleast_2d(xx), np.atleast_2d(yy)), axis=-1)
+        gg = np.concatenate((np.atleast_2d(xx), np.atleast_2d(yy)), axis=-1) if xx.ndim > 1 else np.stack((np.atleast_1d(xx), np.atleast_1d(yy)), axis=-1)
         good = np.all(np.isfinite(gg), axis=-1)
         #if ndim > 1:
         #    good = np.all(good, axis=1)
@@ -2729,7 +2729,7 @@ class GaussianProcessRegression1D():
 #                self._gpxe = np.abs(cxe * dbarF)
                 cxe = self._xe.copy()
                 cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
-                ff = np.concatenate((np.atleast_2d(cxe), np.atleast_2d(cye)), axis=-1)
+                ff = np.concatenate((np.atleast_2d(cxe), np.atleast_2d(cye)), axis=-1) if self._xx.ndim > 1 else np.stack((np.atleast_1d(cxe), np.atleast_1d(cye)), axis=-1)
                 nfilt = np.any(np.isnan(ff), axis=-1)
                 #nfilt = np.any([np.isnan(cxe), np.isnan(cye)], axis=0)
                 cxe[nfilt] = 0.0
