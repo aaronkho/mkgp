@@ -1066,18 +1066,16 @@ class GaussianProcessRegression1D():
         # Set up the problem grids for calculating the required matrices from covf
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
         ndim = xx.shape[1] if xx.ndim > 1 else 1
-        xshape = (0, *xx.shape[1:]) if xx.ndim > 1 else (0, )
-        yshape = (0, *yy.shape[1:]) if yy.ndim > 1 else (0, )
-        xxd = dxx if dflag else np.empty(xshape, dtype=self._dtype)
-        yyd = dyy if dflag else np.empty(yshape, dtype=self._dtype)
-        yed = dye if dflag else np.empty(yshape, dtype=self._dtype)
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        ys = yy.shape[1:] if yy.ndim > 1 else []
+        xxd = dxx if dflag else np.empty((0, *xs), dtype=self._dtype)
+        yyd = dyy if dflag else np.empty((0, *ys), dtype=self._dtype)
+        yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
         # Set up the vectors needed for evaluating the final GP
-        xreshape = (-1, *xx.shape[1:]) if xx.ndim > 1 else (-1, )
-        yreshape = (-1, *yy.shape[1:]) if yy.ndim > 1 else (-1, )
-        yydf = yyd.reshape(*yreshape)
-        yedf = yed.reshape(*yreshape)
-        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(*xreshape)
+        yydf = yyd.reshape(-1, *ys)
+        yedf = yed.reshape(-1, *ys)
+        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(-1, *xs)
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
@@ -1153,8 +1151,8 @@ class GaussianProcessRegression1D():
         # Log-marginal-likelihood of the null hypothesis (constant at mean value),
         # can be used as a normalization factor for general goodness-of-fit metric
         zfilt = (np.abs(yef) >= 1.0e-10)
-        yft = np.array([0.0], dtype=self._dtype)
-        yeft = np.array([0.0], dtype=self._dtype)
+        yft = np.zeros((1, *ys), dtype=self._dtype)
+        yeft = np.zeros((1, *ys), dtype=self._dtype)
         if np.any(zfilt):
             yft = np.power(yf[zfilt] / yef[zfilt], 2.0)
             yeft = 2.0 * np.log(yef[zfilt])
@@ -1264,7 +1262,8 @@ class GaussianProcessRegression1D():
         :returns: array. Vector of log-marginal-likelihood derivatives with respect to the hyperparameters including the regularization component.
         '''
 
-        xn = np.array([0.0], dtype=self._dtype)
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         theta = np.log10(kk.hyperparameters)
         gradlml = np.zeros(theta.shape, dtype=self._dtype).flatten()
         for ii in range(theta.size):
@@ -1312,17 +1311,15 @@ class GaussianProcessRegression1D():
         theta = kk.hyperparameters
         dflag = True if dxx is not None and dyy is not None and dye is not None else False
         ndim = xx.shape[1] if xx.ndim > 1 else 1
-        xshape = (0, *xx.shape[1:]) if xx.ndim > 1 else (0, )
-        yshape = (0, *yy.shape[1:]) if yy.ndim > 1 else (0, )
-        xxd = dxx if dflag else np.empty(xshape, dtype=self._dtype)
-        yyd = dyy if dflag else np.empty(yshape, dtype=self._dtype)
-        yed = dye if dflag else np.empty(yshape, dtype=self._dtype)
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        ys = yy.shape[1:] if yy.ndim > 1 else []
+        xxd = dxx if dflag else np.empty((0, *xs), dtype=self._dtype)
+        yyd = dyy if dflag else np.empty((0, *ys), dtype=self._dtype)
+        yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
-        xreshape = (-1, *xx.shape[1:]) if xx.ndim > 1 else (-1, )
-        yreshape = (-1, *yy.shape[1:]) if yy.ndim > 1 else (-1, )
-        yydf = yyd.reshape(*yreshape)
-        yedf = yed.reshape(*yreshape)
-        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(*xreshape)
+        yydf = yyd.reshape(-1, *ys)
+        yedf = yed.reshape(-1, *ys)
+        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(-1, *xs)
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
@@ -1432,7 +1429,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1504,7 +1502,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1577,7 +1576,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1656,7 +1656,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1731,7 +1732,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1813,7 +1815,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1893,7 +1896,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -1974,7 +1978,8 @@ class GaussianProcessRegression1D():
         '''
 
         # Set up required data for performing the search
-        xn = np.array([0.0], dtype=self._dtype)    # Reduction of prediction vector for speed bonus
+        xs = xx.shape[1:] if xx.ndim > 1 else []
+        xn = np.zeros((1, *xs), dtype=self._dtype)    # Reduction of prediction vector for speed bonus
         newkk = copy.copy(kk)
         theta_base = np.log10(newkk.hyperparameters)
         gradlml = np.zeros(theta_base.shape, dtype=self._dtype)
@@ -2037,9 +2042,10 @@ class GaussianProcessRegression1D():
         '''
 
         ndim = xx.shape[1] if xx.ndim > 1 else 1
-        good = np.all([np.isfinite(xx), np.isfinite(yy)], axis=0)
-        if ndim > 1:
-            good = np.all(good, axis=1)
+        gg = np.concatenate((np.atleast_2d(xx), np.atleast_2d(yy)), axis=-1)
+        good = np.all(np.isfinite(gg), axis=-1)
+        #if ndim > 1:
+        #    good = np.all(good, axis=1)
         xe = xe[good] if xe.shape == xx.shape else np.tile(xe[0], (xx[good].shape[0], 1))
         ye = ye[good] if ye.shape == yy.shape else np.tile(ye[0], (yy[good].shape[0], 1))
         xx = xx[good]
@@ -2051,10 +2057,12 @@ class GaussianProcessRegression1D():
         yy = yy / ysc
         ye = ye / ysc
         nn = np.empty((0, ), dtype=self._dtype)
-        cxx = np.empty((0, ndim), dtype=self._dtype) if ndim > 1 else np.empty((0, ), dtype=self._dtype)
-        cxe = copy.deepcopy(nn)
-        cyy = copy.deepcopy(nn)
-        cye = copy.deepcopy(nn)
+        cxs = [ndim] if xx.ndim > 1 else []
+        cys = [1] if yy.ndim > 1 else []
+        cxx = np.empty((0, *cxs), dtype=self._dtype)
+        cxe = copy.deepcopy(cxx)
+        cyy = np.empty((0, *cys), dtype=self._dtype)
+        cye = copy.deepcopy(cyy)
         for ii in range(xx.shape[0]):
             if yy[ii] >= lb and yy[ii] <= ub:
                 fflag = False
@@ -2068,10 +2076,10 @@ class GaussianProcessRegression1D():
                         fflag = True
                 if not fflag:
                     nn = np.concatenate((nn, np.array([1.0])), axis=0)
-                    cxx = np.concatenate((cxx, np.atleast_1d(xx[ii])), axis=0)
-                    cxe = np.concatenate((cxe, np.atleast_1d(xe[ii])), axis=0)
-                    cyy = np.concatenate((cyy, np.atleast_1d(yy[ii])), axis=0)
-                    cye = np.concatenate((cye, np.atleast_1d(ye[ii])), axis=0)
+                    cxx = np.concatenate((cxx, np.atleast_1d(xx[ii]).reshape(1, *cxs)), axis=0)
+                    cxe = np.concatenate((cxe, np.atleast_1d(xe[ii]).reshape(1, *cxs)), axis=0)
+                    cyy = np.concatenate((cyy, np.atleast_1d(yy[ii]).reshape(1, *cys)), axis=0)
+                    cye = np.concatenate((cye, np.atleast_1d(ye[ii]).reshape(1, *cys)), axis=0)
         cxx = cxx * xsc
         cxe = cxe * xsc
         cyy = cyy * ysc
@@ -2297,11 +2305,13 @@ class GaussianProcessRegression1D():
         lml = None
         lmlz = None
         nkk = None
-        if xx is not None and yy is not None and xx.shape == yy.shape and xn is not None and isinstance(kk, _Kernel):
+        if xx is not None and yy is not None and xx.shape[0] == yy.shape[0] and xn is not None and isinstance(kk, _Kernel):
             # Remove all data and associated data that contain NaNs
             if ye is None:
-                ye = np.zeros(np.atleast_1d(yy[0]).shape, dtype=self._dtype)
-            xe = np.zeros(np.atleast_1d(xx[0]).shape, dtype=self._dtype)
+                ys = yy.shape[1:] if yy.ndim > 1 else []
+                ye = np.zeros((1, *ys), dtype=self._dtype)
+            xs = xx.shape[1:] if xx.ndim > 1 else []
+            xe = np.zeros((1, *xs), dtype=self._dtype)
             (xx, xe, yy, ye, nn) = self._condition_data(xx, xe, yy, ye, lb, ub, cn)
             myy = np.mean(yy)
             yy = yy - myy
@@ -2313,8 +2323,10 @@ class GaussianProcessRegression1D():
             dnn = None
             if dxx is not None and dyy is not None and dxx.size == dyy.size:
                 if dye is None:
-                    dye = np.zeros(np.atleast_1d(dyy[0]).shape, dtype=self._dtype)
-                dxe = np.zeros(np.atleast_1d(dxx[0]).shape, dtype=self._dtype)
+                    dys = dyy.shape[1:] if dyy.ndim > 1 else []
+                    dye = np.zeros((1, *dys), dtype=self._dtype)
+                dxs = dxx.shape[1:] if dxx.ndim > 1 else []
+                dxe = np.zeros((1, *dxs), dtype=self._dtype)
                 (dxx, dxe, dyy, dye, dnn) = self._condition_data(dxx, dxe, dyy, dye, -1.0e50, 1.0e50, cn)
                 dyy = dyy / sc
                 dye = dye / sc
@@ -2426,8 +2438,10 @@ class GaussianProcessRegression1D():
         if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk, _Kernel):
             # Remove all data and associated data that conatain NaNs
             if ye is None:
-                ye = np.zeros(np.atleast_1d(yy[0]).shape, dtype=self._dtype)
-            xe = np.zeros(np.atleast_1d(xx[0]).shape, dtype=self._dtype)
+                ys = yy.shape[1:] if yy.ndim > 1 else []
+                ye = np.zeros((1, *ys), dtype=self._dtype)
+            xs = xx.shape[1:] if xx.ndim > 1 else []
+            xe = np.zeros((1, *xs), dtype=self._dtype)
             (xx, xe, yy, ye, nn) = self._condition_data(xx, xe, yy, ye, lb, ub, cn)
             myy = np.mean(yy)
             yy = yy - myy
@@ -2464,7 +2478,8 @@ class GaussianProcessRegression1D():
             enr = self._enr if self._enr is not None else 0
             elml = None
             ekk = None
-            xntest = np.zeros(np.atleast_1d(self._xx[0]).shape, dtype=self._dtype)
+            xs = self._xx.shape[1:] if self._xx.ndim > 1 else []
+            xntest = np.zeros((1, *xs), dtype=self._dtype)
             ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
             aye = np.full(ye.shape, np.nanmax([0.2 * np.mean(np.abs(ye)), 1.0e-3 * np.nanmax(np.abs(self._yy))]), dtype=self._dtype)
 #            dye = copy.deepcopy(self._dye)
@@ -2656,7 +2671,8 @@ class GaussianProcessRegression1D():
             #ndim = self._xx.shape[1] if self._xx.ndim > 1 else 1
             nlml = None
             nkk = None
-            xntest = np.zeros(np.atleast_1d(self._xx[0]).shape, dtype=self._dtype)
+            xs = self._xx.shape[1:] if self._xx.ndim > 1 else []
+            xntest = np.zeros((1, *xs), dtype=self._dtype)
             if not isinstance(self._nikk, _Kernel):
                 if self._kk.bounds is not None and nr > 0:
                     tkk = copy.copy(self._kk)
@@ -2713,7 +2729,9 @@ class GaussianProcessRegression1D():
 #                self._gpxe = np.abs(cxe * dbarF)
                 cxe = self._xe.copy()
                 cye = self._ye.copy() if self._gpye is None else self._gpye.copy()
-                nfilt = np.any([np.isnan(cxe), np.isnan(cye)], axis=0)
+                ff = np.concatenate((np.atleast_2d(cxe), np.atleast_2d(cye)), axis=-1)
+                nfilt = np.any(np.isnan(ff), axis=-1)
+                #nfilt = np.any([np.isnan(cxe), np.isnan(cye)], axis=0)
                 cxe[nfilt] = 0.0
                 cye[nfilt] = 0.0
                 self._gpye = np.sqrt((cye ** 2.0) + ((cxe * dbarF) ** 2.0))
@@ -2787,13 +2805,13 @@ class GaussianProcessRegression1D():
             epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._xx) - np.nanmin(self._xx))
             for xi in range(xn.shape[0]):
                 for rxi in range(self._xx.shape[0]):
-                    if xn[xi] == self._xx[rxi]:
+                    if np.all(xn[xi] == self._xx[rxi]):
                         xn[xi] = xn[xi] + epsx
         if self._dxx is not None:
             epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._dxx) - np.nanmin(self._dxx))
             for xi in range(0, xn.shape[0]):
                 for rxi in range(self._dxx.shape[0]):
-                    if xn[xi] == self._dxx[rxi]:
+                    if np.all(xn[xi] == self._dxx[rxi]):
                         xn[xi] = xn[xi] + epsx
 
         if self._egpye is not None:
@@ -2887,15 +2905,18 @@ class GaussianProcessRegression1D():
 #                    ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
 #            self._ddbarE = ddbarE.copy()
         else:
-            self._gpye = np.full(xn.shape, np.sqrt(np.nanmean(np.power(self._ye, 2.0))), dtype=self._dtype) if self._ye is not None else None
-            self._barE = copy.deepcopy(self._gpye) if self._gpye is not None else None
+            temp = np.full(xn.shape, np.sqrt(np.nanmean(np.power(self._ye, 2.0))), dtype=self._dtype) if self._ye is not None else None
+            if self._gpye is not None:
+                temp = np.full(xn.shape, np.sqrt(np.nanmean(np.power(self._gpye, 2.0))), dtype=self._dtype)
+            self._barE = copy.deepcopy(temp) if temp is not None else None
             self._varE = np.zeros(xn.shape) if self._barE is not None else None
             self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
             self._dvarE = np.zeros(xn.shape) if self._barE is not None else None
 #            self._ddbarE = np.zeros(xn.shape) if self._barE is not None else None
 
         if isinstance(self._kk, _Kernel) and self._kk.bounds is not None and nr > 0:
-            xntest = np.zeros(np.atleast_1d(self._xx[0]).shape, dtype=self._dtype)
+            xs = self._xx.shape[1:] if self._xx.ndim > 1 else []
+            xntest = np.zeros((1, *xs), dtype=self._dtype)
             tkk = copy.copy(self._kk)
             kkvec = []
             lmlvec = []
@@ -3095,7 +3116,7 @@ class GaussianProcessRegression1D():
         return samples
 
 
-    def MCMC_posterior_sampling(self,nsamples):
+    def MCMC_posterior_sampling(self, nsamples):
         r'''
         Performs Monte Carlo Markov chain based posterior analysis over hyperparameters,
         using the log-marginal-likelihood as the acceptance criterion.
@@ -3138,11 +3159,12 @@ class GaussianProcessRegression1D():
             step = np.ones(theta.shape)
             flagvec = [True] * theta.size
             for ihyp in range(theta.size):
-                xntest = np.array([0.0])
+                xs = self._xx.shape[1:] if self._xx.ndim > 1 else []
+                xntest = np.zeros((1, *xs), dtype=self._dtype)
                 iflag = flagvec[ihyp]
                 while iflag:
                     tkk = copy.copy(self._kk)
-                    theta_step = np.zeros(theta.shape)
+                    theta_step = np.zeros(theta.shape, dtype=self._dtype)
                     theta_step[ihyp] = step[ihyp]
                     theta_new = theta + theta_step
                     tkk.hyperparameters = np.power(10.0, theta_new)
@@ -3175,7 +3197,7 @@ class GaussianProcessRegression1D():
             for ii in range(ns):
                 theta_prop = theta.copy()
                 accept = False
-                xntest = np.array([0.0])
+                xntest = np.zeros((1, *xs), dtype=self._dtype)
                 nlml = tlml
                 jj = 0
                 kk = 0
@@ -3194,7 +3216,7 @@ class GaussianProcessRegression1D():
                             accept = True
                         else:
                             accept = True if np.power(10.0, nlml - tlml) >= np.random.uniform() else False
-                    except (ValueError,np.linalg.linalg.LinAlgError):
+                    except (ValueError, np.linalg.linalg.LinAlgError):
                         accept = False
                     if jj > 100:
                         step = 0.9 * step
@@ -3215,7 +3237,7 @@ class GaussianProcessRegression1D():
                 )
                 sbarM = barF.copy() if sbarM is None else np.vstack((sbarM, barF))
                 ssigM = sigF.copy() if ssigM is None else np.vstack((ssigM, sigF))
-                (dbarF, dsigF) = itemgetter(0,1)(self.__basic_fit(
+                (dbarF, dsigF) = itemgetter(0, 1)(self.__basic_fit(
                     xn,
                     kernel=nkk,
                     epsilon='None',
