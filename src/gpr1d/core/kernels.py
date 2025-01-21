@@ -322,7 +322,7 @@ class ND_Kernel(_OperatorKernel):
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
-        kcopy = Kernel2D(klist=kcopy_list)
+        kcopy = ND_Kernel(klist=kcopy_list)
         return kcopy
 
 
