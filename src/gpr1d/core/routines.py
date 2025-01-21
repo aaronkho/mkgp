@@ -1106,19 +1106,23 @@ class GaussianProcessRegression1D():
             KKh1 = KKh1.T.reshape(xx.shape[0], -1).T
         if KKh2.ndim > 2:
             KKh2 = KKh2.reshape(xx.shape[0], -1)
-        if KKd.size > 0 and KKd.ndim > 2:
+        if KKd.size == 0:
+            KKd = KKd.reshape(0, 0)
+        if KKd.ndim > 2:
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
         if np.any(np.invert(kmask)):
             KK = KK[kmask]
 
-        ksb = kk(xn, xx, der=-dd) if dd == 1 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
+        ksb = kk(xn, xx, der=-dd) if (dd % 2) != 0 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
         ksh = kk(xn, xxd, der=dd+1) # kk(xs1h, xs2h, der=dd+1)
         if ksb.ndim > 2:
             ksb = np.squeeze(ksb)
-        if ksh.size > 0 and ksh.ndim > ksb.ndim:
-            hshape = [ndim for ii in range(ndim - 1)]
+        if ksh.size == 0:
+            ksh = ksh.reshape(0, *ksb.shape[1:])
+        elif ksh.ndim > ksb.ndim:
+            hshape = [ndim for ii in range(len(ksh[1:-1]))]
             ksh = ksh.T.reshape(ndim * xn.shape[0], *hshape, -1)
         if np.any(np.invert(mask)):
             ksh = ksh[mask]
@@ -1159,8 +1163,10 @@ class GaussianProcessRegression1D():
         lmlz = -0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi)
 
         if ndim > 1:
-            barF = barF.reshape(xx.shape[0], ndim ** dd)
-            varF = varF.reshape(xx.shape[0], barF.shape[-1], barF.shape[-1], xx.shape[0])
+            barF = barF.reshape(xn.shape[0], ndim ** dd)
+            varF = varF.reshape(xn.shape[0], barF.shape[-1], barF.shape[-1], xn.shape[0])
+            lml = lml.squeeze()
+            lmlz = lmlz.squeeze()
 
         return (barF, varF, lml, lmlz)
 
@@ -1347,6 +1353,8 @@ class GaussianProcessRegression1D():
             KKh1 = KKh1.T.reshape(xx.shape[0], -1).T
         if KKh2.ndim > 2:
             KKh2 = KKh2.reshape(xx.shape[0], -1)
+        if KKd.size == 0:
+            KKd = KKd.reshape(0, 0)
         if KKd.ndim > 2:
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
@@ -1374,6 +1382,8 @@ class GaussianProcessRegression1D():
                 HHh1 = HHh1.T.reshape(xx.shape[0], -1).T
             if HHh2.ndim > 2:
                 HHh2 = HHh2.reshape(xx.shape[0], -1)
+            if HHd.size == 0:
+                HHd = HHd.reshape(0, 0)
             if HHd.ndim > 2:
                 HHd = np.transpose(HHd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
             #HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
