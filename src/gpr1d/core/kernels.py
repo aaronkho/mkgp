@@ -264,31 +264,27 @@ class Kernel2D(_OperatorKernel):
         else:
             crdmat = np.zeros((1, 1), dtype=int)
         ishape = [dermat.shape[1] for ii in range(crdmat.shape[1])] if der != 0 else [1]
-        covm = np.zeros((x1.shape[0], *ishape, x2.shape[0]))
-        from IPython import embed
-        embed()
-        
-        for row in np.arange(0, dermat.shape[0]):
-            covterm = np.ones((x1.shape[0], x2.shape[0])).T
-            ihyp = hder
-            for col in np.arange(0, dermat.shape[1]):
-                kk = self._kernel_list[col]
-                x1_col = x1[:, col]
-                x2_col = x2[:, col]
-                nhyps = kk.hyperparameters.size
-                khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
-                covterm = covterm * kk(x1_col, x2_col, dermat[row, col], khder)
-                if ihyp is not None:
-                    ihyp = ihyp - nhyps
-            #if crdmat.shape[0] > row and crdmat[row].shape == (2,):
-            #   row_idx, col_idx = crdmat[row]
-               
-                covm[:, *crdmat[row], :] = covterm
-            #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
-        if der == 0:
-            covm = covm.reshape(x1.shape[0], x2.shape[0])
+        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]))
+         
+        if x1.size > 0 and x2.size > 0:
+            for row in np.arange(0, dermat.shape[0]):
+                covterm = np.ones((x1.shape[0], x2.shape[0])).T
+                ihyp = hder
+                for col in np.arange(0, dermat.shape[1]):
+                    kk = self._kernel_list[col]
+                    x1_col = x1[:, col]
+                    x2_col = x2[:, col]
+                    nhyps = kk.hyperparameters.size
+                    khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                    covterm *= kk(x1_col, x2_col, dermat[row, col], khder)
+                    if ihyp is not None:
+                        ihyp = ihyp - nhyps
+                if crdmat.shape[0] > row and crdmat[row].shape != (0,):
+                    covm[:, *crdmat[row], :] = covterm
+                #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
+            if der == 0:
+                covm = covm.reshape(x1.shape[0], x2.shape[0])
 
-        embed()
         return covm
         #for row in np.arange(0, dermat.shape[0]):
         #ihyp = hder
