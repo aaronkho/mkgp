@@ -204,9 +204,9 @@ class Product_Kernel(_OperatorKernel):
         return kcopy
 
 
-class Kernel2D(_OperatorKernel):
+class ND_Kernel(_OperatorKernel):
     r'''
-    Product Kernel: Implements the product of two (or more) separate kernels.
+    N-Dimensional Kernel: Implements the product of two (or more) separate kernels, each representing independent input dimensions.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
@@ -217,9 +217,9 @@ class Kernel2D(_OperatorKernel):
         r'''
         Implementation-specific covariance function.
 
-        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function. [[1],  [2], [3]]
+        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
 
-        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function. [[4],  [5], [6]]
+        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function.
 
         :kwarg der: int. Order of x derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
 
@@ -229,9 +229,7 @@ class Kernel2D(_OperatorKernel):
         '''
         x1 = np.atleast_2d(x1)
         x2 = np.atleast_2d(x2)
-        
-         
-        covm = np.full((x1.shape[0], x2.shape[0]), np.nan).T if self._kernel_list is None else np.zeros((x1.shape[0], x2.shape[0])).T
+
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
         sd = int(np.sign(der))
         ad = int(sd * der)
@@ -283,43 +281,14 @@ class Kernel2D(_OperatorKernel):
                     covm[:, *crdmat[row], :] = covterm
                 #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
             if der == 0:
-                covm = covm.reshape(x1.shape[0], x2.shape[0])
+                covm = covm.reshape(x2.shape[0], x1.shape[0])
 
         return covm
-        #for row in np.arange(0, dermat.shape[0]):
-        #ihyp = hder
-        #embed()
-        #covterm = np.ones((x1.shape[0], x2.shape[0])).T
-        #for col in np.arange(len(self._kernel_list)):
-         #   kk = self._kernel_list[col]
-          #  x1_col = x1[:, col]
-           # x2_col = x2[:, col]
-            #embed()
-            #covterm = covterm * kk(x1_col, x2_col, der, ihyp)
-            #if ihyp is not None:
-             #   nhyps = kk.hyperparameters.size
-              #  ihyp = ihyp - nhyps
-        #covm = covm + covterm
-        #return covm
-        embed()
 
-        #ihyp = hder
-        #product = np.ones((x1.size, x2.size))
-        #for ii in range(len(self._kernel_list)):
-     	    #kk = self._kernel_list[ii]
-     	    #product = product * kk(x1[:, ii], x2[:, ii], der, ihyp)
-     	    #if ihyp is not None:
-     	     #   nhyps = kk.hyperparameters.size
-     	      #  ihyp = ihyp - nhyps
-     	    
-        #return product
-    
-           
-     	   
 
     def __init__(self, *args, **kwargs):
         r'''
-        Initializes the :code:`Product_Kernel` instance.
+        Initializes the :code:`ND_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
@@ -339,8 +308,9 @@ class Kernel2D(_OperatorKernel):
                 if isinstance(kk, _Kernel):
                     uklist.append(kk)
         else:
-            raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
-        super().__init__('K2', self.__calc_covm, True, uklist)
+            raise TypeError('Arguments to ND_Kernel must be Kernel objects.')
+        super().__init__('ND', self.__calc_covm, True, uklist)
+
 
     def __copy__(self):
         r'''
