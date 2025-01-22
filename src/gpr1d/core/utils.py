@@ -147,9 +147,9 @@ def diagonal(matrix, dtype=None):
         mat = np.array(matrix, dtype=dt)
     if mat is not None and mat.ndim > 1 and mat.shape[0] == mat.shape[-1]:
         if mat.ndim > 2:
-            diag = np.zeros((mat.shape[0], mat.ndim - 2), dtype=dt)
+            diag = np.zeros((mat.shape[0], mat.shape[1]), dtype=dt)
             for ii in range(mat.shape[0]):
-                for jj in range(mat.ndim - 2):
+                for jj in range(mat.shape[1]):
                     index = [jj] * (mat.ndim - 2)
                     diag[ii, jj] = mat[ii, *index, ii]
         else:
@@ -174,17 +174,16 @@ def diagonalize(diagonal, full=True, dtype=None):
             dshape = [diag.shape[-1]] * ndim
             mat = np.zeros((diag.shape[0], *dshape, diag.shape[0]), dtype=dt)
             for ii in range(mat.shape[0]):
-                for jj in range(dshape[0]):
-                    element = [jj] * mat.shape[0]
+                for jj in range(mat.shape[1]):
+                    element = [jj] * ndim
                     mat[ii, *element, ii] = diag[ii, jj]
         elif diag.ndim == 1:
             if full:
                 dshape = [diag.shape[0]] * diag.shape[0]
                 mat = np.zeros(dshape, dtype=dt)
                 for ii in range(mat.shape[0]):
-                    for jj in range(dshape[0]):
-                        element = [jj] * mat.shape[0]
-                        mat[*element] = diag[jj]
+                    element = [ii] * mat.shape[0]
+                    mat[*element] = diag[ii]
             else:
                 mat = np.diag(diag)
     return mat
