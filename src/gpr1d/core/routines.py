@@ -1130,7 +1130,7 @@ class GaussianProcessRegression1D():
         kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
         if kt.ndim > 2:
             kt = np.squeeze(kt)
-        kernel = KK + np.diag(yef ** 2.0)   # Should be fine since kernel output is always 2D
+        kernel = KK + np.diag(yef.squeeze() ** 2.0)   # Should be fine since kernel output is always 2D
 
         cholesky_flag = True
         if cholesky_flag:
@@ -1143,14 +1143,14 @@ class GaussianProcessRegression1D():
             kv = spla.solve(kernel, ks)
             ldet = np.log(spla.det(kernel))
 
-        barF = np.dot(ks.T, alpha)          # Mean function
-        varF = kt - np.dot(ks.T, kv)        # Variance of mean function
+        barF = np.tensordot(ks.T, alpha, axes=(-1, 0))          # Mean function
+        varF = kt - np.tensordot(ks.T, kv, axes=(-1, 0))        # Variance of mean function
 
         # Log-marginal-likelihood provides an indication of how statistically well the fit describes the training data
         #    1st term: Describes the goodness of fit for the given data
         #    2nd term: Penalty for complexity / simplicity of the covariance function
         #    3rd term: Penalty for the size of given data set
-        lml = -0.5 * np.dot(yf.T, alpha) - 0.5 * lp * ldet - 0.5 * xf.size * np.log(2.0 * np.pi)
+        lml = -0.5 * np.tensordot(yf.T, alpha, axes=(-1, 0)) - 0.5 * lp * ldet - 0.5 * xf.size * np.log(2.0 * np.pi)
 
         # Log-marginal-likelihood of the null hypothesis (constant at mean value),
         # can be used as a normalization factor for general goodness-of-fit metric
@@ -1222,7 +1222,7 @@ class GaussianProcessRegression1D():
         ksl = kk(xx, xnl) # kk(xl1, xl2)
         ksu = kk(xx, xnu) # kk(xu1, xu2)
         dks = (ksu.T - ksl.T) / (step * 1.0e-3)
-        dvv = np.dot(LL.T, spla.cho_solve((LL, True), dks))
+        dvv = np.tensordot(LL.T, spla.cho_solve((LL, True), dks), axes=(-1, 0))
         # Approximation of second derivative of covf (d^2f/dxn1 dxn2)
         ktll = kk(xnl, xnl) # kk(xll1, xll2)
         ktlu = kk(xnu, xnl) # kk(xlu1, xlu2)
@@ -1232,9 +1232,9 @@ class GaussianProcessRegression1D():
         dktu = (ktuu - ktul) / (step * 1.0e-3)
         ddkt = (dktu - dktl) / (step * 1.0e-3)
 
-        barF = np.dot(dks.T, alpha)          # Mean function
-        varF = ddkt - np.dot(dvv.T, dvv)     # Variance of mean function
-        lml = -0.5 * np.dot(yy.T, alpha) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xx.size * np.log(2.0 * np.pi)
+        barF = np.tensordot(dks.T, alpha, axes=(-1, 0))          # Mean function
+        varF = ddkt - np.tensordot(dvv.T, dvv, axes=(-1, 0))     # Variance of mean function
+        lml = -0.5 * np.tensordot(yy.T, alpha, axes=(-1, 0)) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xx.size * np.log(2.0 * np.pi)
 
         return (barF, varF, lml)
 
@@ -1390,12 +1390,12 @@ class GaussianProcessRegression1D():
             HH = np.concatenate((np.concatenate((HHb, HHh1.T), axis=1), np.concatenate((HHh2.T, HHd), axis=1)), axis=0)
             if np.any(np.invert(kmask)):
                 HH = HH[kmask]
-            PP = np.dot(alpha.T, HH)
+            PP = np.tensordot(alpha.T, HH, axes=(-1, 0))
             if cholesky_flag:
                 QQ = spla.cho_solve((LL, True), HH)
             else:
                 QQ = spla.solve(kernel, HH)
-            gradlml[ii] = 0.5 * np.dot(PP, alpha) - 0.5 * lp * np.sum(np.diag(QQ))
+            gradlml[ii] = 0.5 * np.tensordot(PP, alpha, axes=(-1, 0)) - 0.5 * lp * np.sum(np.diag(QQ))
 
         return gradlml
 
