@@ -1359,7 +1359,7 @@ class GaussianProcessRegression1D():
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
-        kernel = KK + np.diag(yef ** 2.0)
+        kernel = KK + np.diag(yef.squeeze() ** 2.0)
         if np.any(np.invert(kmask)):
             KK = KK[kmask]
 
@@ -2531,7 +2531,7 @@ class GaussianProcessRegression1D():
 #                    ))
                     ekkvec.append(copy.copy(ekk))
                     elmlvec.append(elml)
-                except (ValueError, np.linalg.linalg.LinAlgError):
+                except (ValueError, np.linalg.LinAlgError):
                     ekkvec.append(None)
                     elmlvec.append(np.nan)
                 for jj in range(enr):
@@ -2568,7 +2568,7 @@ class GaussianProcessRegression1D():
 #                        ))
                         ekkvec.append(copy.copy(ekk))
                         elmlvec.append(elml)
-                    except (ValueError, np.linalg.linalg.LinAlgError):
+                    except (ValueError, np.linalg.LinAlgError):
                         ekkvec.append(None)
                         elmlvec.append(np.nan)
                 eimaxv = np.where(elmlvec == np.nanmax(elmlvec))[0]
@@ -2695,7 +2695,7 @@ class GaussianProcessRegression1D():
                         ))
                         kkvec.append(copy.copy(tkk))
                         lmlvec.append(tlml)
-                    except ValueError:
+                    except (ValueError, np.linalg.LinAlgError):
                         kkvec.append(None)
                         lmlvec.append(np.nan)
                     for ii in range(nr):
@@ -2710,7 +2710,7 @@ class GaussianProcessRegression1D():
                             ))
                             kkvec.append(copy.copy(tkk))
                             lmlvec.append(tlml)
-                        except ValueError:
+                        except (ValueError, np.linalg.LinAlgError):
                             kkvec.append(None)
                             lmlvec.append(np.nan)
                     imax = np.where(lmlvec == np.nanmax(lmlvec))[0][0]
@@ -2937,7 +2937,7 @@ class GaussianProcessRegression1D():
                 ))
                 kkvec.append(copy.copy(tkk))
                 lmlvec.append(tlml)
-            except (ValueError, np.linalg.linalg.LinAlgError):
+            except (ValueError, np.linalg.LinAlgError):
                 kkvec.append(None)
                 lmlvec.append(np.nan)
             for ii in range(nr):
@@ -2952,7 +2952,7 @@ class GaussianProcessRegression1D():
                     ))
                     kkvec.append(copy.copy(tkk))
                     lmlvec.append(tlml)
-                except (ValueError, np.linalg.linalg.LinAlgError):
+                except (ValueError, np.linalg.LinAlgError):
                     kkvec.append(None)
                     lmlvec.append(np.nan)
             imaxv = np.where(lmlvec == np.nanmax(lmlvec))[0]
