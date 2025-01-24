@@ -637,7 +637,7 @@ class GaussianProcessRegression1D():
             lb = -1.0e50 if self._lb is None else self._lb
             ub = 1.0e50 if self._ub is None else self._ub
             cn = 5.0e-3 if self._cn is None else self._cn
-            (pxx, pxe, pyy, pye, nn) = self._condition_data(self._xx, rxe,self._yy, rye, lb, ub, cn)
+            (pxx, pxe, pyy, pye, nn) = self._condition_data(self._xx, rxe, self._yy, rye, lb, ub, cn)
         # Actually these should be conditioned as well (for next version?)
         dxx = copy.deepcopy(self._dxx)
         dyy = copy.deepcopy(self._dyy)
@@ -1073,14 +1073,14 @@ class GaussianProcessRegression1D():
         yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
         # Set up the vectors needed for evaluating the final GP
-        yydf = yyd.reshape(-1, *ys)
-        yedf = yed.reshape(-1, *ys)
-        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(-1, *xs)
+        yydf = yyd.T.reshape(-1, *ys)
+        yedf = yed.T.reshape(-1, *ys)
+        xxdf = np.tile(xxd, (yyd.shape[1], 1))
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
-        mask = np.isfinite(yf)
-        kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
+        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1)
+        #kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
         if np.any(np.invert(mask)):
             xf = xf[mask]
             yf = yf[mask]
@@ -1112,8 +1112,9 @@ class GaussianProcessRegression1D():
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
-        if np.any(np.invert(kmask)):
-            KK = KK[kmask]
+        if np.any(np.invert(mask)):
+            KK = KK[mask]
+            KK = KK[:, mask]
 
         ksb = kk(xn, xx, der=-dd) if (dd % 2) != 0 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
         ksh = kk(xn, xxd, der=dd+1) # kk(xs1h, xs2h, der=dd+1)
@@ -1122,12 +1123,12 @@ class GaussianProcessRegression1D():
         if ksh.size == 0:
             ksh = ksh.reshape(0, *ksb.shape[1:])
         elif ksh.ndim > ksb.ndim:
-            hshape = [ndim for ii in range(len(ksh[1:-1]))]
-            ksh = ksh.T.reshape(ndim * xn.shape[0], *hshape, -1)
-        if np.any(np.invert(mask)):
-            ksh = ksh[mask]
+            hshape = [ndim for ii in range(ksh.ndim - 3)]
+            ksh = ksh.T.reshape(ndim * xxd.shape[0], *hshape, -1)
         ks = np.concatenate((ksb, ksh), axis=0) # np.vstack((ksb, ksh))
         kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
+        if np.any(np.invert(mask)):
+            ks = ks[mask]
         if kt.ndim > 2:
             kt = np.squeeze(kt)
         kernel = KK + np.diag(yef.squeeze() ** 2.0)   # Should be fine since kernel output is always 2D
@@ -1323,9 +1324,9 @@ class GaussianProcessRegression1D():
         yyd = dyy if dflag else np.empty((0, *ys), dtype=self._dtype)
         yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
-        yydf = yyd.reshape(-1, *ys)
-        yedf = yed.reshape(-1, *ys)
-        xxdf = np.tile(xxd, (yydf.shape[0], 1)).reshape(-1, *xs)
+        yydf = yyd.T.reshape(-1, *ys)
+        yedf = yed.T.reshape(-1, *ys)
+        xxdf = np.tile(xxd, (yydf.shape[0], 1)).T.reshape(-1, *xs)
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
@@ -2025,7 +2026,7 @@ class GaussianProcessRegression1D():
         return (newkk, lmlnew)
 
 
-    def _condition_data(self, xx, xe, yy, ye, lb, ub, cn):
+    def _condition_data(self, xx, xe, yy, ye, lb, ub, cn, allow_nan=False):
         r'''
         **INTERNAL FUNCTION** - Use main call functions!!!
 
@@ -2051,11 +2052,10 @@ class GaussianProcessRegression1D():
             number of data points blended into corresponding index.
         '''
 
-        ndim = xx.shape[1] if xx.ndim > 1 else 1
-        gg = np.concatenate((np.atleast_2d(xx), np.atleast_2d(yy)), axis=-1) if xx.ndim > 1 else np.stack((np.atleast_1d(xx), np.atleast_1d(yy)), axis=-1)
-        good = np.all(np.isfinite(gg), axis=-1)
-        #if ndim > 1:
-        #    good = np.all(good, axis=1)
+        good = np.full((xx.shape[0], ), True)
+        if not allow_nan:
+            gg = np.concatenate((np.atleast_2d(xx), np.atleast_2d(yy)), axis=-1) if xx.ndim > 1 else np.stack((np.atleast_1d(xx), np.atleast_1d(yy)), axis=-1)
+            good = np.all(np.isfinite(gg), axis=-1)
         xe = xe[good] if xe.shape == xx.shape else np.tile(xe[0], (xx[good].shape[0], 1))
         ye = ye[good] if ye.shape == yy.shape else np.tile(ye[0], (yy[good].shape[0], 1))
         xx = xx[good]
@@ -2067,14 +2067,15 @@ class GaussianProcessRegression1D():
         yy = yy / ysc
         ye = ye / ysc
         nn = np.empty((0, ), dtype=self._dtype)
-        cxs = [ndim] if xx.ndim > 1 else []
-        cys = [1] if yy.ndim > 1 else []
+        cxs = [xx.shape[1]] if xx.ndim > 1 else []
+        cys = [yy.shape[1]] if yy.ndim > 1 else []
         cxx = np.empty((0, *cxs), dtype=self._dtype)
         cxe = copy.deepcopy(cxx)
         cyy = np.empty((0, *cys), dtype=self._dtype)
         cye = copy.deepcopy(cyy)
         for ii in range(xx.shape[0]):
-            if yy[ii] >= lb and yy[ii] <= ub:
+            yyt = np.array([yy[ii]]).flatten()
+            if np.all(yyt >= lb) and np.all(yyt <= ub):
                 fflag = False
                 for jj in range(cxx.shape[0]):
                     if np.sqrt(np.sum(np.power(cxx[jj] - xx[ii], 2.0))) < cn and not fflag:  # Use Euclidean distance
@@ -2090,6 +2091,12 @@ class GaussianProcessRegression1D():
                     cxe = np.concatenate((cxe, np.atleast_1d(xe[ii]).reshape(1, *cxs)), axis=0)
                     cyy = np.concatenate((cyy, np.atleast_1d(yy[ii]).reshape(1, *cys)), axis=0)
                     cye = np.concatenate((cye, np.atleast_1d(ye[ii]).reshape(1, *cys)), axis=0)
+            if allow_nan and np.any(~np.isfinite(yyt)):
+                nn = np.concatenate((nn, np.array([1.0])), axis=0)
+                cxx = np.concatenate((cxx, np.atleast_1d(xx[ii]).reshape(1, *cxs)), axis=0)
+                cxe = np.concatenate((cxe, np.atleast_1d(xe[ii]).reshape(1, *cxs)), axis=0)
+                cyy = np.concatenate((cyy, np.atleast_1d(yy[ii]).reshape(1, *cys)), axis=0)
+                cye = np.concatenate((cye, np.atleast_1d(ye[ii]).reshape(1, *cys)), axis=0)
         cxx = cxx * xsc
         cxe = cxe * xsc
         cyy = cyy * ysc
@@ -2337,7 +2344,7 @@ class GaussianProcessRegression1D():
                     dye = np.zeros((1, *dys), dtype=self._dtype)
                 dxs = dxx.shape[1:] if dxx.ndim > 1 else []
                 dxe = np.zeros((1, *dxs), dtype=self._dtype)
-                (dxx, dxe, dyy, dye, dnn) = self._condition_data(dxx, dxe, dyy, dye, -1.0e50, 1.0e50, cn)
+                (dxx, dxe, dyy, dye, dnn) = self._condition_data(dxx, dxe, dyy, dye, -1.0e50, 1.0e50, cn, allow_nan=True)
                 dyy = dyy / sc
                 dye = dye / sc
             dd = 1 if do_drv else 0
