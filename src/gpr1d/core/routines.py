@@ -1073,9 +1073,10 @@ class GaussianProcessRegression1D():
         yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
         # Set up the vectors needed for evaluating the final GP
+        reps = yyd.shape[1] if yyd.ndim > 1 else 1
         yydf = yyd.T.reshape(-1, *ys)
         yedf = yed.T.reshape(-1, *ys)
-        xxdf = np.tile(xxd, (yyd.shape[1], 1))
+        xxdf = np.tile(xxd, (reps, 1)).reshape(-1, *xs)
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
