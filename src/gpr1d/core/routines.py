@@ -1325,14 +1325,15 @@ class GaussianProcessRegression1D():
         yyd = dyy if dflag else np.empty((0, *ys), dtype=self._dtype)
         yed = dye if dflag else np.empty((0, *ys), dtype=self._dtype)
 
+        reps = yyd.shape[1] if yyd.ndim > 1 else 1
         yydf = yyd.T.reshape(-1, *ys)
         yedf = yed.T.reshape(-1, *ys)
-        xxdf = np.tile(xxd, (yydf.shape[0], 1)).T.reshape(-1, *xs)
+        xxdf = np.tile(xxd, (reps, 1)).reshape(-1, *xs)
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
-        mask = np.isfinite(yf)
-        kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
+        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1)
+        #kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
         if np.any(np.invert(mask)):
             xf = xf[mask]
             yf = yf[mask]
@@ -1361,9 +1362,10 @@ class GaussianProcessRegression1D():
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
+        if np.any(np.invert(mask)):
+            KK = KK[mask]
+            KK = KK[:, mask]
         kernel = KK + np.diag(yef.squeeze() ** 2.0)
-        if np.any(np.invert(kmask)):
-            KK = KK[kmask]
 
         cholesky_flag = True
         if cholesky_flag:
@@ -1390,8 +1392,9 @@ class GaussianProcessRegression1D():
                 HHd = np.transpose(HHd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
             #HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
             HH = np.concatenate((np.concatenate((HHb, HHh1.T), axis=1), np.concatenate((HHh2.T, HHd), axis=1)), axis=0)
-            if np.any(np.invert(kmask)):
-                HH = HH[kmask]
+            if np.any(np.invert(mask)):
+                HH = HH[mask]
+                HH = HH[:, mask]
             PP = np.tensordot(alpha.T, HH, axes=(-1, 0))
             if cholesky_flag:
                 QQ = spla.cho_solve((LL, True), HH)
