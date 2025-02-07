@@ -278,7 +278,7 @@ class ND_Kernel(_OperatorKernel):
                     if ihyp is not None:
                         ihyp = ihyp - nhyps
                 if crdmat.shape[0] > row and crdmat[row].shape != (0,):
-                    covm[:, *crdmat[row], :] = covterm
+                    covm[:, *crdmat[row], :] = covterm.copy()
                 #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
             if der == 0:
                 covm = covm.reshape(x2.shape[0], x1.shape[0])
