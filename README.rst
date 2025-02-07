@@ -1,14 +1,14 @@
 gpr1d
 =====
 
-These classes and routines were developed by Aaron Ho, project
-started in 2017. The underlying mathematics was founded on
-"Gaussian Process for Machine Learning", C.E. Rasmussen, C.K.I.
-Williams (2006).
+These classes and routines were developed by Aaron Ho, and this
+project repository was started in 2017. The underlying
+mathematics was founded on the book, "Gaussian Process for Machine
+Learning", C.E. Rasmussen, C.K.I. Williams (2006).
 
 When using this package in any research work, please cite:
-A. Ho et al 2019 Nucl. Fusion 59 056007,
-`https://doi.org/10.1088/1741-4326/ab065a`_
+A. Ho et al 2019 Nucl. Fusion 59 056007, `DOI: 10.1088/1741-4326/ab065a
+<https://doi.org/10.1088/1741-4326/ab065a>`_
 
 
 Installing the gpr1d program
