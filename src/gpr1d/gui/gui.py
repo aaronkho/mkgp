@@ -2080,6 +2080,8 @@ class GPR1D_GUI(QtWidgets.QWidget):
             msg.exec_()
 
 def main():
+    ''' Launches the GUI application built in PyQt
+    '''
 
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName('GPR1D')

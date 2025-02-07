@@ -15,7 +15,7 @@ from gpr1d.core.routines import GaussianProcessRegression1D
 
 def run_demo():
     '''
-    A demonstration script for the classes within the GPR1D module.
+    A demonstration script for the classes within the gpr1d module.
 
     Due to the iterative nature of the optimization method and the
     random nature of the kernel restart function, the results may

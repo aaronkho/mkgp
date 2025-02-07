@@ -1,15 +1,7 @@
 r'''
 Routine class for Gaussian Process Regression fitting of 1D data with errorbars. Built in Python 3.x, adapted to be Python 2.x compatible.
   06/12/2024: No longer compatible with Python 2.x.
-
-These classes were developed by Aaron Ho [1].
-
-[1] A. Ho, J. Citrin, C. Bourdelle, Y. Camenen, F. Felici, M. Maslov, K.L. Van De Plassche, H. Weisen, and JET Contributors
-    IAEA Technical Meeting on Fusion Data Processing, Validation and Analysis, Boston, MA (2017)
-    `<https://nucleus.iaea.org/sites/fusionportal/Shared\ Documents/Fusion\ Data\ Processing\ 2nd/31.05/Ho.pdf>`_
-
 '''
-#    Gaussian process theory: "Gaussian Processes for Machine Learning", C.E. Rasmussen and C.K.I. Williams (2006)
 
 # Required imports
 import warnings

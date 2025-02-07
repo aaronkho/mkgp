@@ -1,10 +1,18 @@
 gpr1d
 =====
 
+These classes and routines were developed by Aaron Ho, and this
+project repository was started in 2017. The underlying
+mathematics was founded on the book, "Gaussian Process for Machine
+Learning", C.E. Rasmussen, C.K.I. Williams (2006).
+
+When using this package in any research work, please cite:
+A. Ho et al 2019 Nucl. Fusion 59 056007, `DOI: 10.1088/1741-4326/ab065a
+<https://doi.org/10.1088/1741-4326/ab065a>`_
+
+
 Installing the gpr1d program
 ----------------------------
-
-*Author: Aaron Ho (01/06/2018)*
 
 Installation is **mandatory** for this package!
 
@@ -13,19 +21,26 @@ developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
 by using the following on the command line::
 
-    pip install [--user] gpr1d[guis]
+    pip install [--user] gpr1d[gui]
 
-Use the :code:`--user` flag if you do not have root access on the system
-that you are working on. If you have already cloned the
+Use the :code:`--user` flag if you do not have root access on the
+system that you are working on. If you have already cloned the
 repository, enter the top level of the repository directory and
 use the following instead::
 
-    pip install [--user] -e .[guis]
+    pip install [--user] -e .[gui]
 
-Removal of the :code:`[guis]` portion will no longer check for
-the GUI generation and plotting packages needed for this
+Removal of the :code:`[gui]` portion will no longer check for the
+:code:`pyqt5` and :code:`matplotlib` packages needed for this
 functionality. However, these packages are not crucial for the
 base classes and algorithms.
+
+To test the installation, execute the command line script::
+
+    gpr1d_demo
+
+This demonstration benefits from having :code:`matplotlib`
+installed, but is not required.
 
 
 Documentation
@@ -41,13 +56,10 @@ Using the gpr1d program
 -----------------------
 
 For those who wish to include the functionality of this package
-into their own Python scripts, a demo script is provided in
-:code:`src/gpr1d/scripts`. The basic syntax used to create kernels,
-select settings, and perform GP regression fits are outlined there.
-
-In addition, a simplified :code:`gpr1d` class is available for those
-wishing to distill the parameters into a subset of the most
-crucial ones.
+into their own Python scripts, a sample script is provided in
+:code:`src/gpr1d/scripts/demo.py`. The basic syntax used to create
+kernels, select optimizers, and perform the GP regression fits are
+outlined there.
 
 For any questions or to report bugs, please do so through the
 proper channels in the GitLab repository.
@@ -55,22 +67,22 @@ proper channels in the GitLab repository.
 
 *Important note for users!*
 
-The following runtime warnings are common within this routine,
-but they are filtered out by default::
+The following runtime warnings are common within this routine::
 
     RuntimeWarning: overflow encountered in double_scalars
     RuntimeWarning: invalid value encountered in true_divide
     RuntimeWarning: invalid value encountered in sqrt
 
 
-They normally occur when using the kernel restarts option (as
-in the demo) and do not necessarily mean that the resulting
-fit is poor.
+They are filtered out by default but may reappear if verbosity
+settings are modified. They normally occur when using the kernel
+restarts option (as in the demo) and do not necessarily mean that
+the final returned fit is poor.
 
-Plotting the resulting fit and errors is the recommended way to
+Plotting the returned fit and errors is the recommended way to
 check its quality. The log-marginal-likelihood metric can also
 be used, but is only valuable when comparing different fits of
-the same data, ie. its absolute value is meaningless.
+the same data, i.e. its absolute value is meaningless.
 
 From v1.1.1, the adjusted R\ :sup:`2` and pseudo R\ :sup:`2`
 metrics are now available. The adjusted R\ :sup:`2` metric provides

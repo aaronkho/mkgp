@@ -157,7 +157,7 @@ def perform_sklearn_with_profiler(n_fit_points, raw_x_values, raw_y_values, raw_
 
 def run_profiler():
     """
-    A script for profiling the GPR1D module against sklearn.
+    A script for profiling the gpr1d module against scikit-learn.
 
     Due to the iterative nature of the optimization method and the
     random nature of the kernel restart function, the results may
