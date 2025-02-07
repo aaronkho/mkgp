@@ -8,10 +8,9 @@
 Contents:
 ---------
 .. toctree::
-   :maxdepth: 2
-   :glob:
+   :maxdepth: 3
 
-   *
+   modules
 
 
 Indices and tables

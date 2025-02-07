@@ -36,6 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["coverage", "pytest", "pytest-cov"]
+docs = ["sphinx", "furo", "sphinx-rtd-theme"]
 build = ["build", "twine"]
 demo = ["matplotlib"]
 gui = ["pyqt5", "matplotlib"]
@@ -78,5 +79,5 @@ gpr1d = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = {features = ["gui", "demo"], solve-group = "default"}
-develop = {features = ["dev", "build", "gui", "demo", "profile"], solve-group = "develop"}
+develop = {features = ["dev", "docs", "build", "gui", "demo", "profile"], solve-group = "develop"}
 

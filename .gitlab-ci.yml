@@ -39,10 +39,7 @@ pages:
   - ''
   script:
   # Install GPR1D package + dependencies using pip
-  - python3 -m pip install .
-
-  # Install sphinx and dependencies
-  - python3 -m pip install sphinx furo
+  - python3 -m pip install .[docs]
 
   # Build the docs and move to public website
   - sphinx-build -b html docs/source/ public/
