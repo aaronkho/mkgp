@@ -1114,7 +1114,7 @@ class GaussianProcessRegression1D():
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
         KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
         if np.any(np.invert(mask)):
-            KK = KK[mask]
+            KK = KK[mask, :]
             KK = KK[:, mask]
 
         ksb = kk(xn, xx, der=-dd) if (dd % 2) != 0 else kk(xn, xx, der=dd) # kk(xs1, xs2, der=-dd) if dd == 1 else kk(xs1, xs2, der=dd)
@@ -2589,7 +2589,7 @@ class GaussianProcessRegression1D():
                     self._ekk = copy.copy(ekkvec[eimax])
                 else:
                     raise ValueError('None of the error fit attempts converged. Please change error kernel settings and try again.')
-            elif self._eeps is not None and self._egpye is None and enr > 0:
+            elif self._eeps is not None and self._egpye is None:
                 elp = self._elp
                 ekk = copy.copy(self._ekk)
                 (elml, ekk) = itemgetter(2, 4)(self.__basic_fit(
