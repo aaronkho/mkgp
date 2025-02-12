@@ -125,7 +125,7 @@ class Product_Kernel(_OperatorKernel):
 
         covm = np.full((x1.size, x2.size), np.nan, dtype=self._dtype).T if self._kernel_list is None else np.zeros((x1.size, x2.size), dtype=self._dtype).T
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        sd = int(np.sign(der))
+        sd = int(np.sign(der)) if der != 0 else 1
         ad = int(sd * der)
         fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
         # Each row of dermat represents a single chain rule term if derivatives are requested
@@ -135,7 +135,7 @@ class Product_Kernel(_OperatorKernel):
             vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
             ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
             # Each element represents partial derivative w.r.t. named kernel index
-            dmesh = np.stack(np.meshgrid(*ddims), axis=-1)
+            dmesh = sd * np.stack(np.meshgrid(*(ddims[::-1]), indexing='ij'), axis=-1)
             meshshape = dmesh.shape[:-1]
             dermat = np.empty((*meshshape, 0), dtype=int)
             for dim in vdim:                   # Loop over kernel indices
@@ -150,7 +150,7 @@ class Product_Kernel(_OperatorKernel):
             #crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             dermat = dermat.reshape(-1, nks)
         for row in np.arange(0, dermat.shape[0]):
-            covterm = np.ones((x1.size, x2.size)).T
+            covterm = np.ones((x1.size, x2.size), dtype=self_dtype).T
             ihyp = hder
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
@@ -204,6 +204,7 @@ class Product_Kernel(_OperatorKernel):
         return kcopy
 
 
+
 class ND_Kernel(_OperatorKernel):
     r'''
     N-Dimensional Kernel: Implements the product of two (or more) separate kernels, each representing independent input dimensions.
@@ -231,7 +232,7 @@ class ND_Kernel(_OperatorKernel):
         x2 = np.atleast_2d(x2)
 
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        sd = int(np.sign(der))
+        sd = int(np.sign(der)) if der != 0 else 1
         ad = int(sd * der)
         fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
         # Each row of dermat represents a single chain rule term if derivatives are requested
@@ -241,13 +242,11 @@ class ND_Kernel(_OperatorKernel):
             vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
             ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
             # Each element represents partial derivative w.r.t. named kernel index
-            dmesh = np.stack(np.meshgrid(*ddims), axis=-1)
+            dmesh = sd * np.stack(np.meshgrid(*(ddims[::-1]), indexing='ij'), axis=-1)
             meshshape = dmesh.shape[:-1]
             dermat = np.empty((*meshshape, 0), dtype=int)
-            if dmesh.size == 0:
-                crdmat = np.zeros((ad, ), dtype=int)
-            else:
-                crdmat = np.abs(dmesh).reshape(-1, ad) -1
+            if dmesh.size > 0:
+                crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             for dim in vdim:                   # Loop over kernel indices
                 pos = np.count_nonzero(dmesh == dim, axis=-1)
                 neg = np.count_nonzero(dmesh == -dim, axis=-1)
@@ -257,16 +256,15 @@ class ND_Kernel(_OperatorKernel):
                 oder[oddfilt] = sder[oddfilt] * oder[oddfilt]
                 dermat = np.concatenate((dermat, np.expand_dims(oder, axis=-1)), axis=-1)
             # Reshape such that each row represents one chain rule term
-            crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             dermat = dermat.reshape(-1, nks)
         else:
             crdmat = np.zeros((1, 1), dtype=int)
         ishape = [dermat.shape[1] for ii in range(crdmat.shape[1])] if der != 0 else [1]
-        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]))
-         
+        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]), dtype=self._dtype)
+
         if x1.size > 0 and x2.size > 0:
             for row in np.arange(0, dermat.shape[0]):
-                covterm = np.ones((x1.shape[0], x2.shape[0])).T
+                covterm = np.ones((x1.shape[0], x2.shape[0]), dtype=self._dtype).T
                 ihyp = hder
                 for col in np.arange(0, dermat.shape[1]):
                     kk = self._kernel_list[col]
@@ -274,7 +272,7 @@ class ND_Kernel(_OperatorKernel):
                     x2_col = x2[:, col]
                     nhyps = kk.hyperparameters.size
                     khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
-                    covterm *= kk(x1_col, x2_col, dermat[row, col], khder)
+                    covterm = covterm * kk(x1_col, x2_col, dermat[row, col], khder)
                     if ihyp is not None:
                         ihyp = ihyp - nhyps
                 if crdmat.shape[0] > row and crdmat[row].shape != (0,):
@@ -318,12 +316,13 @@ class ND_Kernel(_OperatorKernel):
 
         :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
         '''
-		
+
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
         kcopy = ND_Kernel(klist=kcopy_list)
         return kcopy
+
 
 
 class Symmetric_Kernel(_OperatorKernel):
