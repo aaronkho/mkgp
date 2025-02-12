@@ -150,7 +150,7 @@ class Product_Kernel(_OperatorKernel):
             #crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             dermat = dermat.reshape(-1, nks)
         for row in np.arange(0, dermat.shape[0]):
-            covterm = np.ones((x1.size, x2.size), dtype=self_dtype).T
+            covterm = np.ones((x1.size, x2.size), dtype=self._dtype).T
             ihyp = hder
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
