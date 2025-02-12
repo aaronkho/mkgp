@@ -205,9 +205,100 @@ class Product_Kernel(_OperatorKernel):
 
 
 
-class ND_Kernel(_OperatorKernel):
+class ND_Sum_Kernel(_OperatorKernel):
     r'''
-    N-Dimensional Kernel: Implements the product of two (or more) separate kernels, each representing independent input dimensions.
+    N-Dimensional Sum Kernel: Implements the sum of two (or more) separate kernels, each representing independent input dimensions.
+
+    :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
+
+    :kwarg klist: list. Python native list of :code:`_Kernel` instances to be added together. Must contain a minimum of 2.
+    '''
+
+    def __calc_covm(self, x1, x2, der=0, hder=None):
+        r'''
+        Implementation-specific covariance function.
+
+        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
+
+        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function.
+
+        :kwarg der: int. Order of x derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
+        '''
+        x1 = np.atleast_2d(x1)
+        x2 = np.atleast_2d(x2)
+
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        sd = int(np.sign(der)) if der != 0 else 1
+        ad = int(sd * der)
+        ishape = [nks for ii in range(ad)] if der != 0 else [1]
+        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]), dtype=self._dtype)
+
+        if x1.size > 0 and x2.size > 0:
+            for col in np.arange(0, nks):
+                cshape = [col for ii in range(ad)] if der != 0 else [0]
+                ihyp = hder
+                kk = self._kernel_list[col]
+                x1_col = x1[:, col]
+                x2_col = x2[:, col]
+                nhyps = kk.hyperparameters.size
+                khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                covm[:, *cshape, :] += kk(x1_col, x2_col, der, khder)
+                if ihyp is not None:
+                    ihyp = ihyp - nhyps
+            if der == 0:
+                covm = covm.reshape(x2.shape[0], x1.shape[0])
+
+        return covm
+
+
+    def __init__(self, *args, **kwargs):
+        r'''
+        Initializes the :code:`ND_Sum_Kernel` instance.
+
+        :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+        :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+
+        :returns: none.
+        '''
+
+        klist = kwargs.get('klist')
+        uklist = []
+        if len(args) >= 2 and isinstance(args[0], _Kernel) and isinstance(args[1], _Kernel):
+            for kk in args:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        elif isinstance(klist, list) and len(klist) >= 2 and isinstance(klist[0], _Kernel) and isinstance(klist[1], _Kernel):
+            for kk in klist:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        else:
+            raise TypeError('Arguments to ND_Sum_Kernel must be Kernel objects.')
+        super().__init__('NSum', self.__calc_covm, True, uklist)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        kcopy_list = []
+        for kk in self._kernel_list:
+            kcopy_list.append(copy.copy(kk))
+        kcopy = ND_Sum_Kernel(klist=kcopy_list)
+        return kcopy
+
+
+
+class ND_Product_Kernel(_OperatorKernel):
+    r'''
+    N-Dimensional Product Kernel: Implements the product of two (or more) separate kernels, each representing independent input dimensions.
 
     :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
@@ -286,7 +377,7 @@ class ND_Kernel(_OperatorKernel):
 
     def __init__(self, *args, **kwargs):
         r'''
-        Initializes the :code:`ND_Kernel` instance.
+        Initializes the :code:`ND_Product_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
@@ -306,8 +397,8 @@ class ND_Kernel(_OperatorKernel):
                 if isinstance(kk, _Kernel):
                     uklist.append(kk)
         else:
-            raise TypeError('Arguments to ND_Kernel must be Kernel objects.')
-        super().__init__('ND', self.__calc_covm, True, uklist)
+            raise TypeError('Arguments to ND_Product_Kernel must be Kernel objects.')
+        super().__init__('NProd', self.__calc_covm, True, uklist)
 
 
     def __copy__(self):
@@ -320,7 +411,7 @@ class ND_Kernel(_OperatorKernel):
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
-        kcopy = ND_Kernel(klist=kcopy_list)
+        kcopy = ND_Product_Kernel(klist=kcopy_list)
         return kcopy
 
 
