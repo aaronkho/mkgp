@@ -242,8 +242,8 @@ class ND_Sum_Kernel(_OperatorKernel):
                 cshape = [col for ii in range(ad)] if der != 0 else [0]
                 ihyp = hder
                 kk = self._kernel_list[col]
-                x1_col = x1[:, col]
-                x2_col = x2[:, col]
+                x1_col = x1[:, col].flatten()
+                x2_col = x2[:, col].flatten()
                 nhyps = kk.hyperparameters.size
                 khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
                 covm[:, *cshape, :] += kk(x1_col, x2_col, der, khder)
@@ -359,8 +359,8 @@ class ND_Product_Kernel(_OperatorKernel):
                 ihyp = hder
                 for col in np.arange(0, dermat.shape[1]):
                     kk = self._kernel_list[col]
-                    x1_col = x1[:, col]
-                    x2_col = x2[:, col]
+                    x1_col = x1[:, col].flatten()
+                    x2_col = x2[:, col].flatten()
                     nhyps = kk.hyperparameters.size
                     khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
                     covterm = covterm * kk(x1_col, x2_col, dermat[row, col], khder)
