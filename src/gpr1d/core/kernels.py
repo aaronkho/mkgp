@@ -46,7 +46,7 @@ class Sum_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
+        covm = np.full((x1.size, x2.size), np.nan, dtype=self._dtype).T if self._kernel_list is None else np.zeros((x1.size, x2.size), dtype=self._dtype).T
         ihyp = hder
         for kk in self._kernel_list:
             nhyps = kk.hyperparameters.size
@@ -68,6 +68,7 @@ class Sum_Kernel(_OperatorKernel):
         :returns: none.
         '''
 
+        dtype = kwargs.get('dtype', None)
         klist = kwargs.get('klist')
         uklist = []
         if len(args) >= 2 and isinstance(args[0], _Kernel) and isinstance(args[1], _Kernel):
@@ -80,7 +81,7 @@ class Sum_Kernel(_OperatorKernel):
                     uklist.append(kk)
         else:
             raise TypeError('Arguments to Sum_Kernel must be Kernel instances.')
-        super().__init__('Sum', self.__calc_covm, True, uklist)
+        super().__init__('Sum', self.__calc_covm, True, uklist, dtype=dtype)
 
 
     def __copy__(self):
@@ -122,9 +123,9 @@ class Product_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
+        covm = np.full((x1.size, x2.size), np.nan, dtype=self._dtype).T if self._kernel_list is None else np.zeros((x1.size, x2.size), dtype=self._dtype).T
         nks = len(self._kernel_list) if self._kernel_list is not None else 0
-        sd = int(np.sign(der))
+        sd = int(np.sign(der)) if der != 0 else 1
         ad = int(sd * der)
         fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
         # Each row of dermat represents a single chain rule term if derivatives are requested
@@ -134,7 +135,7 @@ class Product_Kernel(_OperatorKernel):
             vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
             ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
             # Each element represents partial derivative w.r.t. named kernel index
-            dmesh = np.stack(np.meshgrid(*ddims), axis=-1)
+            dmesh = sd * np.stack(np.meshgrid(*(ddims[::-1]), indexing='ij'), axis=-1)
             meshshape = dmesh.shape[:-1]
             dermat = np.empty((*meshshape, 0), dtype=int)
             for dim in vdim:                   # Loop over kernel indices
@@ -149,7 +150,7 @@ class Product_Kernel(_OperatorKernel):
             #crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             dermat = dermat.reshape(-1, nks)
         for row in np.arange(0, dermat.shape[0]):
-            covterm = np.ones((x1.size, x2.size)).T
+            covterm = np.ones((x1.size, x2.size), dtype=self._dtype).T
             ihyp = hder
             for col in np.arange(0, dermat.shape[1]):
                 kk = self._kernel_list[col]
@@ -160,11 +161,103 @@ class Product_Kernel(_OperatorKernel):
                     ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
-
+        #embed()
 
     def __init__(self, *args, **kwargs):
         r'''
         Initializes the :code:`Product_Kernel` instance.
+
+        :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+        :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+
+        :returns: none.
+        '''
+
+        dtype = kwargs.get('dtype', None)
+        klist = kwargs.get('klist')
+        uklist = []
+        if len(args) >= 2 and isinstance(args[0], _Kernel) and isinstance(args[1], _Kernel):
+            for kk in args:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        elif isinstance(klist, list) and len(klist) >= 2 and isinstance(klist[0], _Kernel) and isinstance(klist[1], _Kernel):
+            for kk in klist:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        else:
+            raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
+        super().__init__('Prod', self.__calc_covm, True, uklist, dtype=dtype)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        kcopy_list = []
+        for kk in self._kernel_list:
+            kcopy_list.append(copy.copy(kk))
+        kcopy = Product_Kernel(klist=kcopy_list)
+        return kcopy
+
+
+
+class ND_Sum_Kernel(_OperatorKernel):
+    r'''
+    N-Dimensional Sum Kernel: Implements the sum of two (or more) separate kernels, each representing independent input dimensions.
+
+    :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be added together. Must provide a minimum of 2.
+
+    :kwarg klist: list. Python native list of :code:`_Kernel` instances to be added together. Must contain a minimum of 2.
+    '''
+
+    def __calc_covm(self, x1, x2, der=0, hder=None):
+        r'''
+        Implementation-specific covariance function.
+
+        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
+
+        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function.
+
+        :kwarg der: int. Order of x derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
+        '''
+        x1 = np.atleast_2d(x1)
+        x2 = np.atleast_2d(x2)
+
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        sd = int(np.sign(der)) if der != 0 else 1
+        ad = int(sd * der)
+        ishape = [nks for ii in range(ad)] if der != 0 else [1]
+        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]), dtype=self._dtype)
+
+        if x1.size > 0 and x2.size > 0:
+            for col in np.arange(0, nks):
+                cshape = [col for ii in range(ad)] if der != 0 else [0]
+                ihyp = hder
+                kk = self._kernel_list[col]
+                x1_col = x1[:, col].flatten()
+                x2_col = x2[:, col].flatten()
+                nhyps = kk.hyperparameters.size
+                khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                covm[:, *cshape, :] += kk(x1_col, x2_col, der, khder)
+                if ihyp is not None:
+                    ihyp = ihyp - nhyps
+            if der == 0:
+                covm = covm.reshape(x2.shape[0], x1.shape[0])
+
+        return covm
+
+
+    def __init__(self, *args, **kwargs):
+        r'''
+        Initializes the :code:`ND_Sum_Kernel` instance.
 
         :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
 
@@ -184,8 +277,8 @@ class Product_Kernel(_OperatorKernel):
                 if isinstance(kk, _Kernel):
                     uklist.append(kk)
         else:
-            raise TypeError('Arguments to Product_Kernel must be Kernel objects.')
-        super().__init__('Prod', self.__calc_covm, True, uklist)
+            raise TypeError('Arguments to ND_Sum_Kernel must be Kernel objects.')
+        super().__init__('NSum', self.__calc_covm, True, uklist)
 
 
     def __copy__(self):
@@ -198,7 +291,127 @@ class Product_Kernel(_OperatorKernel):
         kcopy_list = []
         for kk in self._kernel_list:
             kcopy_list.append(copy.copy(kk))
-        kcopy = Product_Kernel(klist=kcopy_list)
+        kcopy = ND_Sum_Kernel(klist=kcopy_list)
+        return kcopy
+
+
+
+class ND_Product_Kernel(_OperatorKernel):
+    r'''
+    N-Dimensional Product Kernel: Implements the product of two (or more) separate kernels, each representing independent input dimensions.
+
+    :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+    :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+    '''
+
+    def __calc_covm(self, x1, x2, der=0, hder=None):
+        r'''
+        Implementation-specific covariance function.
+
+        :arg x1: array. Meshgrid of x_1-values at which to evaulate the covariance function.
+
+        :arg x2: array. Meshgrid of x_2-values at which to evaulate the covariance function.
+
+        :kwarg der: int. Order of x derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the covariance function, requires explicit implementation. (optional)
+
+        :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
+        '''
+        x1 = np.atleast_2d(x1)
+        x2 = np.atleast_2d(x2)
+
+        nks = len(self._kernel_list) if self._kernel_list is not None else 0
+        sd = int(np.sign(der)) if der != 0 else 1
+        ad = int(sd * der)
+        fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
+        # Each row of dermat represents a single chain rule term if derivatives are requested
+        crdmat = np.zeros((ad, ), dtype=int)
+        dermat = np.atleast_2d(np.zeros((nks, ), dtype=int))
+        if der != 0:
+            vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
+            ddims = [(-1) ** (fd + nd) * vdim for nd in range(ad)]
+            # Each element represents partial derivative w.r.t. named kernel index
+            dmesh = sd * np.stack(np.meshgrid(*(ddims[::-1]), indexing='ij'), axis=-1)
+            meshshape = dmesh.shape[:-1]
+            dermat = np.empty((*meshshape, 0), dtype=int)
+            if dmesh.size > 0:
+                crdmat = np.abs(dmesh).reshape(-1, ad) - 1
+            for dim in vdim:                   # Loop over kernel indices
+                pos = np.count_nonzero(dmesh == dim, axis=-1)
+                neg = np.count_nonzero(dmesh == -dim, axis=-1)
+                oder = pos + neg               # Derivative order on named kernel index from total number of appearances
+                sder = np.power(-1, neg)       # Derivative sign on named kernel index from number of negative value appearances
+                oddfilt = (np.mod(oder, 2) != 0)
+                oder[oddfilt] = sder[oddfilt] * oder[oddfilt]
+                dermat = np.concatenate((dermat, np.expand_dims(oder, axis=-1)), axis=-1)
+            # Reshape such that each row represents one chain rule term
+            dermat = dermat.reshape(-1, nks)
+        else:
+            crdmat = np.zeros((1, 1), dtype=int)
+        ishape = [dermat.shape[1] for ii in range(crdmat.shape[1])] if der != 0 else [1]
+        covm = np.zeros((x2.shape[0], *ishape, x1.shape[0]), dtype=self._dtype)
+
+        if x1.size > 0 and x2.size > 0:
+            for row in np.arange(0, dermat.shape[0]):
+                covterm = np.ones((x1.shape[0], x2.shape[0]), dtype=self._dtype).T
+                ihyp = hder
+                for col in np.arange(0, dermat.shape[1]):
+                    kk = self._kernel_list[col]
+                    x1_col = x1[:, col].flatten()
+                    x2_col = x2[:, col].flatten()
+                    nhyps = kk.hyperparameters.size
+                    khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
+                    covterm = covterm * kk(x1_col, x2_col, dermat[row, col], khder)
+                    if ihyp is not None:
+                        ihyp = ihyp - nhyps
+                if crdmat.shape[0] > row and crdmat[row].shape != (0,):
+                    covm[:, *crdmat[row], :] = covterm.copy()
+                #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
+            if der == 0:
+                covm = covm.reshape(x2.shape[0], x1.shape[0])
+
+        return covm
+
+
+    def __init__(self, *args, **kwargs):
+        r'''
+        Initializes the :code:`ND_Product_Kernel` instance.
+
+        :arg \*args: object. Any number of :code:`_Kernel` instance arguments, which are to be multiplied together. Must provide a minimum of 2.
+
+        :kwarg klist: list. Python native list of :code:`_Kernel` instances to be multiplied together. Must contain a minimum of 2.
+
+        :returns: none.
+        '''
+
+        klist = kwargs.get('klist')
+        uklist = []
+        if len(args) >= 2 and isinstance(args[0], _Kernel) and isinstance(args[1], _Kernel):
+            for kk in args:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        elif isinstance(klist, list) and len(klist) >= 2 and isinstance(klist[0], _Kernel) and isinstance(klist[1], _Kernel):
+            for kk in klist:
+                if isinstance(kk, _Kernel):
+                    uklist.append(kk)
+        else:
+            raise TypeError('Arguments to ND_Product_Kernel must be Kernel objects.')
+        super().__init__('NProd', self.__calc_covm, True, uklist)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        kcopy_list = []
+        for kk in self._kernel_list:
+            kcopy_list.append(copy.copy(kk))
+        kcopy = ND_Product_Kernel(klist=kcopy_list)
         return kcopy
 
 
@@ -232,7 +445,7 @@ class Symmetric_Kernel(_OperatorKernel):
         :returns: array. Covariance function evaluations at input value pairs using the given derivative settings. Has the same dimensions as :code:`x1` and :code:`x2`.
         '''
 
-        covm = np.full((x1.size, x2.size), np.nan).T if self._kernel_list is None else np.zeros((x1.size, x2.size)).T
+        covm = np.full((x1.size, x2.size), np.nan, dtype=self._dtype).T if self._kernel_list is None else np.zeros((x1.size, x2.size), dtype=self._dtype).T
         ihyp = hder
         for kk in self._kernel_list:
             nhyps = kk.hyperparameters.size
@@ -254,6 +467,7 @@ class Symmetric_Kernel(_OperatorKernel):
         :returns: none.
         '''
 
+        dtype = kwargs.get('dtype', None)
         klist = kwargs.get('klist')
         uklist = []
         if len(args) >= 1 and isinstance(args[0], _Kernel):
@@ -268,7 +482,7 @@ class Symmetric_Kernel(_OperatorKernel):
             uklist.append(kk)
         else:
             raise TypeError('Arguments to Symmetric_Kernel must be Kernel objects.')
-        super().__init__('Sym', self.__calc_covm, True, uklist)
+        super().__init__('Sym', self.__calc_covm, True, uklist, dtype=dtype)
 
 
     def __copy__(self):
@@ -325,16 +539,16 @@ class Constant_Kernel(_Kernel):
         csts = self.constants
         c_hyp = csts[0]
         rr = np.abs(xm1 - xm2)
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
-                covm = c_hyp * np.ones(rr.shape)
+                covm = c_hyp * np.ones(rr.shape, dtype=self._dtype)
             elif hder == 0:
-                covm = np.ones(rr.shape)
+                covm = np.ones(rr.shape, dtype=self._dtype)
         return covm
 
 
-    def __init__(self, cv=1.0):
+    def __init__(self, cv=1.0, dtype=None):
         r'''
         Initializes the :code:`Constant_Kernel` instance.
 
@@ -348,7 +562,7 @@ class Constant_Kernel(_Kernel):
             csts[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
-        super().__init__('C', self.__calc_covm, True, None, csts)
+        super().__init__('C', self.__calc_covm, True, None, csts, dtype=dtype)
 
 
     def __copy__(self):
@@ -362,7 +576,7 @@ class Constant_Kernel(_Kernel):
         csts = self.constants
         bnds = self.bounds
         chp = float(csts[0])
-        kcopy = Constant_Kernel(chp)
+        kcopy = Constant_Kernel(chp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -403,7 +617,7 @@ class Noise_Kernel(_Kernel):
         csts = self.constants
         n_hyp = hyps[0]
         rr = np.abs(xm1 - xm2)
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
                 covm[rr == 0.0] = n_hyp ** 2.0
@@ -426,7 +640,7 @@ class Noise_Kernel(_Kernel):
         return covm
 
 
-    def __init__(self, nv=1.0):
+    def __init__(self, nv=1.0, dtype=None):
         r'''
         Initializes the :code:`Noise_Kernel` instance.
 
@@ -440,7 +654,7 @@ class Noise_Kernel(_Kernel):
             hyps[0] = float(nv)
         else:
             raise ValueError('Noise hyperparameter must be a real number.')
-        super().__init__('n', self.__calc_covm, True, hyps)
+        super().__init__('n', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -454,7 +668,7 @@ class Noise_Kernel(_Kernel):
         csts = self.constants
         bnds = self.bounds
         nhp = float(hyps[0])
-        kcopy = Noise_Kernel(nhp)
+        kcopy = Noise_Kernel(nhp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -490,7 +704,7 @@ class Linear_Kernel(_Kernel):
         csts = self.constants
         v_hyp = hyps[0]
         pp = xm1 * xm2
-        covm = np.zeros(pp.shape)
+        covm = np.zeros(pp.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
                 covm = (v_hyp ** 2.0) * pp
@@ -510,13 +724,13 @@ class Linear_Kernel(_Kernel):
                 covm = 2.0 * v_hyp * dpdxm1
         elif der == 2 or der == -2:
             if hder is None:
-                covm = (v_hyp ** 2.0) * np.ones(pp.shape)
+                covm = (v_hyp ** 2.0) * np.ones(pp.shape, dtype=self._dtype)
             elif hder == 0:
-                covm = 2.0 * v_hyp * np.ones(pp.shape)
+                covm = 2.0 * v_hyp * np.ones(pp.shape, dtype=self._dtype)
         return covm
 
 
-    def __init__(self, var=1.0):
+    def __init__(self, var=1.0, dtype=None):
         r'''
         Initializes the :code:`Linear_Kernel` instance.
 
@@ -530,7 +744,7 @@ class Linear_Kernel(_Kernel):
             hyps[0] = float(var)
         else:
             raise ValueError('Constant hyperparameter must be a finite number.')
-        super().__init__('L', self.__calc_covm, True, hyps)
+        super().__init__('L', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -544,7 +758,7 @@ class Linear_Kernel(_Kernel):
         csts = self.constants
         bnds = self.bounds
         chp = float(hyps[0])
-        kcopy = Linear_Kernel(chp)
+        kcopy = Linear_Kernel(chp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -584,39 +798,39 @@ class Poly_Order_Kernel(_Kernel):
         b_hyp = hyps[1]
         pp = xm1 * xm2
         #mm = xm1 + xm2
-        covm = np.zeros(pp.shape)
+        covm = np.zeros(pp.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
-                covm = (v_hyp ** 2.0) * pp + (b_hyp ** 2.0) * np.ones(pp.shape) # + v_hyp * b_hyp * mm
+                covm = (v_hyp ** 2.0) * pp + (b_hyp ** 2.0) * np.ones(pp.shape, dtype=self._dtype) # + v_hyp * b_hyp * mm
             elif hder == 0:
                 covm = 2.0 * v_hyp * pp # + b_hyp * mm
             elif hder == 1:
-                covm = b_hyp * np.ones(pp.shape) # + v_hyp * mm
+                covm = b_hyp * np.ones(pp.shape, dtype=self._dtype) # + v_hyp * mm
         elif der == 1:
             dpdxm2 = xm1
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdxm2 # + v_hyp * b_hyp * np.ones(mm.shape)
+                covm = (v_hyp ** 2.0) * dpdxm2 # + v_hyp * b_hyp * np.ones(mm.shape, dtype=self._dtype)
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdxm2 # + b_hyp * np.ones(mm.shape)
+                covm = 2.0 * v_hyp * dpdxm2 # + b_hyp * np.ones(mm.shape, dtype=self._dtype)
             #elif hder == 1:
-            #    covm = v_hyp * np.ones(pp.shape)
+            #    covm = v_hyp * np.ones(pp.shape, dtype=self._dtype)
         elif der == -1:
             dpdxm1 = xm2
             if hder is None:
-                covm = (v_hyp ** 2.0) * dpdxm1 # + v_hyp * b_hyp * np.ones(mm.shape)
+                covm = (v_hyp ** 2.0) * dpdxm1 # + v_hyp * b_hyp * np.ones(mm.shape, dtype=self._dtype)
             elif hder == 0:
-                covm = 2.0 * v_hyp * dpdxm1 # + b_hyp * np.ones(mm.shape)
+                covm = 2.0 * v_hyp * dpdxm1 # + b_hyp * np.ones(mm.shape, dtype=self._dtype)
             #elif hder == 1:
-            #    covm = v_hyp * np.ones(pp.shape)
+            #    covm = v_hyp * np.ones(pp.shape, dtype=self._dtype)
         elif der == 2 or der == -2:
             if hder is None:
-                covm = (v_hyp ** 2.0) * np.ones(pp.shape)
+                covm = (v_hyp ** 2.0) * np.ones(pp.shape, dtype=self._dtype)
             elif hder == 0:
-                covm = 2.0 * v_hyp * np.ones(pp.shape)
+                covm = 2.0 * v_hyp * np.ones(pp.shape, dtype=self._dtype)
         return covm
 
 
-    def __init__(self, var=1.0, cst=1.0):
+    def __init__(self, var=1.0, cst=1.0, dtype=None):
         r'''
         Initializes the :code:`Poly_Order_Kernel` instance.
 
@@ -636,7 +850,7 @@ class Poly_Order_Kernel(_Kernel):
             hyps[1] = float(cst)
         else:
             raise ValueError('Additive hyperparameter must be a number.')
-        super().__init__('P', self.__calc_covm, True, hyps)
+        super().__init__('P', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -651,7 +865,7 @@ class Poly_Order_Kernel(_Kernel):
         bnds = self.bounds
         chp = float(hyps[0])
         cst = float(hyps[1])
-        kcopy = Poly_Order_Kernel(chp, cst)
+        kcopy = Poly_Order_Kernel(chp, cst, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -697,11 +911,11 @@ class SE_Kernel(_Kernel):
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if hder is None:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -710,7 +924,7 @@ class SE_Kernel(_Kernel):
         elif hder == 0:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * v_hyp / np.power(l_hyp, nn)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - jj) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -719,7 +933,7 @@ class SE_Kernel(_Kernel):
         elif hder == 1:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (v_hyp ** 2.0) / np.power(l_hyp, nn + 1)
             efac = np.exp(-np.power(rr, 2.0) / (2.0 * (l_hyp ** 2.0)))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 3, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 dfac = np.power(-1.0, nn - ii + 2) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
@@ -729,7 +943,7 @@ class SE_Kernel(_Kernel):
         return covm
 
 
-    def __init__(self, var=1.0, ls=1.0):
+    def __init__(self, var=1.0, ls=1.0, dtype=None):
         r'''
         Initializes the :code:`SE_Kernel` instance.
 
@@ -749,7 +963,7 @@ class SE_Kernel(_Kernel):
             hyps[1] = float(ls)
         else:
             raise ValueError('Length scale hyperparameter must be greater than 0.')
-        super().__init__('SE', self.__calc_covm, True, hyps)
+        super().__init__('SE', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -764,7 +978,7 @@ class SE_Kernel(_Kernel):
         bnds = self.bounds
         chp = float(hyps[0])
         shp = float(hyps[1])
-        kcopy = SE_Kernel(chp, shp)
+        kcopy = SE_Kernel(chp, shp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -819,11 +1033,11 @@ class RQ_Kernel(_Kernel):
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if hder is None:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -833,7 +1047,7 @@ class RQ_Kernel(_Kernel):
         elif hder == 0:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * rq_amp / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -843,7 +1057,7 @@ class RQ_Kernel(_Kernel):
         elif hder == 1:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn))
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 3, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 dfac = np.power(-1.0, nn - ii + 2) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
@@ -854,7 +1068,7 @@ class RQ_Kernel(_Kernel):
         elif hder == 2:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (rq_amp ** 2.0) / np.power(l_hyp, nn)
             efac = np.power(rqt, -a_hyp - float(nn) - 1.0)
-            sfac = np.zeros(rr.shape)
+            sfac = np.zeros(rr.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -865,7 +1079,7 @@ class RQ_Kernel(_Kernel):
         return covm
 
 
-    def __init__(self, amp=1.0, ls=1.0, alpha=1.0):
+    def __init__(self, amp=1.0, ls=1.0, alpha=1.0, dtype=None):
         r'''
         Initializes the :code:`RQ_Kernel` instance.
 
@@ -891,7 +1105,7 @@ class RQ_Kernel(_Kernel):
             hyps[2] = float(alpha)
         else:
             raise ValueError('Rational quadratic alpha parameter must be greater than 0.')
-        super().__init__('RQ', self.__calc_covm, True, hyps)
+        super().__init__('RQ', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -907,7 +1121,7 @@ class RQ_Kernel(_Kernel):
         ramp = float(hyps[0])
         rhp = float(hyps[1])
         ralp = float(hyps[2])
-        kcopy = RQ_Kernel(ramp, rhp, ralp)
+        kcopy = RQ_Kernel(ramp, rhp, ralp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -972,15 +1186,15 @@ class Matern_HI_Kernel(_Kernel):
         dx1 = int(nn / 2) + 1 if (der % 2) != 0 and der < 0 else int(nn / 2)
         dx2 = int(nn / 2) + 1 if (der % 2) != 0 and der > 0 else int(nn / 2)
 
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if hder is None:
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
-            tfac = np.zeros(rr.shape)
+            tfac = np.zeros(rr.shape, dtype=self._dtype)
             for ii in np.arange(0, nn + 1):
                 mfac = np.power(-1.0, nn - ii) * np.power(2.0, ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
-                sfac = np.zeros(rr.shape)
+                sfac = np.zeros(rr.shape, dtype=self._dtype)
                 for zz in np.arange(0, pp - ii + 1):
                     ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht, pp - ii - zz)
@@ -990,10 +1204,10 @@ class Matern_HI_Kernel(_Kernel):
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * 2.0 * mat_amp * np.power(np.sqrt(2.0 * nu) / mat_hyp, nn)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
-            tfac = np.zeros(rr.shape)
+            tfac = np.zeros(rr.shape, dtype=self._dtype)
             for ii in np.arange(0, nn + 1):
                 mfac = np.power(-1.0, nn - ii) * np.power(2.0, ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
-                sfac = np.zeros(rr.shape)
+                sfac = np.zeros(rr.shape, dtype=self._dtype)
                 for zz in np.arange(0, pp - ii + 1):
                     ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht, pp - ii - zz)
@@ -1003,14 +1217,14 @@ class Matern_HI_Kernel(_Kernel):
             afac = np.power(drdxm1, dx1) * np.power(drdxm2, dx2) * (mat_amp ** 2.0) * np.power(np.sqrt(2.0 * nu), nn) / np.power(mat_hyp, nn + 1)
             efac = np.exp(-mht)
             spre = math.factorial(pp) / math.factorial(2 * pp)
-            ofac = np.zeros(rr.shape)
+            ofac = np.zeros(rr.shape, dtype=self._dtype)
             for zz in np.arange(0, pp - nn):
                 ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - nn - zz - 1))
                 ofac = ofac + ffac * np.power(2.0 * mht, pp - nn - zz - 1)
             tfac = -np.power(2.0, nn + 1) * ofac
             for ii in np.arange(0, nn + 1):
                 mfac = np.power(-1.0, nn - ii) * np.power(2.0, ii) * math.factorial(nn) / (math.factorial(ii) * math.factorial(nn - ii))
-                sfac = np.zeros(rr.shape)
+                sfac = np.zeros(rr.shape, dtype=self._dtype)
                 for zz in np.arange(0, pp - ii + 1):
                     ffac = spre * math.factorial(pp + zz) / (math.factorial(zz) * math.factorial(pp - ii - zz))
                     sfac = sfac + ffac * np.power(2.0 * mht, pp - ii - zz)
@@ -1019,7 +1233,7 @@ class Matern_HI_Kernel(_Kernel):
         return covm
 
 
-    def __init__(self, amp=0.1, ls=0.1, nu=2.5):
+    def __init__(self, amp=0.1, ls=0.1, nu=2.5, dtype=None):
         r'''
         Initializes the :code:`Matern_HI_Kernel` instance.
 
@@ -1046,7 +1260,7 @@ class Matern_HI_Kernel(_Kernel):
             csts[0] = float(int(nu)) + 0.5
         else:
             raise ValueError('Matern half-integer nu constant must be greater or equal to 0.')
-        super().__init__('MH', self.__calc_covm, True, hyps, csts)
+        super().__init__('MH', self.__calc_covm, True, hyps, csts, dtype=dtype)
 
 
     def __copy__(self):
@@ -1062,7 +1276,7 @@ class Matern_HI_Kernel(_Kernel):
         mamp = float(hyps[0])
         mhp = float(hyps[1])
         nup = float(csts[0])
-        kcopy = Matern_HI_Kernel(mamp, mhp, nup)
+        kcopy = Matern_HI_Kernel(mamp, mhp, nup, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -1118,7 +1332,7 @@ class NN_Kernel(_Kernel):
         nnd2 = 1.0 + 2.0 * ((nn_off ** 2.0) + (nn_hyp ** 2.0) * np.power(xm2, 2.0))
         chi = nnd1 * nnd2
         xi = chi - (nnn ** 2.0)
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if der == 0:
             covm = (nn_amp ** 2.0) * nnfac * np.arcsin(nnn / np.power(chi, 0.5))
         elif der == 1:
@@ -1148,7 +1362,7 @@ class NN_Kernel(_Kernel):
         return covm
 
 
-    def __init__(self, nna=1.0, nno=1.0, nnv=1.0):
+    def __init__(self, nna=1.0, nno=1.0, nnv=1.0, dtype=None):
         r'''
         Initializes the :code:`NN_Kernel` instance.
 
@@ -1174,7 +1388,7 @@ class NN_Kernel(_Kernel):
             hyps[2] = float(nnv)
         else:
             raise ValueError('Neural network hyperparameter must be a real number.')
-        super().__init__('NN', self.__calc_covm, False, hyps)
+        super().__init__('NN', self.__calc_covm, False, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -1190,7 +1404,7 @@ class NN_Kernel(_Kernel):
         nnamp = float(hyps[0])
         nnop = float(hyps[1])
         nnhp = float(hyps[2])
-        kcopy = NN_Kernel(nnamp, nnop, nnhp)
+        kcopy = NN_Kernel(nnamp, nnop, nnhp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -1243,7 +1457,7 @@ class Gibbs_Kernel(_Kernel):
         mm = l_hyp1 * l_hyp2
         lder = int((int(np.abs(der)) + 1) / 2)
         hdermax = self._wfunc.hyperparameters.size
-        covm = np.zeros(rr.shape)
+        covm = np.zeros(rr.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
                 covm = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
@@ -1260,7 +1474,7 @@ class Gibbs_Kernel(_Kernel):
                 covm = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
         elif der == 1:
             if hder is None:
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm2 / (2.0 * l_hyp2)
@@ -1269,7 +1483,7 @@ class Gibbs_Kernel(_Kernel):
                 t4 = -drdxm2 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm2 / (2.0 * l_hyp2)
@@ -1279,7 +1493,7 @@ class Gibbs_Kernel(_Kernel):
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm2 / (2.0 * l_hyp2)
@@ -1301,7 +1515,7 @@ class Gibbs_Kernel(_Kernel):
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == -1:
             if hder is None:
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
                 kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm1 / (2.0 * l_hyp1)
@@ -1310,7 +1524,7 @@ class Gibbs_Kernel(_Kernel):
                 t4 = -drdxm1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder == 0:
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm1 / (2.0 * l_hyp1)
@@ -1320,7 +1534,7 @@ class Gibbs_Kernel(_Kernel):
                 covm = kfac * (t1 + t2 + t3 + t4)
             elif hder >= 1 and hder <= 3:
                 ghder = hder - 1
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
                 kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm1 / (2.0 * l_hyp1)
@@ -1342,9 +1556,9 @@ class Gibbs_Kernel(_Kernel):
                 covm = dkfac * (t1 + t2 + t3 + t4) + kfac * (dt1 + dt2 + dt3 + dt4)
         elif der == 2 or der == -2:
             if hder is None:
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 dd = dldxm1 * dldxm2
                 ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
@@ -1360,9 +1574,9 @@ class Gibbs_Kernel(_Kernel):
                 rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
                 covm = kfac * (dt + jt + rt)
             elif hder == 0:
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 dd = dldxm1 * dldxm2
                 ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
@@ -1379,9 +1593,9 @@ class Gibbs_Kernel(_Kernel):
                 covm = kfac * (dt + jt + rt)
             elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
-                drdxm1 = np.ones(rr.shape)
+                drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
-                drdxm2 = -np.ones(rr.shape)
+                drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
                 dd = dldxm1 * dldxm2
                 ii = drdxm1 * rr * dldxm2 / l_hyp2 + drdxm2 * rr * dldxm1 / l_hyp1
@@ -1469,7 +1683,7 @@ class Gibbs_Kernel(_Kernel):
         return lsf
 
 
-    def __init__(self, var=1.0, wfunc=None):
+    def __init__(self, var=1.0, wfunc=None, dtype=None):
         r'''
         Initialize the :code:`Gibbs_Kernel` instance.
 
@@ -1484,14 +1698,14 @@ class Gibbs_Kernel(_Kernel):
         if isinstance(wfunc, _WarpingFunction):
             self._wfunc = copy.copy(wfunc)
         elif wfunc is None:
-            self._wfunc = Constant_WarpingFunction(1.0e0)
+            self._wfunc = Constant_WarpingFunction(1.0e0, dtype=dtype)
 
         hyps = np.zeros((1, ))
         if isinstance(var, number_types):
             hyps[0] = float(var)
         else:
             raise ValueError('Amplitude hyperparameter must be a real number.')
-        super().__init__('G', self.__calc_covm, True, hyps)
+        super().__init__('G', self.__calc_covm, True, hyps, dtype=dtype)
 
 
     @property
@@ -1544,7 +1758,7 @@ class Gibbs_Kernel(_Kernel):
 
         userhyps = None
         if isinstance(theta, array_types):
-            userhyps = np.array(theta).flatten()
+            userhyps = np.array(theta, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} Kernel hyperparameters must be given as an array-like object.')
         if super().hyperparameters.size > 0:
@@ -1569,11 +1783,11 @@ class Gibbs_Kernel(_Kernel):
 
         usercsts = None
         if isinstance(consts, array_types):
-            usercsts = np.array(consts).flatten()
+            usercsts = np.array(consts, dtype=self._dtype).flatten()
         else:
             raise TypeError(f'{self.name} Kernel constants must be given as an array-like object.')
         if super().constants.size > 0:
-            super(Gibbs_Kernel, self.__class__).constants.__set__(self,usercsts)
+            super(Gibbs_Kernel, self.__class__).constants.__set__(self, usercsts)
         if isinstance(self._wfunc, _WarpingFunction):
             ncsts = super().constants.size
             if ncsts < usercsts.size:
@@ -1594,7 +1808,7 @@ class Gibbs_Kernel(_Kernel):
 
         userbnds = None
         if isinstance(bounds, array_types):
-            userbnds = np.atleast_2d(bounds)
+            userbnds = np.atleast_2d(np.array(bounds, dtype=self._dtype))
         else:
             raise TypeError(f'{self.name} Kernel bounds must be given as a 2D-array-like object with exactly 2 rows.')
         if userbnds.shape[0] != 2:
@@ -1604,7 +1818,7 @@ class Gibbs_Kernel(_Kernel):
             wbnds = super().bounds
             nbnds = wbnds.shape[1] if wbnds is not None else 0
             if nbnds < userbnds.shape[1]:
-                self._wfunc.bounds = userbnds[:,nbnds:]
+                self._wfunc.bounds = userbnds[:, nbnds:]
         else:
             warnings.warn(f'{type(self).__name__} warping function is not a valid WarpingFunction object.')
 
@@ -1621,7 +1835,7 @@ class Gibbs_Kernel(_Kernel):
         bnds = self.bounds
         chp = float(hyps[0])
         wfunc = copy.copy(self._wfunc)
-        kcopy = Gibbs_Kernel(chp, wfunc)
+        kcopy = Gibbs_Kernel(chp, wfunc, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -1652,16 +1866,16 @@ class Constant_WarpingFunction(_WarpingFunction):
         hyps = self.hyperparameters
         csts = self.constants
         c_hyp = hyps[0]
-        warp = np.zeros(zz.shape)
+        warp = np.zeros(zz.shape, dtype=self._dtype)
         if der == 0:
             if hder is None:
-                warp = c_hyp * np.ones(zz.shape)
+                warp = c_hyp * np.ones(zz.shape, dtype=self._dtype)
             elif hder == 0:
-                warp = np.ones(zz.shape)
+                warp = np.ones(zz.shape, dtype=self._dtype)
         return warp
 
 
-    def __init__(self, cv=1.0):
+    def __init__(self, cv=1.0, dtype=None):
         r'''
         Initializes the :code:`Constant_WarpingFunction` instance.
 
@@ -1675,7 +1889,7 @@ class Constant_WarpingFunction(_WarpingFunction):
             hyps[0] = float(cv)
         else:
             raise ValueError('Constant value must be a real number.')
-        super().__init__('C', self.__calc_warp, True, hyps)
+        super().__init__('C', self.__calc_warp, True, hyps, dtype=dtype)
 
 
     def __copy__(self):
@@ -1689,7 +1903,86 @@ class Constant_WarpingFunction(_WarpingFunction):
         csts = self.constants
         bnds = self.bounds
         chp = float(hyps[0])
-        kcopy = Constant_WarpingFunction(chp)
+        kcopy = Constant_WarpingFunction(chp, dtype=self._dtype)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
+        return kcopy
+        
+        
+class Linear_WarpingFunction(_WarpingFunction):
+    r'''
+    Linear Warping Function for Gibbs Kernel: effectively reduces Gibbs kernel to squared exponential kernel.
+
+    :kwarg cv: float. Hyperparameter representing constant value which the warping function always evalutates to.
+    '''
+
+    def __calc_warp(self, zz, der=0, hder=None):
+        r'''
+        Implementation-specific warping function.
+
+        :arg zz: array. Vector of z-values at which to evaulate the warping function, can be 1D or 2D depending on application.
+
+        :kwarg der: int. Order of z derivative with which to evaluate the warping function, requires explicit implementation. (optional)
+
+        :kwarg hder: int. Order of hyperparameter derivative with which to evaluate the warping function, requires explicit implementation. (optional)
+
+        :returns: array. Warping function evaluations at input values using the given derivative settings. Has the same dimensions as :code:`zz`.
+        '''
+
+	
+        hyps = self.hyperparameters
+        csts = self.constants
+        c_hyp = hyps[0]
+        b_hyp = hyps[1]
+        warp = np.zeros(zz.shape)
+        if der == 0:
+            if hder is None:
+                warp = c_hyp * zz + b_hyp
+            elif hder == 0:
+                warp = zz.copy()
+        elif der == 1:
+            if hder is None:
+                warp = c_hyp * np.ones(zz.shape)
+            elif hder == 0:
+                warp = np.ones(zz.shape)
+        return warp
+
+
+    def __init__(self, cv=1.0, bv = 2.0):
+        r'''
+        Initializes the :code:`Constant_WarpingFunction` instance.
+
+        :kwarg cv: float. Hyperparameter representing constant value which warping function always evaluates to.
+
+        :returns: none.
+        '''
+
+        hyps = np.zeros((2, ))
+        if isinstance(cv, number_types):
+            hyps[0] = float(cv)
+        else:
+            raise ValueError('Constant value must be a real number.')
+        if isinstance(bv, number_types):
+            hyps[1] = float(bv)
+        else:
+            raise ValueError('Constant value must be a real number.')
+        super().__init__('L2', self.__calc_warp, True, hyps)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        chp = float(hyps[0])
+        bhp = float(hyps[1])
+        kcopy = Linear_WarpingFunction(chp, bhp)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
@@ -1734,20 +2027,20 @@ class IG_WarpingFunction(_WarpingFunction):
         maxfrac = csts[1]
         nn = int(np.abs(der))
         hh = amp if amp < (maxfrac * base) else maxfrac * base
-        warp = np.ones(zz.shape) * base
+        warp = np.ones(zz.shape, dtype=self._dtype) * base
         if hder is None:
             afac = -hh * np.exp(-np.power(zz - mu, 2.0) / (2.0 * (sig ** 2.0))) / np.power(sig, nn)
-            sfac = np.zeros(zz.shape)
+            sfac = np.zeros(zz.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
                 sfac = sfac + cfac * np.power((zz - mu) / sig, nn - jj)
             warp = base + afac * sfac if der == 0 else afac * sfac
         elif hder == 0:
-            warp = np.ones(zz.shape) if der == 0 else np.zeros(zz.shape)
+            warp = np.ones(zz.shape, dtype=self._dtype) if der == 0 else np.zeros(zz.shape, dtype=self._dtype)
         elif hder == 1:
             afac = -np.exp(-np.power(zz - mu, 2.0) / (2.0 * (sig ** 2.0))) / np.power(sig, nn)
-            sfac = np.zeros(zz.shape)
+            sfac = np.zeros(zz.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 1, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 cfac = np.power(-1.0, nn - ii) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj))
@@ -1755,7 +2048,7 @@ class IG_WarpingFunction(_WarpingFunction):
             warp = afac * sfac
         elif hder == 2:
             afac = -hh * np.exp(-np.power(zz - mu, 2.0) / (2.0 * (sig ** 2.0))) / np.power(sig, nn + 1)
-            sfac = np.zeros(zz.shape)
+            sfac = np.zeros(zz.shape, dtype=self._dtype)
             for jj in np.arange(0, nn + 3, 2):
                 ii = int(jj / 2)                # Note that jj = 2 * ii  ALWAYS!
                 dfac = np.power(-1.0, nn - ii + 2) * math.factorial(nn) / (np.power(2.0, ii) * math.factorial(ii) * math.factorial(nn - jj + 2))
@@ -1765,7 +2058,7 @@ class IG_WarpingFunction(_WarpingFunction):
         return warp
 
 
-    def __init__(self, lb=1.0, gh=0.5, gs=1.0, gm=0.0, mf=0.6):
+    def __init__(self, lb=1.0, gh=0.5, gs=1.0, gm=0.0, mf=0.6, dtype=None):
         r'''
         Initializes the :code:`IG_WarpingFunction` instance.
 
@@ -1806,7 +2099,7 @@ class IG_WarpingFunction(_WarpingFunction):
             raise ValueError('Length scale function minimum-to-base ratio limit must be less than 1.')
         if hyps[1] > (csts[1] * hyps[0]):
             hyps[1] = float(csts[1] * hyps[0])
-        super().__init__('IG', self.__calc_warp, True, hyps, csts)
+        super().__init__('IG', self.__calc_warp, True, hyps, csts, dtype=dtype)
 
 
     @property
@@ -1897,7 +2190,7 @@ class IG_WarpingFunction(_WarpingFunction):
         gshp = float(hyps[2])
         gmc = float(csts[0])
         lrc = float(csts[1])
-        kcopy = IG_WarpingFunction(lbhp, ghhp, gshp, gmc, lrc)
+        kcopy = IG_WarpingFunction(lbhp, ghhp, gshp, gmc, lrc, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds

@@ -121,11 +121,13 @@ class TestGPREvaluation(object):
     def test_eval_without_optimization(self,unoptimized_gpr_object,linear_test_data):
         ref_targets = itemgetter(2)(linear_test_data)
         #print(unoptimized_gpr_object.get_gp_results())
+        #print(ref_targets)
         assert check_gp_results(unoptimized_gpr_object.get_gp_results(),ref_targets[0,:],ref_targets[1,:],ref_targets[2,:],ref_targets[3,:])
 
     def test_cost_function_without_optimization(self,unoptimized_gpr_object,linear_test_data):
         (ref_lml,ref_null_lml) = itemgetter(3,4)(linear_test_data)
-        #print(unoptimized_gpr_object.get_gp_lml(),unoptimized_gpr_object.get_gp_null_lml())
+        #print(unoptimized_gpr_object.get_gp_lml(), unoptimized_gpr_object.get_gp_null_lml())
+        #print(ref_lml, ref_null_lml)
         assert np.isclose(unoptimized_gpr_object.get_gp_lml(),ref_lml) and np.isclose(unoptimized_gpr_object.get_gp_null_lml(),ref_null_lml)
 
     def test_non_existant_error_function_without_optimization(self,unoptimized_gpr_object):
@@ -182,6 +184,8 @@ class TestGPRSimplifiedVersion(object):
         simplified_unoptimized_gpr_object._perform_heterogp = False
         simplified_unoptimized_gpr_object._perform_nigp = False
         (xpredict,ref_targets) = itemgetter(1,2)(linear_test_data)
+        #print(simplified_unoptimized_gpr_object(xpredict))
+        #print(ref_targets)
         assert check_gp_results(simplified_unoptimized_gpr_object(xpredict),ref_targets[0,:],ref_targets[1,:],ref_targets[2,:],ref_targets[3,:])
 
     def test_sampling(self,simplified_unoptimized_gpr_object):
