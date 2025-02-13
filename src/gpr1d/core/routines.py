@@ -1112,7 +1112,7 @@ class GaussianProcessRegression1D():
         if KKd.ndim > 2:
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
-        KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
+        KK = np.concatenate((np.concatenate((KKb, KKh2), axis=1), np.concatenate((KKh1, KKd), axis=1)), axis=0)
         if np.any(np.invert(mask)):
             KK = KK[mask, :]
             KK = KK[:, mask]
@@ -1124,8 +1124,15 @@ class GaussianProcessRegression1D():
         if ksh.size == 0:
             ksh = ksh.reshape(0, *ksb.shape[1:])
         elif ksh.ndim > ksb.ndim:
+            htr = [ii for ii in range(ksh.ndim)]
+            htr[0] = -1
+            htr[-1] = 0
             hshape = [ndim for ii in range(ksh.ndim - 3)]
-            ksh = ksh.T.reshape(ndim * xxd.shape[0], *hshape, -1)
+            ksh = np.transpose(ksh, axes=htr).reshape(xn.shape[0], *hshape, -1)
+            htr = [ii for ii in range(ksh.ndim)]
+            htr[0] = -1
+            htr[-1] = 0
+            ksh = np.transpose(ksh, axes=htr)
         ks = np.concatenate((ksb, ksh), axis=0) # np.vstack((ksb, ksh))
         kt = kk(xn, xn, der=2*dd) # kk(xt1, xt2, der=2*dd)
         if np.any(np.invert(mask)):
@@ -1361,9 +1368,9 @@ class GaussianProcessRegression1D():
         if KKd.ndim > 2:
             KKd = np.transpose(KKd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
         #KK = np.vstack((np.hstack((KKb, KKh2)), np.hstack((KKh1, KKd))))
-        KK = np.concatenate((np.concatenate((KKb, KKh1.T), axis=1), np.concatenate((KKh2.T, KKd), axis=1)), axis=0)
+        KK = np.concatenate((np.concatenate((KKb, KKh2), axis=1), np.concatenate((KKh1, KKd), axis=1)), axis=0)
         if np.any(np.invert(mask)):
-            KK = KK[mask]
+            KK = KK[mask, :]
             KK = KK[:, mask]
         kernel = KK + np.diag(yef.squeeze() ** 2.0)
 
@@ -1391,9 +1398,9 @@ class GaussianProcessRegression1D():
             if HHd.ndim > 2:
                 HHd = np.transpose(HHd, axes=(1, 0, 2, 3)).reshape(ndim * xxd.shape[0], -1)
             #HH = np.vstack((np.hstack((HHb, HHh2)), np.hstack((HHh1, HHd))))
-            HH = np.concatenate((np.concatenate((HHb, HHh1.T), axis=1), np.concatenate((HHh2.T, HHd), axis=1)), axis=0)
+            HH = np.concatenate((np.concatenate((HHb, HHh2), axis=1), np.concatenate((HHh1, HHd), axis=1)), axis=0)
             if np.any(np.invert(mask)):
-                HH = HH[mask]
+                HH = HH[mask, :]
                 HH = HH[:, mask]
             PP = np.tensordot(alpha.T, HH, axes=(-1, 0))
             if cholesky_flag:
@@ -2342,7 +2349,7 @@ class GaussianProcessRegression1D():
             yy = yy / sc
             ye = ye / sc
             dnn = None
-            if dxx is not None and dyy is not None and dxx.size == dyy.size:
+            if dxx is not None and dyy is not None and dxx.shape[0] == dyy.shape[0]:
                 if dye is None:
                     dys = dyy.shape[1:] if dyy.ndim > 1 else []
                     dye = np.zeros((1, *dys), dtype=self._dtype)
@@ -2456,7 +2463,7 @@ class GaussianProcessRegression1D():
         errF = None
         lml = None
         nkk = None
-        if xx is not None and yy is not None and xx.size == yy.size and xn is not None and isinstance(kk, _Kernel):
+        if xx is not None and yy is not None and xx.shape[0] == yy.shape[0] and xn is not None and isinstance(kk, _Kernel):
             # Remove all data and associated data that conatain NaNs
             if ye is None:
                 ys = yy.shape[1:] if yy.ndim > 1 else []
@@ -2494,7 +2501,7 @@ class GaussianProcessRegression1D():
         :returns: none.
         '''
 
-        if isinstance(self._ekk, _Kernel) and self._ye is not None and self._yy.size == self._ye.size:
+        if isinstance(self._ekk, _Kernel) and self._ye is not None and self._yy.shape[0] == self._ye.shape[0]:
             #ndim = self._xx.shape[1] if self._xx.ndim > 1 else 1
             enr = self._enr if self._enr is not None else 0
             elml = None
