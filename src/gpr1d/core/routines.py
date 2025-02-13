@@ -2509,7 +2509,9 @@ class GaussianProcessRegression1D():
             xs = self._xx.shape[1:] if self._xx.ndim > 1 else []
             xntest = np.zeros((1, *xs), dtype=self._dtype)
             ye = copy.deepcopy(self._ye) if self._gpye is None else copy.deepcopy(self._gpye)
-            aye = np.full(ye.shape, np.nanmax([0.2 * np.mean(np.abs(ye)), 1.0e-3 * np.nanmax(np.abs(self._yy))]), dtype=self._dtype)
+            #aye = np.full(ye.shape, np.nanmax([0.2 * np.mean(np.abs(ye)), 1.0e-3 * np.nanmax(np.abs(self._yy))]), dtype=self._dtype)
+            esh = (ye.shape[0], 1) if ye.ndim > 1 else ye.shape[0]
+            aye = np.tile(np.nanmax([0.2 * np.mean(np.abs(ye), axis=0), 1.0e-3 * np.nanmax(np.abs(self._yy), axis=0)], axis=0), esh)
 #            dye = copy.deepcopy(self._dye)
 #            adye = np.full(dye.shape, np.nanmax([0.2 * np.mean(np.abs(dye)), 1.0e-3 * np.nanmax(np.abs(self._dyy))]), dtype=self._dtype) if dye is not None else None
 #            if adye is not None:
@@ -2628,7 +2630,7 @@ class GaussianProcessRegression1D():
 #                ))
                 self._ekk = copy.copy(ekk)
             if isinstance(self._ekk, _Kernel):
-                epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.shape[0] > 1 else 1.0e-8
+                epsx = 1.0e-8 * (np.nanmax(self._xx, axis=0) - np.nanmin(self._xx, axis=0)) if self._xx.shape[0] > 1 else 1.0e-8 * np.ones(self._xx.shape, dtype=self._dtype)
                 xntest = self._xx.copy() + epsx
                 tgpye = itemgetter(0)(self.__basic_fit(
                     xntest,
@@ -2745,7 +2747,7 @@ class GaussianProcessRegression1D():
                 nkk = copy.copy(self._nikk)
             if isinstance(nkk, _Kernel):
                 self._nikk = copy.copy(nkk)
-                epsx = 1.0e-8 * (np.nanmax(self._xx) - np.nanmin(self._xx)) if self._xx.size > 1 else 1.0e-8
+                epsx = 1.0e-8 * (np.nanmax(self._xx, axis=0) - np.nanmin(self._xx, axis=0)) if self._xx.shape[0] > 1 else 1.0e-8 * np.ones(self._xx.shape, dtype=self._dtype)
                 xntest = self._xx.copy() + epsx
                 dbarF = itemgetter(0)(self.__basic_fit(
                     xntest,
@@ -2762,8 +2764,10 @@ class GaussianProcessRegression1D():
                 #nfilt = np.any([np.isnan(cxe), np.isnan(cye)], axis=0)
                 cxe[nfilt] = 0.0
                 cye[nfilt] = 0.0
+                csh = (cye.shape[0], 1) if cye.ndim > 1 else cye.shape[0]
                 self._gpye = np.sqrt((cye ** 2.0) + ((cxe * dbarF) ** 2.0))
-                self._egpye = np.full(cye.shape, np.nanmax([0.2 * np.mean(np.abs(self._gpye)), 1.0e-3 * np.nanmax(np.abs(self._yy))]), dtype=self._dtype) if not hsgp_flag else self._egpye
+                if not hsgp_flag:
+                    self._egpye = np.tile(np.nanmax([0.2 * np.mean(np.abs(self._gpye), axis=0), 1.0e-3 * np.nanmax(np.abs(self._yy), axis=0)]), csh)
         else:
             raise ValueError('Check input x-errors to make sure they are valid.')
 
@@ -2830,20 +2834,23 @@ class GaussianProcessRegression1D():
 
         # These loops adjust overlapping values between raw data vector and requested prediction vector, to avoid NaN values in final prediction
         if self._xx is not None:
-            epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._xx) - np.nanmin(self._xx))
+            epsx = 1.0e-6 * (np.nanmax(xn, axis=0) - np.nanmin(xn, axis=0)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._xx, axis=0) - np.nanmin(self._xx, axis=0))
             for xi in range(xn.shape[0]):
                 for rxi in range(self._xx.shape[0]):
                     if np.all(xn[xi] == self._xx[rxi]):
                         xn[xi] = xn[xi] + epsx
         if self._dxx is not None:
-            epsx = 1.0e-6 * (np.nanmax(xn) - np.nanmin(xn)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._dxx) - np.nanmin(self._dxx))
+            epsx = 1.0e-6 * (np.nanmax(xn, axis=0) - np.nanmin(xn, axis=0)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._dxx, axis=0) - np.nanmin(self._dxx, axis=0))
             for xi in range(0, xn.shape[0]):
                 for rxi in range(self._dxx.shape[0]):
                     if np.all(xn[xi] == self._dxx[rxi]):
                         xn[xi] = xn[xi] + epsx
 
         if self._egpye is not None:
-            edye = np.full(self._dye.shape, np.nanmax([0.2 * np.mean(np.abs(self._dye)), 1.0e-3 * np.nanmax(np.abs(self._dyy))]), dtype=self._dtype) if self._dye is not None else None
+            edye = None
+            if self._dye is not None:
+                esh = (self._dye.shape[0], 1) if self._dye.ndim > 1 else self._dye.shape[0]
+                edye = np.tile(np.nanmax([0.2 * np.mean(np.abs(self._dye), axis=0), 1.0e-3 * np.nanmax(np.abs(self._dyy), axis=0)], axis=0), esh)
             if edye is not None:
                 edye[edye < 1.0e-2] = 1.0e-2
             (self._barE, self._varE) = itemgetter(0, 1)(self.__basic_fit(
@@ -2933,9 +2940,10 @@ class GaussianProcessRegression1D():
 #                    ddbarE[nx] = float(np.mean(ddbarEt[ivec-nsum:ivec+nsum+1]))
 #            self._ddbarE = ddbarE.copy()
         else:
-            temp = np.full(xn.shape, np.sqrt(np.nanmean(np.power(self._ye, 2.0))), dtype=self._dtype) if self._ye is not None else None
+            tsh = (xn.shape[0], 1) if self._ye.ndim > 1 else xn.shape[0]
+            temp = np.tile(np.sqrt(np.nanmean(np.power(self._ye, 2.0), axis=0)), tsh) if self._ye is not None else None
             if self._gpye is not None:
-                temp = np.full(xn.shape, np.sqrt(np.nanmean(np.power(self._gpye, 2.0))), dtype=self._dtype)
+                temp = np.tile(np.sqrt(np.nanmean(np.power(self._gpye, 2.0), axis=0)), tsh)
             self._barE = copy.deepcopy(temp) if temp is not None else None
             self._varE = np.zeros(xn.shape) if self._barE is not None else None
             self._dbarE = np.zeros(xn.shape) if self._barE is not None else None
