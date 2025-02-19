@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# GRP1D documentation build configuration file, created by
+# mkgp documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun 15 09:04:59 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -119,7 +119,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'gpr1d_doc'
+htmlhelp_basename = 'mkgp_doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -147,7 +147,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'mkgp.tex', u'mkgp Documentation',
-     u'A. Ho', 'manual'),
+     author, 'manual'),
 ]
 
 
