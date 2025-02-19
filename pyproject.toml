@@ -49,7 +49,7 @@ profile = ["scikit-learn"]
 "Source" = "https://gitlab.com/aaronkho/mkgp"
 
 [project.scripts]
-mkgp_demo = "mkgp.scripts.demo:main"
+mkgp_1d_demo = "mkgp.scripts.demo_1d:main"
 mkgp_profiler = "mkgp.scripts.profiler:main"
 mkgp_gui = "mkgp.gui.gui:main"
 

@@ -4,8 +4,8 @@ scripts
 demo
 ----
 
-.. automodule:: mkgp.scripts.demo
-   :members: run_demo
+.. automodule:: mkgp.scripts.demo_1d
+   :members: run_demo_1d
    :undoc-members:
    :show-inheritance:
 
