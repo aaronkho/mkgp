@@ -56,8 +56,8 @@ else:
     from matplotlib.backends import backend_qt4agg as mplqt
 
 from matplotlib.figure import Figure
-from gpr1d.core.routines import GaussianProcessRegression1D
-from gpr1d.core.utils import KernelReconstructor
+from mkgp.core.routines import GaussianProcess
+from mkgp.core.utils import KernelReconstructor
 
 
 ##### Base classes to be inherited by custom implementations - do not modify! #####
@@ -1156,15 +1156,15 @@ class QCustomTableWidgetItem(QtWidgets.QTableWidgetItem):
             return QtWidgets.QTableWidgetItem.__lt__(self, other)
 
 
-class GPR1D_GUI(QtWidgets.QWidget):
+class mkgp_1d_gui(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fNewData = False
-        self.gpr = GaussianProcessRegression1D()
+        self.gpr = GaussianProcess()
         location = Path(inspect.getsourcefile(type(self.gpr)))
         self.srcdir = location.parent
-        print(f'Using GPR1D definition from: {self.srcdir}')
+        print(f'Using mkgp definition from: {self.srcdir}')
         self.initUI()
 
     def initUI(self):
@@ -1238,7 +1238,7 @@ class GPR1D_GUI(QtWidgets.QWidget):
         self.setLayout(hbox)
 
         self.setGeometry(20,  20, 1500, 700)
-        self.setWindowTitle('GPR1D GUI')
+        self.setWindowTitle('Multivariate Kernel GP GUI (1D)')
         self.show()
 
     def DataEntryUI(self):
@@ -2084,8 +2084,8 @@ def main():
     '''
 
     app = QtWidgets.QApplication(sys.argv)
-    app.setApplicationName('GPR1D')
-    ex = GPR1D_GUI()
+    app.setApplicationName('mkgp_1d')
+    ex = mkgp_1d_gui()
 
     sys.exit(app.exec_())
 

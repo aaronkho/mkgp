@@ -4,7 +4,7 @@ core
 baseclasses
 -----------
 
-.. automodule:: gpr1d.core.baseclasses
+.. automodule:: mkgp.core.baseclasses
    :members:
    :private-members:
    :undoc-members:
@@ -13,7 +13,7 @@ baseclasses
 definitions
 -----------
 
-.. automodule:: gpr1d.core.definitions
+.. automodule:: mkgp.core.definitions
    :members:
    :undoc-members:
    :show-inheritance:
@@ -21,7 +21,7 @@ definitions
 kernels
 -------
 
-.. automodule:: gpr1d.core.kernels
+.. automodule:: mkgp.core.kernels
    :members:
    :undoc-members:
    :show-inheritance:
@@ -29,7 +29,7 @@ kernels
 routines
 --------
 
-.. automodule:: gpr1d.core.routines
+.. automodule:: mkgp.core.routines
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ routines
 simple
 ------
 
-.. automodule:: gpr1d.core.simple
+.. automodule:: mkgp.core.simple
    :members:
    :undoc-members:
    :show-inheritance:
@@ -45,7 +45,7 @@ simple
 utils
 -----
 
-.. automodule:: gpr1d.core.utils
+.. automodule:: mkgp.core.utils
    :members:
    :undoc-members:
    :show-inheritance:

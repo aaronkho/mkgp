@@ -2,8 +2,8 @@
 
 import pytest
 import numpy as np
-from gpr1d.core.baseclasses import _Kernel
-from gpr1d.core.utils import KernelConstructor, KernelReconstructor
+from mkgp.core.baseclasses import _Kernel
+from mkgp.core.utils import KernelConstructor, KernelReconstructor
 
 
 def check_kernel_evaluation(kernel, x1, x2, der, comparison):

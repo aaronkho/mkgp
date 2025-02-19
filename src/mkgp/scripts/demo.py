@@ -9,8 +9,8 @@ from pathlib import Path
 import numpy as np
 
 # Required import, only works after using 'pip install'
-from gpr1d.core.kernels import RQ_Kernel
-from gpr1d.core.routines import GaussianProcessRegression1D
+from mkgp.core.kernels import RQ_Kernel
+from mkgp.core.routines import GaussianProcess
 
 
 def run_demo():
@@ -81,11 +81,11 @@ def run_demo():
 
     # GPR fit using y-errors only as weights
     #     Create class object to store raw data, kernels, and settings
-    gpr_object = GaussianProcessRegression1D()
+    gpr_object = GaussianProcess()
 
     # Print source location for reference, in case of multiple installations
     location = Path(inspect.getsourcefile(type(gpr_object)))
-    print(f'Using GPR1D definition from: {location.parent.resolve()}')
+    print(f'Using mkgp definition from: {location.parent.resolve()}')
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     gpr_object.set_kernel(
@@ -129,7 +129,7 @@ def run_demo():
 
     # GPR fit rigourously accounting only for y-errors (this is the recommended option)
     #     Procedure is nearly identical to above, except for the addition of an error kernel
-    hsgpr_object = GaussianProcessRegression1D()
+    hsgpr_object = GaussianProcess()
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     hsgpr_object.set_kernel(
@@ -182,7 +182,7 @@ def run_demo():
 
     # GPR fit rigourously accounting for y-errors AND x-errors
     #     Procedure is nearly identical to above, except for the addition of an extra option
-    nigpr_object = GaussianProcessRegression1D()
+    nigpr_object = GaussianProcess()
     nigpr_object.set_kernel(
         kernel=kernel,
         kbounds=kernel_hyppar_bounds,

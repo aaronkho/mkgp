@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from operator import itemgetter
 
-from gpr1d.core.kernels import (
+from mkgp.core.kernels import (
     _Kernel,
     _OperatorKernel,
     _WarpingFunction,
@@ -18,14 +18,17 @@ from gpr1d.core.kernels import (
     Gibbs_Kernel,
     Sum_Kernel,
     Product_Kernel,
+    ND_Sum_Kernel,
+    ND_Product_Kernel,
     Constant_WarpingFunction,
+    Linear_WarpingFunction,
     IG_WarpingFunction,
 )
-from gpr1d.core.routines import (
-    GaussianProcessRegression1D,
+from mkgp.core.routines import (
+    GaussianProcess,
 )
-from gpr1d.core.simple import (
-    SimplifiedGaussianProcessRegression1D
+from mkgp.core.simple import (
+    SimplifiedGaussianProcess
 )
 
 
@@ -242,12 +245,12 @@ def linear_test_data():
 
 @pytest.fixture(scope='module')
 def empty_gpr_object():
-    return GaussianProcessRegression1D()
+    return GaussianProcess()
 
 @pytest.fixture(scope='class')
 def unoptimized_gpr_object(linear_kernel, linear_test_data):
     gpr_input = itemgetter(0)(linear_test_data)
-    gpr_object = GaussianProcessRegression1D()
+    gpr_object = GaussianProcess()
     gpr_object.set_kernel(kernel=linear_kernel)
     gpr_object.set_raw_data(
         xdata=gpr_input[0, :],
@@ -260,7 +263,7 @@ def unoptimized_gpr_object(linear_kernel, linear_test_data):
 @pytest.fixture(scope='class')
 def simplified_unoptimized_gpr_object(linear_kernel, linear_test_data):
     gpr_input = itemgetter(0)(linear_test_data)
-    gpr_object = SimplifiedGaussianProcessRegression1D(
+    gpr_object = SimplifiedGaussianProcess(
         kernel=linear_kernel,
         xdata=gpr_input[0, :],
         ydata=gpr_input[1, :],
@@ -292,7 +295,7 @@ def gaussian_test_data():
 @pytest.fixture(scope='function')
 def preoptimization_gpr_object(rq_kernel, gaussian_test_data):
     xvalues, xerrors, yvalues, yerrors = gaussian_test_data
-    gpr_object = GaussianProcessRegression1D()
+    gpr_object = GaussianProcess()
     gpr_object.set_kernel(kernel=rq_kernel)
     gpr_object.set_raw_data(
         xdata=xvalues,

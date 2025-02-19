@@ -26,7 +26,7 @@ before_script:
 
 pytest:
   script:
-    - pytest
+    - python3 -m pytest
   stage: test
   cache:
     <<: *cache
@@ -38,11 +38,11 @@ pages:
   before_script:
   - ''
   script:
-  # Install GPR1D package + dependencies using pip
+  # Install mkgp package + dependencies using pip
   - python3 -m pip install .[docs]
 
   # Build the docs and move to public website
-  - sphinx-build -b html docs/source/ public/
+  - sphinx-build -b html docs/src/ public/
   artifacts:
     paths:
     - public

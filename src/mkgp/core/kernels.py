@@ -16,9 +16,10 @@ from .definitions import number_types, array_types
 
 __all__ = [
     'Sum_Kernel', 'Product_Kernel', 'Symmetric_Kernel',  # Kernel operator classes
+    'ND_Sum_Kernel', 'ND_Product_Kernel',  # Multivariate kernel classes
     'Constant_Kernel', 'Noise_Kernel', 'Linear_Kernel', 'Poly_Order_Kernel', 'SE_Kernel', 'RQ_Kernel',
     'Matern_HI_Kernel', 'NN_Kernel', 'Gibbs_Kernel',  # Kernel classes
-    'Constant_WarpingFunction', 'IG_WarpingFunction',  # Warping function classes for Gibbs Kernel
+    'Constant_WarpingFunction', 'Linear_WarpingFunction', 'IG_WarpingFunction',  # Warping function classes for Gibbs Kernel
 ]
 
 
@@ -1967,7 +1968,7 @@ class Linear_WarpingFunction(_WarpingFunction):
             hyps[1] = float(bv)
         else:
             raise ValueError('Constant value must be a real number.')
-        super().__init__('L2', self.__calc_warp, True, hyps)
+        super().__init__('L', self.__calc_warp, True, hyps)
 
 
     def __copy__(self):
