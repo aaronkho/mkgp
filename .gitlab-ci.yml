@@ -39,7 +39,7 @@ pages:
   - ''
   script:
   # Install mkgp package + dependencies using pip
-  - python3 -m pip install .[docs]
+  - pip install -e .[docs]
 
   # Build the docs and move to public website
   - sphinx-build -b html docs/src/ public/
