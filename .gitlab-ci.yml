@@ -22,10 +22,10 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -e .[dev,demo,gui] # Test with all optional dependencies
 
 pytest:
   script:
+    - pip install -e .[dev,demo,gui] # Test with all optional dependencies
     - python3 -m pytest
   stage: test
   cache:
@@ -33,16 +33,13 @@ pytest:
 
 pages:
   image: python:3.12-alpine
+  script:
+    # Install mkgp package + dependencies using pip
+    - pip install -e .[dev,docs]
+    # Build the docs and move to public website
+    - sphinx-build -b html docs/src/ public/
   cache:
     <<: *cache
-  before_script:
-  - ''
-  script:
-  # Install mkgp package + dependencies using pip
-  - pip install -e .[docs]
-
-  # Build the docs and move to public website
-  - sphinx-build -b html docs/src/ public/
   artifacts:
     paths:
     - public
