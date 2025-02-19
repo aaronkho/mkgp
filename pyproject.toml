@@ -49,9 +49,9 @@ profile = ["scikit-learn"]
 "Source" = "https://gitlab.com/aaronkho/mkgp"
 
 [project.scripts]
-gpr1d_demo = "mkgp.scripts.demo:main"
-gpr1d_profiler = "mkgp.scripts.profiler:main"
-gpr1d_gui = "mkgp.gui.gui:main"
+mkgp_demo = "mkgp.scripts.demo:main"
+mkgp_profiler = "mkgp.scripts.profiler:main"
+mkgp_gui = "mkgp.gui.gui:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "mkgp.__version__"}
