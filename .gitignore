@@ -1,15 +1,57 @@
-# Compiled python modules
-*.py[cod]
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
 
-# Python egg metadata
-*.egg-info/
-*.egg
+# C extensions
+*.so
 
-# Build directories
-dist/
+# Distribution / packaging
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 conda-build/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Sphinx documentation
+docs/_build/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -26,10 +68,14 @@ poetry.lock
 
 # pdm
 pdm.lock
+.pdm.toml
 
 # pixi
 .pixi
 pixi.lock
+
+# PEP 582
+__pypackages__/
 
 # Environments
 .env
