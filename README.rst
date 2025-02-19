@@ -10,8 +10,8 @@ When using this package in any research work, please cite:
 A. Ho et al 2019 Nucl. Fusion 59 056007, `DOI: 10.1088/1741-4326/ab065a
 <https://doi.org/10.1088/1741-4326/ab065a>`_
 
-Note that the package has been renamed from :code:`GPR1D` to
-:code:`mkgp` in v3.0.0.
+Note that the package has been renamed from :code:`GPR1D -> mkgp`
+in v3.0.0.
 
 
 Installing the mkgp program
