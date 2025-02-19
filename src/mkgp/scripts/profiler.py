@@ -12,8 +12,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, RationalQuadratic, Product
 
 # Assumes this is already installed via 'pip install'
-from gpr1d.core.kernels import RQ_Kernel
-from gpr1d.core.routines import GaussianProcessRegression1D
+from mkgp.core.kernels import RQ_Kernel
+from mkgp.core.routines import GaussianProcess
 
 def generate_sample_raw_data(n_points, x_spread, y_spread, intercept, slopeA, slopeB, boundaryA, boundaryB):
 
@@ -52,11 +52,11 @@ def perform_gpr1d_with_profiler(n_fit_points, raw_x_values, raw_y_values, raw_y_
 
     # Print source location for reference, in case of multiple installations
     location = inspect.getsourcefile(type(kernel))
-    print("Using GPR1D definition from: %s" % (os.path.dirname(location) + '/'))
+    print("Using mkgp definition from: %s" % (os.path.dirname(location) + '/'))
 
     # GPR fit using y-errors only as weights
     #     Create class object to store raw data, kernels, and settings
-    gpr_object = GaussianProcessRegression1D()
+    gpr_object = GaussianProcess()
 
     #     Define the kernel and regularization parameter to be used in the data fitting routine
     gpr_object.set_kernel(kernel=kernel, kbounds=kernel_hyppar_bounds, regpar=1.0)
@@ -86,7 +86,7 @@ def perform_gpr1d_with_profiler(n_fit_points, raw_x_values, raw_y_values, raw_y_
     fit_r2 = gpr_object.get_gp_r2()
 
     # Print results
-    gp_str = "\n--- GPR1D fit details ---\n\n"
+    gp_str = "\n--- mkgp fit details ---\n\n"
     gp_str = gp_str + "Kernel name: %30s\n" % (gp_kernel_name)
     gp_str = gp_str + "Regularization parameter: %17.4f\n" % (gp_fit_regpar)
     gp_str = gp_str + "Optimized kernel hyperparameters:\n"

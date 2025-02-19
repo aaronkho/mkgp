@@ -53,8 +53,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'gpr1d'
-copyright = u'2018, A. Ho'
+project = u'mkgp'
+copyright = u'2025, A. Ho'
 author = u'A. Ho'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -146,7 +146,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'gpr1d.tex', u'gpr1d Documentation',
+    (master_doc, 'mkgp.tex', u'mkgp Documentation',
      u'A. Ho', 'manual'),
 ]
 
@@ -156,7 +156,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'gpr1d', u'gpr1d Documentation',
+    (master_doc, 'mkgp', u'mkgp Documentation',
      [author], 1)
 ]
 
@@ -167,8 +167,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'gpr1d', u'gpr1d Documentation',
-     author, 'gpr1d', 'One line description of project.',
+    (master_doc, 'mkgp', u'mkgp Documentation',
+     author, 'mkgp', 'Classes for Gaussian Process Regression fitting of ND data with errorbars.',
      'Miscellaneous'),
 ]
 

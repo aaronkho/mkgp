@@ -7,20 +7,20 @@ import numpy as np
 
 from .definitions import number_types, array_types
 from .kernels import RQ_Kernel
-from .routines import GaussianProcessRegression1D
+from .routines import GaussianProcess
 
 __all__ = [
-    'SimplifiedGaussianProcessRegression1D',  # Simplified fitting routine wrapper
+    'SimplifiedGaussianProcess',  # Simplified fitting routine wrapper
 ]
 
 
-class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
+class SimplifiedGaussianProcess(GaussianProcess):
     r'''
-    A simplified version of the main :code:`GaussianProcessRegression1D`
+    A simplified version of the main :code:`GaussianProcess`
     class with pre-defined settings, only requiring the bare necessities
     to use for fitting. Although this class allows an entry point akin
     to typical :mod:`scipy` classes, it is provided primarily to be
-    used as a template for implementations meant to simplify the GPR1D
+    used as a template for implementations meant to simplify the :code:`mkgp`
     experience for the average user.
 
     .. note::
@@ -66,7 +66,7 @@ class SimplifiedGaussianProcessRegression1D(GaussianProcessRegression1D):
         include_noise=True
     ):
         r'''
-        Defines customized :code:`GaussianProcessRegression1D` instance with
+        Defines customized :code:`GaussianProcess` instance with
         a pre-defined common settings for both data fit and error fit. Input
         parameters reduced only to essentials and most crucial knobs for
         fine-tuning.

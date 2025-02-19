@@ -3,12 +3,12 @@ requires = ["setuptools>=62.0", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gpr1d"
-description = "Classes for Gaussian Process Regression fitting of 1D data with errorbars"
+name = "mkgp"
+description = "Classes for Gaussian Process Regression fitting of ND data with errorbars"
 readme = "README.rst"
 requires-python = ">=3.7,<3.13"
 license = {file = "LICENSE"}
-keywords = ["gaussian process regression", "1D data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
+keywords = ["gaussian process regression", "data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
 authors = [
   {name = "Aaron Ho", email = "aaronkho@mit.edu" }
 ]
@@ -31,6 +31,7 @@ dependencies = [
   "numpy>=1.13",
   "scipy>=0.17",
   "pandas",
+  "tables",
   "ipython",
 ]
 
@@ -43,17 +44,17 @@ gui = ["pyqt5", "matplotlib"]
 profile = ["scikit-learn"]
 
 [project.urls]
-"Homepage" = "https://gitlab.com/aaronkho/GPR1D"
-"Bug Reports" = "https://gitlab.com/aaronkho/GPR1D/-/issues"
-"Source" = "https://gitlab.com/aaronkho/GPR1D"
+"Homepage" = "https://gitlab.com/aaronkho/mkgp"
+"Bug Reports" = "https://gitlab.com/aaronkho/mkgp/-/issues"
+"Source" = "https://gitlab.com/aaronkho/mkgp"
 
 [project.scripts]
-gpr1d_demo = "gpr1d.scripts.demo:main"
-gpr1d_profiler = "gpr1d.scripts.profiler:main"
-gpr1d_gui = "gpr1d.gui.gui:main"
+gpr1d_demo = "mkgp.scripts.demo:main"
+gpr1d_profiler = "mkgp.scripts.profiler:main"
+gpr1d_gui = "mkgp.gui.gui:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "gpr1d.__version__"}
+version = {attr = "mkgp.__version__"}
 
 [tool.pytest.ini_options]
 markers = [
@@ -75,7 +76,7 @@ platforms = ["linux-64"]
 index-url = "https://pypi.org/simple"
 
 [tool.pixi.pypi-dependencies]
-gpr1d = { path = ".", editable = true }
+mkgp = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = {features = ["gui", "demo"], solve-group = "default"}

@@ -21,7 +21,10 @@ from .kernels import (
     Sum_Kernel,
     Product_Kernel,
     Symmetric_Kernel,
+    ND_Sum_Kernel,
+    ND_Product_Kernel,
     Constant_WarpingFunction,
+    Linear_WarpingFunction,
     IG_WarpingFunction,
 )
 
@@ -69,6 +72,10 @@ def KernelConstructor(name, dtype=None):
                 kernel = Product_Kernel(klist=kklist, dtype=dtype)
             elif re.search(r'^Sym$', m.group(1)):
                 kernel = Symmetric_Kernel(klist=kklist, dtype=dtype)
+            elif re.search(r'^NSum$', m.group(1)):
+                kernel = ND_Sum_Kernel(klist=kklist, dtype=dtype)
+            elif re.search(r'^NProd$', m.group(1)):
+                kernel = ND_Product_Kernel(klist=kklist, dtype=dtype)
         else:
             if re.search(r'^C$', name):
                 kernel = Constant_Kernel(dtype=dtype)
@@ -91,6 +98,8 @@ def KernelConstructor(name, dtype=None):
                 wfunc = None
                 if re.search(r'^C$', wname):
                     wfunc = Constant_WarpingFunction(dtype=dtype)
+                elif re.search(r'^L$', wname):
+                    wfunc = Linear_WarpingFunction(dtype=dtype)
                 elif re.search(r'^IG$', wname):
                     wfunc = IG_WarpingFunction(dtype=dtype)
                 kernel = Gibbs_Kernel(wfunc=wfunc, dtype=dtype)

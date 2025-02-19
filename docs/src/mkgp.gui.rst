@@ -4,7 +4,7 @@ gui
 gui
 ---
 
-.. automodule:: gpr1d.gui.gui
+.. automodule:: mkgp.gui.gui
    :members: main
    :undoc-members:
    :show-inheritance:

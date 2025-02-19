@@ -1,5 +1,5 @@
-gpr1d
-=====
+mkgp
+====
 
 These classes and routines were developed by Aaron Ho, and this
 project repository was started in 2017. The underlying
@@ -10,9 +10,12 @@ When using this package in any research work, please cite:
 A. Ho et al 2019 Nucl. Fusion 59 056007, `DOI: 10.1088/1741-4326/ab065a
 <https://doi.org/10.1088/1741-4326/ab065a>`_
 
+Note that the package has been renamed from :code:`GPR1D` to
+:code:`mkgp` in v3.0.0.
 
-Installing the gpr1d program
-----------------------------
+
+Installing the mkgp program
+---------------------------
 
 Installation is **mandatory** for this package!
 
@@ -21,7 +24,7 @@ developed for this Python package. To obtain the Python package
 dependencies needed to use this capability, install this package
 by using the following on the command line::
 
-    pip install [--user] gpr1d[gui]
+    pip install [--user] mkgp[gui]
 
 Use the :code:`--user` flag if you do not have root access on the
 system that you are working on. If you have already cloned the
@@ -37,7 +40,7 @@ base classes and algorithms.
 
 To test the installation, execute the command line script::
 
-    gpr1d_demo
+    mkgp_1d_demo
 
 This demonstration benefits from having :code:`matplotlib`
 installed, but is not required.
@@ -48,8 +51,8 @@ Documentation
 
 Documentation of the equations used in the algorithm, along with
 the available kernels and optimizers, can be found in docs/.
-Documentation of the :code:`gpr1d` module can be found on
-`GitLab pages <https://aaronkho.gitlab.io/GPR1D>`_
+Documentation of the :code:`mkgp` module can be found on
+`GitLab pages <https://aaronkho.gitlab.io/mkgp>`_
 
 
 Using the gpr1d program
@@ -57,7 +60,7 @@ Using the gpr1d program
 
 For those who wish to include the functionality of this package
 into their own Python scripts, a sample script is provided in
-:code:`src/gpr1d/scripts/demo.py`. The basic syntax used to create
+:code:`src/mkgp/scripts/demo.py`. The basic syntax used to create
 kernels, select optimizers, and perform the GP regression fits are
 outlined there.
 

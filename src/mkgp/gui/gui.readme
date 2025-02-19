@@ -1,11 +1,11 @@
 *** README - GPR1D_GUI ***
 
-Developer: Aaron Ho - a.ho@differ.nl
-Last update: 14/11/2017
-Repository: https://gitlab.com/aaronkho/GPR1D.git
+Developer: Aaron Ho - aaronkho@mit.edu
+Last update: 19/02/2025
+Repository: https://gitlab.com/aaronkho/mkgp
 
 
-This GUI encapsulates most of the GPR1D Python class within a
+This GUI encapsulates most of the mkgp Python class within a
 user-friendly format. It can be used as follows:
 
 1) make sure the path to the cloned repository is on the
@@ -13,7 +13,7 @@ user-friendly format. It can be used as follows:
 
    export PYTHONPATH=$PYTHONPATH:/path/to/dir/above/cloned/repo/
 
-2) copy or link GPR1D_GUI.py to your working directory or a
+2) copy or link mkgp/gui/gui.py to your working directory or a
    directory on your PATH variable
 
 
@@ -209,8 +209,8 @@ Final Notes:
    and experiment with the fitting routine on various data,
    it is NOT meant to handle large quantities of data!
 
-   For running production runs, please see the gp_demo.py
-   script provided in GPR1D/scripts for learning how to
+   For running production runs, please see the mkgp_1d_demo.py
+   script provided in mkgp/scripts for learning how to
    run the fitting routine in an automated fashion.
 
    If there are questions / bugs / improvements that you
