@@ -13,9 +13,10 @@ from mkgp.core.kernels import RQ_Kernel
 from mkgp.core.routines import GaussianProcess
 
 
-def run_demo():
+def run_demo_1d():
     '''
-    A demonstration script for the classes within the gpr1d module.
+    A one-dimensional demonstration script for the classes within
+    the mkgp module.
 
     Due to the iterative nature of the optimization method and the
     random nature of the kernel restart function, the results may
@@ -579,18 +580,18 @@ def run_demo():
         fig.savefig(save_file)
         plt.close(fig)
 
-        print(f'Results of demonstration plotted and saved in directory, {plot_save_directory.resolve()}.\n')
+        print(f'Results of one-dimensional demonstration plotted and saved in directory, {plot_save_directory.resolve()}.\n')
 
     else:
 
         print(f'   Module matplotlib not found. Skipping plotting of demonstration results.\n')
 
-    print(f'Demonstration script successfully completed!\n')
+    print(f'One-dimensional demonstration script successfully completed!\n')
 
 
 def main():
 
-    run_demo()
+    run_demo_1d()
 
 
 if __name__ == '__main__':
