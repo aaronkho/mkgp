@@ -1080,7 +1080,7 @@ class GaussianProcess():
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
-        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1)
+        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1) if yf.ndim > 1 else np.all(np.isfinite(np.stack((yf, yef), axis=-1)), axis=-1)
         #kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
         if np.any(np.invert(mask)):
             xf = xf[mask]
@@ -1339,7 +1339,7 @@ class GaussianProcess():
         xf = np.concatenate((xx, xxdf), axis=0)
         yf = np.concatenate((yy, yydf), axis=0)
         yef = np.concatenate((ye, yedf), axis=0)
-        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1)
+        mask = np.all(np.isfinite(np.concatenate((yf, yef), axis=-1)), axis=-1) if yf.ndim > 1 else np.all(np.isfinite(np.stack((yf, yef), axis=-1)), axis=-1)
         #kmask = np.all([np.tile(mask.flatten(), (mask.size, 1)), np.tile(mask.flatten(), (mask.size, 1)).T], axis=0)
         if np.any(np.invert(mask)):
             xf = xf[mask]
