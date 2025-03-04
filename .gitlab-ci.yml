@@ -21,29 +21,7 @@
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
     - apk add --no-cache blosc blosc-dev
-
-pytest/py37:
-  image: python:3.7-alpine
-  extends: ".cache_pip"
-  <<: *test_template
   script:
-    - pip install -e .[dev]
-    - python3 -m pytest
-
-pytest/py38:
-  image: python:3.8-alpine
-  extends: ".cache_pip"
-  <<: *test_template
-  script:
-    - pip install -e .[dev]
-    - python3 -m pytest
-
-pytest/py39:
-  image: python:3.9-alpine
-  extends: ".cache_pip"
-  <<: *test_template
-  script:
-    - pip install numpy==1.26.4  # Weird compatibility break between numpy as scipy for 3.9
     - pip install -e .[dev]
     - python3 -m pytest
 
@@ -51,23 +29,21 @@ pytest/py310:
   image: python:3.10-alpine
   extends: ".cache_pip"
   <<: *test_template
-  script:
-    - pip install -e .[dev]
-    - python3 -m pytest
 
 pytest/py311:
   image: python:3.11-alpine
+  extends: ".cache_pip"
   <<: *test_template
-  script:
-    - pip install -e .[dev]
-    - python3 -m pytest
 
 pytest/py312:
   image: python:3.12-alpine
+  extends: ".cache_pip"
   <<: *test_template
-  script:
-    - pip install -e .[dev]
-    - python3 -m pytest
+
+pytest/py313:
+  image: python:3.13-alpine
+  extends: ".cache_pip"
+  <<: *test_template
 
 pages:
   image: python:3.12-alpine
