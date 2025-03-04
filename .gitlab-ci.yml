@@ -10,7 +10,7 @@ cache: &cache
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
-    - apk add --no-cache build-base
+    - apk add --no-cache build-base openblas-dev lapack-dev
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache cblosc
   script:
