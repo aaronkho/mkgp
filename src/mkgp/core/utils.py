@@ -160,7 +160,7 @@ def diagonal(matrix, dtype=None):
             for ii in range(mat.shape[0]):
                 for jj in range(mat.shape[1]):
                     index = [jj] * (mat.ndim - 2)
-                    diag[ii, jj] = mat[ii, *index, ii]
+                    diag[ii, jj] = mat[(ii, *index, ii)]
         else:
             diag = np.diag(mat)
     return diag
@@ -185,14 +185,14 @@ def diagonalize(diagonal, full=True, dtype=None):
             for ii in range(mat.shape[0]):
                 for jj in range(mat.shape[1]):
                     element = [jj] * ndim
-                    mat[ii, *element, ii] = diag[ii, jj]
+                    mat[(ii, *element, ii)] = diag[ii, jj]
         elif diag.ndim == 1:
             if full:
                 dshape = [diag.shape[0]] * diag.shape[0]
                 mat = np.zeros(dshape, dtype=dt)
                 for ii in range(mat.shape[0]):
                     element = [ii] * mat.shape[0]
-                    mat[*element] = diag[ii]
+                    mat[(..., *element)] = diag[ii]
             else:
                 mat = np.diag(diag)
     return mat
