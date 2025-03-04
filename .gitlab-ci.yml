@@ -1,3 +1,13 @@
+.cache_pip:
+  variables:
+    FF_USE_FASTZIP: 1
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip_cache"
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - venv
+      - .pip_cache
+
 .test_template: &test_template
   before_script:
     - uname -a # Print current OS for debugging
@@ -8,26 +18,31 @@
     - apk update && apk add --no-cache git
     - apk add --no-cache build-base openblas-dev lapack-dev
     - apk add --no-cache hdf5 hdf5-dev
-    - apk add --no-cache blosc
+    - apk add --no-cache lzo lzo-dev
+    - apk add --no-cache blosc blosc-dev
   script:
     - pip install -e .[dev,demo] # Test with all optional dependencies
     - python3 -m pytest
   stage: test
 
-py37_test:
+pytest/py37:
   image: python:3.7-alpine
+  extends: ".cache_pip"
   <<: *test_template
 
-py38_test:
+pytest/py38:
   image: python:3.8-alpine
+  extends: ".cache_pip"
   <<: *test_template
 
-py39_test:
+pytest/py39:
   image: python:3.9-alpine
+  extends: ".cache_pip"
   <<: *test_template
 
 py310_test:
   image: python:3.10-alpine
+  extends: ".cache_pip"
   <<: *test_template
 
 py311_test:
