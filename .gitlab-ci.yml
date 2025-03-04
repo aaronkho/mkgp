@@ -46,7 +46,7 @@ py310_test:
 
 py311_test:
   image: python:3.11-alpine
-  <<: *test_tempalte
+  <<: *test_template
 
 py312_test:
   image: python:3.12-alpine
