@@ -5,6 +5,7 @@
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - apt-get build-dep python-tables
   script:
     - pip install -e .[dev,demo,gui] # Test with all optional dependencies
     - python3 -m pytest
@@ -42,6 +43,7 @@ pages:
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - apt-get build-dep python-tables
   script:
     # Install mkgp package + dependencies using pip
     - pip install -e .[dev,docs]
