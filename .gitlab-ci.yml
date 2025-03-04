@@ -1,32 +1,14 @@
-# Change pip's cache directory to be inside the project directory since we can
-# only cache local items.
-variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-
-# Pip's cache doesn't store the python packages
-# https://pip.pypa.io/en/stable/reference/pip_install/#caching
-#
-# If you want to also cache the installed packages, you have to install
-# them in a virtualenv and cache it as well.
-cache: &cache
-  paths:
-    - .cache/pip
-    - venv/
-
-before_script:
-  - uname -a # Print current OS for debugging
-  - pip --version # Print out pip version for debugging
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-
-test_template: &test_template
+.test_template: &test_template
+  before_script:
+    - uname -a # Print current OS for debugging
+    - pip --version # Print out pip version for debugging
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
   script:
     - pip install -e .[dev,demo,gui] # Test with all optional dependencies
     - python3 -m pytest
   stage: test
-  cache:
-    <<: *cache
 
 py37_test:
   image: python:3.7-alpine
@@ -54,13 +36,17 @@ py312_test:
 
 pages:
   image: python:3.12-alpine
+  before_script:
+    - uname -a # Print current OS for debugging
+    - pip --version # Print out pip version for debugging
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
   script:
     # Install mkgp package + dependencies using pip
     - pip install -e .[dev,docs]
     # Build the docs and move to public website
     - sphinx-build -b html docs/src/ public/
-  cache:
-    <<: *cache
   artifacts:
     paths:
     - public
