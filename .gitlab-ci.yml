@@ -5,7 +5,8 @@
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
-    - apt-get build-dep python-tables
+    - apk add --no-cache build-base
+    - apk add --no-cache hdf5 hdf5-dev
   script:
     - pip install -e .[dev,demo,gui] # Test with all optional dependencies
     - python3 -m pytest
