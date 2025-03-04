@@ -9,6 +9,7 @@
       - .pip_cache
 
 .test_template: &test_template
+  stage: test
   before_script:
     - uname -a # Print current OS for debugging
     - pip --version # Print out pip version for debugging
@@ -20,38 +21,53 @@
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
     - apk add --no-cache blosc blosc-dev
-  script:
-    - pip install -e .[dev,demo] # Test with all optional dependencies
-    - python3 -m pytest
-  stage: test
 
 pytest/py37:
   image: python:3.7-alpine
   extends: ".cache_pip"
   <<: *test_template
+  script:
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
 pytest/py38:
   image: python:3.8-alpine
   extends: ".cache_pip"
   <<: *test_template
+  script:
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
 pytest/py39:
   image: python:3.9-alpine
   extends: ".cache_pip"
   <<: *test_template
+  script:
+    - pip install numpy==1.26.4
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
-py310_test:
+pytest/py310:
   image: python:3.10-alpine
   extends: ".cache_pip"
   <<: *test_template
+  script:
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
-py311_test:
+pytest/py311:
   image: python:3.11-alpine
   <<: *test_template
+  script:
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
-py312_test:
+pytest/py312:
   image: python:3.12-alpine
   <<: *test_template
+  script:
+    - pip install -e .[dev,demo]
+    - python3 -m pytest
 
 pages:
   image: python:3.12-alpine
