@@ -12,7 +12,7 @@ cache: &cache
     - source venv/bin/activate
     - apk add --no-cache build-base openblas-dev lapack-dev
     - apk add --no-cache hdf5 hdf5-dev
-    - apk add --no-cache cblosc
+    - apk add --no-cache blosc
   script:
     - pip install -e .[dev,demo,gui] # Test with all optional dependencies
     - python3 -m pytest
