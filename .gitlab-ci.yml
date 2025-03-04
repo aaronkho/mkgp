@@ -27,7 +27,7 @@ pytest/py37:
   extends: ".cache_pip"
   <<: *test_template
   script:
-    - pip install -e .[dev,demo]
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py38:
@@ -35,7 +35,7 @@ pytest/py38:
   extends: ".cache_pip"
   <<: *test_template
   script:
-    - pip install -e .[dev,demo]
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py39:
@@ -43,8 +43,8 @@ pytest/py39:
   extends: ".cache_pip"
   <<: *test_template
   script:
-    - pip install numpy==1.26.4
-    - pip install -e .[dev,demo]
+    - pip install numpy==1.26.4  # Weird compatibility break between numpy as scipy for 3.9
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py310:
@@ -52,21 +52,21 @@ pytest/py310:
   extends: ".cache_pip"
   <<: *test_template
   script:
-    - pip install -e .[dev,demo]
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py311:
   image: python:3.11-alpine
   <<: *test_template
   script:
-    - pip install -e .[dev,demo]
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py312:
   image: python:3.12-alpine
   <<: *test_template
   script:
-    - pip install -e .[dev,demo]
+    - pip install -e .[dev]
     - python3 -m pytest
 
 pages:
