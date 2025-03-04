@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mkgp"
 description = "Classes for Gaussian Process Regression fitting of ND data with errorbars"
 readme = "README.rst"
-requires-python = ">=3.7,<3.13"
+requires-python = ">=3.7,<3.14"
 license = {file = "LICENSE"}
 keywords = ["gaussian process regression", "data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
 authors = [
@@ -23,6 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dynamic = ["version"]
 
