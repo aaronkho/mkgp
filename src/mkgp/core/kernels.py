@@ -130,7 +130,6 @@ class Product_Kernel(_OperatorKernel):
         ad = int(sd * der)
         fd = int((ad - 1) // 2)  # Variable ensures sequential odd derivative orders start with alternating signs in ddims
         # Each row of dermat represents a single chain rule term if derivatives are requested
-        #crdmat = np.zeros((ad, ), dtype=int)
         dermat = np.atleast_2d(np.zeros((nks, ), dtype=int))
         if der != 0:
             vdim = np.array([i for i in range(1, nks + 1)], dtype=int)
@@ -148,7 +147,6 @@ class Product_Kernel(_OperatorKernel):
                 oder[oddfilt] = sder[oddfilt] * oder[oddfilt]
                 dermat = np.concatenate((dermat, np.expand_dims(oder, axis=-1)), axis=-1)
             # Reshape such that each row represents one chain rule term
-            #crdmat = np.abs(dmesh).reshape(-1, ad) - 1
             dermat = dermat.reshape(-1, nks)
         for row in np.arange(0, dermat.shape[0]):
             covterm = np.ones((x1.size, x2.size), dtype=self._dtype).T
@@ -162,7 +160,7 @@ class Product_Kernel(_OperatorKernel):
                     ihyp = ihyp - nhyps
             covm = covm + covterm
         return covm
-        #embed()
+
 
     def __init__(self, *args, **kwargs):
         r'''
@@ -247,7 +245,7 @@ class ND_Sum_Kernel(_OperatorKernel):
                 x2_col = x2[:, col].flatten()
                 nhyps = kk.hyperparameters.size
                 khder = ihyp if ihyp is not None and ihyp >= 0 and ihyp < nhyps else None
-                covm[:, *cshape, :] += kk(x1_col, x2_col, der, khder)
+                covm[(slice(None), *cshape, slice(None))] += kk(x1_col, x2_col, der, khder)
                 if ihyp is not None:
                     ihyp = ihyp - nhyps
             if der == 0:
@@ -368,8 +366,7 @@ class ND_Product_Kernel(_OperatorKernel):
                     if ihyp is not None:
                         ihyp = ihyp - nhyps
                 if crdmat.shape[0] > row and crdmat[row].shape != (0,):
-                    covm[:, *crdmat[row], :] = covterm.copy()
-                #   covm[:, *crdmat[row], :] = np.prod(np.stack([self._kernel_list[col](x1[:, col], x2[:, col], dermat[row, col]) for col in range(nks) ], axis=0), axis=0)  # Corrected closing of parentheses and removal of extra axis=0 argument
+                    covm[(slice(None), *crdmat[row], slice(None))] = covterm.copy()
             if der == 0:
                 covm = covm.reshape(x2.shape[0], x1.shape[0])
 
