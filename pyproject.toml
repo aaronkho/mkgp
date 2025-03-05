@@ -6,20 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "mkgp"
 description = "Classes for Gaussian Process Regression fitting of ND data with errorbars"
 readme = "README.rst"
-requires-python = ">=3.7,<3.14"
+requires-python = ">=3.7"
 license = {file = "LICENSE"}
 keywords = ["gaussian process regression", "data fitting", "regression analysis", "kriging", "noisy input", "heteroscedastic error"]
 authors = [
-  {name = "Aaron Ho", email = "aaronkho@mit.edu" }
+  { name = "Aaron Ho", email = "aaronkho@mit.edu" }
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
   "Topic :: Utilities",
   "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3.7",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -29,8 +26,8 @@ dynamic = ["version"]
 
 dependencies = [
   "pip",
-  "numpy>=1.13",
-  "scipy>=0.17",
+  "numpy>=1.17",
+  "scipy>=1.7",
   "pandas",
   "tables",
   "ipython",
