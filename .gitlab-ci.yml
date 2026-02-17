@@ -16,10 +16,12 @@
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - python3 -m pip install --upgrade pip setuptools wheel
     - apk update && apk add --no-cache git
     - apk add --no-cache build-base openblas-dev lapack-dev
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
+    - apk add --no-cache bzip2 bzip2-dev
     - apk add --no-cache blosc blosc-dev
   script:
     - pip install -e .[dev]
@@ -53,10 +55,12 @@ pages:
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - python3 -m pip install --upgrade pip setuptools wheel
     - apk update && apk add --no-cache git
     - apk add --no-cache build-base openblas-dev lapack-dev
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
+    - apk add --no-cache bzip2 bzip2-dev
     - apk add --no-cache blosc blosc-dev
   script:
     # Install mkgp package + dependencies using pip
