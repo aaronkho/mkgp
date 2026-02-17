@@ -2090,10 +2090,16 @@ class GaussianProcess():
                 fflag = False
                 for jj in range(cxx.shape[0]):
                     if np.sqrt(np.sum(np.power(cxx[jj] - xx[ii], 2.0))) < cn and not fflag:  # Use Euclidean distance
-                        cxe[jj] = np.sqrt(((cxe[jj] ** 2.0) * nn[jj] + (xe[ii] ** 2.0) + (cxx[jj] ** 2.0) * nn[jj] + (xx[ii] ** 2.0)) / (nn[jj] + 1.0) - ((cxx[jj] * nn[jj] + xx[ii]) / ((nn[jj] + 1.0)) ** 2.0))
-                        cxx[jj] = (cxx[jj] * nn[jj] + xx[ii]) / (nn[jj] + 1.0)
-                        cye[jj] = np.sqrt(((cye[jj] ** 2.0) * nn[jj] + (ye[ii] ** 2.0) + (cyy[jj] ** 2.0) * nn[jj] + (yy[ii] ** 2.0)) / (nn[jj] + 1.0) - ((cyy[jj] * nn[jj] + yy[ii]) / ((nn[jj] + 1.0)) ** 2.0))
-                        cyy[jj] = (cyy[jj] * nn[jj] + yy[ii]) / (nn[jj] + 1.0)
+                        cxe[jj, ...] = np.sqrt(
+                            ((cxe[jj] ** 2.0) * nn[jj] + (xe[ii] ** 2.0) + (cxx[jj] ** 2.0) * nn[jj] + (xx[ii] ** 2.0))
+                            / (nn[jj] + 1.0) - ((cxx[jj] * nn[jj] + xx[ii]) / ((nn[jj] + 1.0)) ** 2.0)
+                        )
+                        cxx[jj, ...] = (cxx[jj] * nn[jj] + xx[ii]) / (nn[jj] + 1.0)
+                        cye[jj, ...] = np.sqrt(
+                            ((cye[jj] ** 2.0) * nn[jj] + (ye[ii] ** 2.0) + (cyy[jj] ** 2.0) * nn[jj] + (yy[ii] ** 2.0))
+                            / (nn[jj] + 1.0) - ((cyy[jj] * nn[jj] + yy[ii]) / ((nn[jj] + 1.0)) ** 2.0)
+                        )
+                        cyy[jj, ...] = (cyy[jj] * nn[jj] + yy[ii]) / (nn[jj] + 1.0)
                         nn[jj] = nn[jj] + 1.0
                         fflag = True
                 if not fflag:
