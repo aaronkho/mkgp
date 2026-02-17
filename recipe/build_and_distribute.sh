@@ -1,6 +1,6 @@
 #!/bin/bash
 # Package specific settings
-CONDA_PACKAGE_NAME=gpr1d
+CONDA_PACKAGE_NAME=mkgp
 
 # Conda
 # Check environment
