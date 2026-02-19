@@ -1141,16 +1141,21 @@ class GaussianProcess():
             kt = np.squeeze(kt)
         kernel = KK + np.diag(yef.squeeze() ** 2.0)   # Should be fine since kernel output is always 2D
 
+        if ks.ndim > 2:
+            ks = np.swapaxes(ks, 0, 1)
         cholesky_flag = True
         if cholesky_flag:
             LL = spla.cholesky(kernel, lower=True)
-            alpha = spla.cho_solve((LL, True), yf)
-            kv = spla.cho_solve((LL, True), ks)
+            alpha = spla.cho_solve((LL, True), yf, check_finite=False)
+            kv = spla.cho_solve((LL, True), ks, check_finite=False)
             ldet = 2.0 * np.sum(np.log(np.diag(LL)))
         else:
-            alpha = spla.solve(kernel, yf)
-            kv = spla.solve(kernel, ks)
+            alpha = spla.solve(kernel, yf, check_finite=False)
+            kv = spla.solve(kernel, ks, check_finite=False)
             ldet = np.log(spla.det(kernel))
+        if ks.ndim > 2:
+            ks = np.swapaxes(ks, 0, 1)
+            kv = np.swapaxes(kv, 0, 1)
 
         barF = np.tensordot(ks.T, alpha, axes=(-1, 0))          # Mean function
         varF = kt - np.tensordot(ks.T, kv, axes=(-1, 0))        # Variance of mean function
@@ -1224,12 +1229,18 @@ class GaussianProcess():
         KK = kk(xx, xx) # kk(x1, x2)
         kernel = KK + np.diag(ye ** 2.0)
         LL = spla.cholesky(kernel, lower=True)
-        alpha = spla.cho_solve((LL, True), yy)
+        alpha = spla.cho_solve((LL, True), yy, check_finite=False)
         # Approximation of first derivative of covf (df/dxn1)
         ksl = kk(xx, xnl) # kk(xl1, xl2)
         ksu = kk(xx, xnu) # kk(xu1, xu2)
         dks = (ksu.T - ksl.T) / (step * 1.0e-3)
-        dvv = np.tensordot(LL.T, spla.cho_solve((LL, True), dks), axes=(-1, 0))
+        if dks.ndim > 2:
+            dks = dks.swapaxes(dks, 0, 1)
+        dvs = spla.cho_solve((LL, True), dks, check_finite=False)
+        if dks.ndim > 2:
+            dks = dks.swapaxes(dks, 0, 1)
+            dvs = dvs.swapaxes(dvs, 0, 1)
+        dvv = np.tensordot(LL.T, dvs, axes=(-1, 0))
         # Approximation of second derivative of covf (d^2f/dxn1 dxn2)
         ktll = kk(xnl, xnl) # kk(xll1, xll2)
         ktlu = kk(xnu, xnl) # kk(xlu1, xlu2)
@@ -1375,9 +1386,9 @@ class GaussianProcess():
         cholesky_flag = True
         if cholesky_flag:
             LL = spla.cholesky(kernel, lower=True)
-            alpha = spla.cho_solve((LL, True), yf)
+            alpha = spla.cho_solve((LL, True), yf, check_finite=False)
         else:
-            alpha = spla.solve(kernel, yf)
+            alpha = spla.solve(kernel, yf, check_finite=False)
 
         gradlml = np.zeros(theta.shape, dtype=self._dtype).flatten()
         for ii in range(theta.size):
@@ -1402,9 +1413,9 @@ class GaussianProcess():
                 HH = HH[:, mask]
             PP = np.tensordot(alpha.T, HH, axes=(-1, 0))
             if cholesky_flag:
-                QQ = spla.cho_solve((LL, True), HH)
+                QQ = spla.cho_solve((LL, True), HH, check_finite=False)
             else:
-                QQ = spla.solve(kernel, HH)
+                QQ = spla.solve(kernel, HH, check_finite=False)
             gradlml[ii] = np.squeeze(0.5 * np.tensordot(PP, alpha, axes=(-1, 0)) - 0.5 * lp * np.sum(diagonal(QQ)))
 
         return gradlml
