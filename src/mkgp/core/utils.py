@@ -178,17 +178,18 @@ def diagonalize(diagonal, full=True, dtype=None):
     if isinstance(diagonal, array_types):
         diag = np.array(diagonal, dtype=dt)
     if diag is not None and diag.ndim > 0 and diag.ndim <= 2:
-        if diag.ndim == 2:
-            ndim = diag.shape[-1] if full else 2
-            dshape = [diag.shape[-1]] * ndim
+        if diag.ndim >= 2:
+            half_shape = [sh for sh in diag.shape[1:]] if full else [diag.shape[-1]]
+            ndim = len(half_shape)
+            dshape = half_shape + half_shape[::-1]
             mat = np.zeros((diag.shape[0], *dshape, diag.shape[0]), dtype=dt)
             for ii in range(mat.shape[0]):
                 for jj in range(mat.shape[1]):
-                    element = [jj] * ndim
+                    element = [jj] * (2 * ndim)
                     mat[(ii, *element, ii)] = diag[ii, jj]
         elif diag.ndim == 1:
             if full:
-                dshape = [diag.shape[0]] * diag.shape[0]
+                dshape = [diag.shape[0]] + [diag.shape[0]]
                 mat = np.zeros(dshape, dtype=dt)
                 for ii in range(mat.shape[0]):
                     element = [ii] * mat.shape[0]
