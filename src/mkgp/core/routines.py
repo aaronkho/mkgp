@@ -1141,6 +1141,7 @@ class GaussianProcess():
             kt = np.squeeze(kt)
         kernel = KK + np.diag(yef.squeeze() ** 2.0)   # Should be fine since kernel output is always 2D
 
+        # Solve function internal matmul needs matching axis to be axis 1 when ndim > 2
         if ks.ndim > 2:
             ks = np.swapaxes(ks, 0, 1)
         cholesky_flag = True
@@ -1153,6 +1154,7 @@ class GaussianProcess():
             alpha = spla.solve(kernel, yf, check_finite=False)
             kv = spla.solve(kernel, ks, check_finite=False)
             ldet = np.log(spla.det(kernel))
+        # Reverting earlier axis swap for rest of routine
         if ks.ndim > 2:
             ks = np.swapaxes(ks, 0, 1)
             kv = np.swapaxes(kv, 0, 1)
@@ -1234,9 +1236,11 @@ class GaussianProcess():
         ksl = kk(xx, xnl) # kk(xl1, xl2)
         ksu = kk(xx, xnu) # kk(xu1, xu2)
         dks = (ksu.T - ksl.T) / (step * 1.0e-3)
+        # Solve function internal matmul needs matching axis to be axis 1 when ndim > 2
         if dks.ndim > 2:
             dks = dks.swapaxes(dks, 0, 1)
         dvs = spla.cho_solve((LL, True), dks, check_finite=False)
+        # Reverting earlier axis swap for rest of routine
         if dks.ndim > 2:
             dks = dks.swapaxes(dks, 0, 1)
             dvs = dvs.swapaxes(dvs, 0, 1)
