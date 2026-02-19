@@ -1159,7 +1159,7 @@ class GaussianProcess():
         #    1st term: Describes the goodness of fit for the given data
         #    2nd term: Penalty for complexity / simplicity of the covariance function
         #    3rd term: Penalty for the size of given data set
-        lml = -0.5 * np.tensordot(yf.T, alpha, axes=(-1, 0)) - 0.5 * lp * ldet - 0.5 * xf.size * np.log(2.0 * np.pi)
+        lml = np.squeeze(-0.5 * np.tensordot(yf.T, alpha, axes=(-1, 0)) - 0.5 * lp * ldet - 0.5 * xf.size * np.log(2.0 * np.pi))
 
         # Log-marginal-likelihood of the null hypothesis (constant at mean value),
         # can be used as a normalization factor for general goodness-of-fit metric
@@ -1169,15 +1169,13 @@ class GaussianProcess():
         if np.any(zfilt):
             yft = np.power(yf[zfilt] / yef[zfilt], 2.0)
             yeft = 2.0 * np.log(yef[zfilt])
-        lmlz = -0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi)
+        lmlz = np.squeeze(-0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi))
 
         if ndim > 1:
             barF = barF.reshape(xn.shape[0], ndim ** dd)
             varF = varF.reshape(xn.shape[0], barF.shape[-1], barF.shape[-1], xn.shape[0])
-            lml = lml.squeeze()
-            lmlz = lmlz.squeeze()
 
-        return (barF, varF, lml, lmlz)
+        return (barF, varF, float(lml), float(lmlz))
 
 
     #TODO: True to its name, it is still only valid for 1D-input regression
@@ -1243,9 +1241,9 @@ class GaussianProcess():
 
         barF = np.tensordot(dks.T, alpha, axes=(-1, 0))          # Mean function
         varF = ddkt - np.tensordot(dvv.T, dvv, axes=(-1, 0))     # Variance of mean function
-        lml = -0.5 * np.tensordot(yy.T, alpha, axes=(-1, 0)) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xx.size * np.log(2.0 * np.pi)
+        lml = np.squeeze(-0.5 * np.tensordot(yy.T, alpha, axes=(-1, 0)) - lp * np.sum(np.log(np.diag(LL))) - 0.5 * xx.size * np.log(2.0 * np.pi))
 
-        return (barF, varF, lml)
+        return (barF, varF, float(lml))
 
 
     def _gp_brute_grad_lml(self, kk, lp, xx, yy, ye, dxx, dyy, dye, dh):
@@ -1407,7 +1405,7 @@ class GaussianProcess():
                 QQ = spla.cho_solve((LL, True), HH)
             else:
                 QQ = spla.solve(kernel, HH)
-            gradlml[ii] = 0.5 * np.tensordot(PP, alpha, axes=(-1, 0)) - 0.5 * lp * np.sum(np.diag(QQ))
+            gradlml[ii] = np.squeeze(0.5 * np.tensordot(PP, alpha, axes=(-1, 0)) - 0.5 * lp * np.sum(diagonal(QQ)))
 
         return gradlml
 
