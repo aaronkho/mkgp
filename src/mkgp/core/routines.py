@@ -1171,7 +1171,7 @@ class GaussianProcess():
             yeft = 2.0 * np.log(yef[zfilt])
         lmlz = np.squeeze(-0.5 * np.sum(yft) - 0.5 * lp * np.sum(yeft) - 0.5 * xf.size * np.log(2.0 * np.pi))
 
-        if ndim > 1:
+        if xx.ndim > 1:
             barF = barF.reshape(xn.shape[0], ndim ** dd)
             varF = varF.reshape(xn.shape[0], barF.shape[-1], barF.shape[-1], xn.shape[0])
 
@@ -2815,6 +2815,8 @@ class GaussianProcess():
             nr = int(nrestarts)
         if xn is None:
             raise ValueError('A valid vector of prediction x-points must be given.')
+        elif xn.ndim != self._xx.ndim:
+            raise ValueError(f'Prediction x-point vector must contain the same number of dimensions as fitted data, which is {self._xx.ndim}.')
         oxn = copy.deepcopy(xn)
 
         if not self._fwarn:
@@ -2842,13 +2844,13 @@ class GaussianProcess():
             for xi in range(xn.shape[0]):
                 for rxi in range(self._xx.shape[0]):
                     if np.all(xn[xi] == self._xx[rxi]):
-                        xn[xi] = xn[xi] + epsx
+                        xn[xi, ...] = xn[xi] + epsx
         if self._dxx is not None:
             epsx = 1.0e-6 * (np.nanmax(xn, axis=0) - np.nanmin(xn, axis=0)) if xn.shape[0] > 1 else 1.0e-6 * (np.nanmax(self._dxx, axis=0) - np.nanmin(self._dxx, axis=0))
             for xi in range(0, xn.shape[0]):
                 for rxi in range(self._dxx.shape[0]):
                     if np.all(xn[xi] == self._dxx[rxi]):
-                        xn[xi] = xn[xi] + epsx
+                        xn[xi, ...] = xn[xi] + epsx
 
         if self._egpye is not None:
             edye = None
