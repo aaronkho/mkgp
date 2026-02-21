@@ -3099,14 +3099,23 @@ class GaussianProcess():
             noise_flag = actual_noise if not without_noise else False
             mu = self.get_gp_mean()
             var = self.get_gp_variance(noise_flag=noise_flag)
+            orig_size = mu.shape
+            if mu.ndim > 1:
+                mu = np.transpose(mu).flatten()
+            if var.ndim > 2:
+                var = np.transpose(var, axes=(1, 0, 2, 3)).reshape(var.shape[0] * var.shape[1], var.shape[-2] * var.shape[-1])
             mult_flag = not actual_noise if not without_noise else False
             mult = self.get_gp_std(noise_flag=mult_flag) / self.get_gp_std(noise_flag=False)
+            if mult.ndim > 1:
+                mult = np.transpose(mult).flatten()
+            mult = np.expand_dims(mult, axis=0)
             samples = spst.multivariate_normal.rvs(mean=mu, cov=var, size=ns)
             samples = mult * (samples - mu) + mu
+            samples = samples.reshape(-1, *orig_size)
             if samples is not None and simple_out:
                 mean = np.nanmean(samples, axis=0)
                 std = np.nanstd(samples, axis=0)
-                samples = np.vstack((mean, std))
+                samples = np.stack((mean, std), axis=0)
         else:
             raise ValueError('Check inputs to sampler to make sure they are valid.')
 
