@@ -16,52 +16,56 @@
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - apt-get update -yq
+    - apt-get install -yq --no-install-recommends build-essential libhdf5-dev
     - python3 -m pip install --upgrade pip setuptools wheel
-    - apk update && apk add --no-cache git
-    - apk add --no-cache build-base openblas-dev lapack-dev
-    - apk add --no-cache hdf5 hdf5-dev
-    - apk add --no-cache lzo lzo-dev
-    - apk add --no-cache bzip2 bzip2-dev
-    - apk add --no-cache blosc blosc-dev
+    #- apk update && apk add --no-cache git
+    #- apk add --no-cache build-base openblas-dev lapack-dev
+    #- apk add --no-cache hdf5 hdf5-dev
+    #- apk add --no-cache lzo lzo-dev
+    #- apk add --no-cache bzip2 bzip2-dev
+    #- apk add --no-cache blosc2 blosc2-dev
   script:
     - pip install -e .[dev]
     - python3 -m pytest
 
 pytest/py310:
-  image: python:3.10-alpine
+  image: python:3.10-slim
   extends: ".cache_pip"
   <<: *test_template
 
 pytest/py311:
-  image: python:3.11-alpine
+  image: python:3.11-slim
   extends: ".cache_pip"
   <<: *test_template
 
 pytest/py312:
-  image: python:3.12-alpine
+  image: python:3.12-slim
   extends: ".cache_pip"
   <<: *test_template
 
 pytest/py313:
-  image: python:3.13-alpine
+  image: python:3.13-slim
   extends: ".cache_pip"
   <<: *test_template
 
 pages:
-  image: python:3.12-alpine
+  image: python:3.12-slim
   before_script:
     - uname -a # Print current OS for debugging
     - pip --version # Print out pip version for debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - apt-get update -yq
+    - apt-get install -yq --no-install-recommends build-essential libhdf5-dev
     - python3 -m pip install --upgrade pip setuptools wheel
-    - apk update && apk add --no-cache git
-    - apk add --no-cache build-base openblas-dev lapack-dev
-    - apk add --no-cache hdf5 hdf5-dev
-    - apk add --no-cache lzo lzo-dev
-    - apk add --no-cache bzip2 bzip2-dev
-    - apk add --no-cache blosc blosc-dev
+    #- apk update && apk add --no-cache git
+    #- apk add --no-cache build-base openblas-dev lapack-dev
+    #- apk add --no-cache hdf5 hdf5-dev
+    #- apk add --no-cache lzo lzo-dev
+    #- apk add --no-cache bzip2 bzip2-dev
+    #- apk add --no-cache blosc2 blosc2-dev
   script:
     # Install mkgp package + dependencies using pip
     - pip install -e .[dev,docs]

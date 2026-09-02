@@ -189,7 +189,7 @@ class TestGPRSimplifiedVersion(object):
         assert check_gp_results(simplified_unoptimized_gpr_object(xpredict),ref_targets[0,:],ref_targets[1,:],ref_targets[2,:],ref_targets[3,:])
 
     def test_sampling(self,simplified_unoptimized_gpr_object):
-        assert simplified_unoptimized_gpr_object.sample(simplified_unoptimized_gpr_object.get_gp_x()).shape == (31,)
+        assert simplified_unoptimized_gpr_object.sample(simplified_unoptimized_gpr_object.get_gp_x()).shape == (1, 31)
 
 
 @pytest.mark.optimization

@@ -23,6 +23,7 @@ from mkgp.core.kernels import (
     Constant_WarpingFunction,
     Linear_WarpingFunction,
     IG_WarpingFunction,
+    Tanh_WarpingFunction,
 )
 from mkgp.core.routines import (
     GaussianProcess,
@@ -43,6 +44,10 @@ def constant_warping_function():
 @pytest.fixture(scope='module')
 def inverse_gaussian_warping_function():
     return IG_WarpingFunction(0.5, 0.4, 0.05, 0.9, 0.8)
+
+@pytest.fixture(scope='module')
+def tanh_warping_function():
+    return Tanh_WarpingFunction(0.5, 0.2, 0.3, 0.95)
 
 @pytest.fixture(scope='module')
 def empty_kernel():
@@ -83,6 +88,10 @@ def gibbs_constant_kernel(constant_warping_function):
 @pytest.fixture(scope='module')
 def gibbs_inverse_gaussian_kernel(inverse_gaussian_warping_function):
     return Gibbs_Kernel(1.0, inverse_gaussian_warping_function)
+
+@pytest.fixture(scope='module')
+def gibbs_tanh_kernel(tanh_warping_function):
+    return Gibbs_Kernel(1.0, tanh_warping_function)
 
 @pytest.fixture(scope='module')
 def empty_operator_kernel():

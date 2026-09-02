@@ -19,7 +19,7 @@ __all__ = [
     'ND_Sum_Kernel', 'ND_Product_Kernel',  # Multivariate kernel classes
     'Constant_Kernel', 'Noise_Kernel', 'Linear_Kernel', 'Poly_Order_Kernel', 'SE_Kernel', 'RQ_Kernel',
     'Matern_HI_Kernel', 'NN_Kernel', 'Gibbs_Kernel',  # Kernel classes
-    'Constant_WarpingFunction', 'Linear_WarpingFunction', 'IG_WarpingFunction',  # Warping function classes for Gibbs Kernel
+    'Constant_WarpingFunction', 'Linear_WarpingFunction', 'IG_WarpingFunction', 'Tanh_WarpingFunction',  # Warping function classes for Gibbs Kernel
 ]
 
 
@@ -621,9 +621,9 @@ class Noise_Kernel(_Kernel):
                 covm[rr == 0.0] = n_hyp ** 2.0
             elif hder == 0:
                 covm[rr == 0.0] = 2.0 * n_hyp
-#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centred on rr = 0 with small width, ss
+#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centered on rr = 0 with small width, ss
 #       Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
-#        Commented out for stability reasons.
+#       Commented out for stability reasons.
 #        elif der == 2 or der == -2:
 #            drdxm1 = np.sign(xm1 - xm2)
 #            drdxm1[drdxm1==0] = 1.0
@@ -1466,7 +1466,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, lder, ghder)
                 dlh2 = self._wfunc(xm2, lder, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
                 covm = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
@@ -1493,7 +1493,7 @@ class Gibbs_Kernel(_Kernel):
                 ghder = hder - 1
                 drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
-                kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
+                kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm2 / (2.0 * l_hyp2)
                 t2 = -l_hyp2 * dldxm2 / ll
                 t3 = 2.0 * l_hyp2 * dldxm2 * np.power(rr / ll, 2.0)
@@ -1501,7 +1501,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm2 = self._wfunc(xm2, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1530,11 +1530,11 @@ class Gibbs_Kernel(_Kernel):
                 t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
                 t4 = -drdxm1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
-            elif hder >= 1 and hder <= 3:
+            elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
                 drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
-                kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
+                kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm1 / (2.0 * l_hyp1)
                 t2 = -l_hyp1 * dldxm1 / ll
                 t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
@@ -1542,7 +1542,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm1 = self._wfunc(xm1, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1601,7 +1601,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm1 = self._wfunc(xm1, lder, ghder)
                 ddldxm2 = self._wfunc(xm2, lder, ghder)
                 ddd = ddldxm1 * dldxm2 + dldxm1 * ddldxm2
@@ -1610,8 +1610,8 @@ class Gibbs_Kernel(_Kernel):
                     drdxm2 * rr * ddldxm1 / l_hyp1 - drdxm2 * rr * dldxm1 * dlh1 / np.power(l_hyp1, 2.0)
                 )
                 djj = (
-                    drdxm1 * rr * ddldxm2 / l_hyp2 + drdxm1 * rr * dldxm2 * dlh2 +
-                    drdxm2 * rr * ddldxm1 / l_hyp1 + drdxm2 * rr * dldxm1 * dlh1
+                    drdxm1 * rr * ddldxm2 * l_hyp2 + drdxm1 * rr * dldxm2 * dlh2 +
+                    drdxm2 * rr * ddldxm1 * l_hyp1 + drdxm2 * rr * dldxm1 * dlh1
                 )
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1632,10 +1632,10 @@ class Gibbs_Kernel(_Kernel):
                 jt = jj / ll * (6.0 / ll - 4.0 * np.power(rr / ll, 2.0)) - ii / ll
                 djt1 = 6.0 * djj / np.power(ll, 2.0) - 12.0 * jj * dll / np.power(ll, 3.0)
                 djt2 = -4.0 * djj * np.power(rr, 2.0) / np.power(ll, 3.0) + 12.0 * jj * dll * np.power(rr, 2.0) / np.power(ll, 4.0)
-                djt3 = dii / ll - ii * dll / np.power(ll, 2.0)
+                djt3 = -dii / ll + ii * dll / np.power(ll, 2.0)
                 djt = djt1 + djt2 + djt3
                 rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
-                drt = -2.0 * drdxm1 * drdxm2 * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
+                drt = -2.0 * drdxm1 * drdxm2 * dll * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
                 covm = dkfac * (dt + jt + rt) + kfac * (ddt + djt + drt)
         else:
             raise NotImplementedError(f'Derivatives of order 3 or higher not implemented in {self.name} kernel.')
@@ -2189,6 +2189,112 @@ class IG_WarpingFunction(_WarpingFunction):
         gmc = float(csts[0])
         lrc = float(csts[1])
         kcopy = IG_WarpingFunction(lbhp, ghhp, gshp, gmc, lrc, dtype=self._dtype)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
+        return kcopy
+
+
+
+class Tanh_WarpingFunction(_WarpingFunction):
+    r'''
+    Hyperbolic tangent Warping Function for the Gibbs kernel.
+
+    l(z) = 0.5 * ((l1 + l2) - (l1 - l2) * tanh((z - x0) / lw))
+
+    :kwarg l1: float. Hyperparameter representing left length scale.
+
+    :kwarg l2: float. Hyperparameter representing right length scale.
+
+    :kwarg lw: float. Hyperparameter indicating length scale transition width.
+
+    :kwarg x0: float. Constant indicating transition center location.
+    '''
+
+    def __calc_warp(self, zz, der=0, hder=None):
+        hyps = self.hyperparameters
+        csts = self.constants
+        l1 = hyps[0]
+        l2 = hyps[1]
+        lw = hyps[2]
+        x0 = csts[0]
+        u = (zz - x0) / lw
+        tt = np.tanh(u)
+        ss = 1.0 - tt * tt
+        warp = np.zeros(np.shape(zz), dtype=self._dtype)
+        if der == 0:
+            if hder is None:
+                warp = 0.5 * ((l1 + l2) - (l1 - l2) * tt)
+            elif hder == 0:
+                warp = 0.5 * (1.0 - tt)
+            elif hder == 1:
+                warp = 0.5 * (1.0 + tt)
+            elif hder == 2:
+                warp = 0.5 * (l1 - l2) * ss * u / lw
+            #elif hder == 3:
+            #    warp = 0.5 * (l1 - l2) * ss / lw
+        elif der == 1:
+            if hder is None:
+                warp = -0.5 * (l1 - l2) * ss / lw
+            elif hder == 0:
+                warp = -0.5 * ss / lw
+            elif hder == 1:
+                warp = 0.5 * ss / lw
+            elif hder == 2:
+                warp = -0.5 * (l1 - l2) * ss / (lw * lw) * (2.0 * tt * u - 1.0)
+            #elif hder == 3:
+            #    warp = -0.5 * (l1 - l2) * 2.0 * tt * ss / (lw * lw)
+        return warp
+
+
+    def __init__(self, l1=1.0, l2=0.5, lw=0.1, x0=1.0, dtype=None):
+        r'''
+        Initializes the :code:`Tanh_WarpingFunction` instance.
+
+        :kwarg l1: float. Hyperparameter representing left length scale.
+
+        :kwarg l2: float. Hyperparameter representing right length scale.
+
+        :kwarg lw: float. Hyperparameter indicating length scale transition width.
+
+        :kwarg x0: float. Constant indicating transition center location.
+        '''
+        hyps = np.zeros((3, ))
+        csts = np.zeros((1, ))
+        if isinstance(l1, number_types) and float(l1) > 0.0:
+            hyps[0] = float(l1)
+        else:
+            raise ValueError('Length scale function left hyperparameter must be greater than 0.')
+        if isinstance(l2, number_types) and float(l2) > 0.0:
+            hyps[1] = float(l2)
+        else:
+            raise ValueError('Length scale function right hyperparameter must be greater than 0.')
+        if isinstance(lw, number_types):
+            hyps[2] = float(lw)
+        else:
+            raise ValueError('Length scale function width hyperparameter must be a real number.')
+        if isinstance(x0, number_types):
+            csts[0] = float(x0)
+        else:
+            raise ValueError('Length scale function position hyperparameter must be a real number.')
+        super().__init__("TANH", self.__calc_warp, True, hyps, csts, dtype=dtype)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        l1hp = float(hyps[0])
+        l2hp = float(hyps[1])
+        lwhp = float(hyps[2])
+        x0c = float(csts[0])
+        kcopy = Tanh_WarpingFunction(l1hp, l2hp, lwhp, x0c, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds

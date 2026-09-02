@@ -368,9 +368,9 @@ class TestGibbsKernelWithInverseGaussian():
     ref_ddcov = np.atleast_2d([[4.0, 1.00715576945], [1.00715576945, 16.8232521516]])
     ref_hdcov = [
         np.atleast_2d([[2.0, 0.21474364904], [0.21474364904, 2.0]]),
-        np.atleast_2d([[-2.0, 1.88160836531], [1.88160836531, -2.78744556822]]),
-        np.atleast_2d([[0.0, -0.12820614183], [-0.12820614183, 0.37723973548]]),
-        np.atleast_2d([[0.0, -4.10259653856], [-4.10259653856, 12.0716715354]]),
+        np.atleast_2d([[0.0, 1.00992993355], [1.00992993355, 0.0]]),
+        np.atleast_2d([[0.0, -0.06619262585], [-0.06619262585, 0.0]]),
+        np.atleast_2d([[0.0, -2.11816402719], [-2.11816402719, 0.0]]),
     ]
 
     def test_eval(self, gibbs_inverse_gaussian_kernel):
@@ -391,6 +391,42 @@ class TestGibbsKernelWithInverseGaussian():
         else:
             kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
             pytest.raises(NotImplementedError, gibbs_inverse_gaussian_kernel, **kwargs)
+
+
+@pytest.mark.kernels
+@pytest.mark.usefixtures('gibbs_tanh_kernel')
+class TestGibbsKernelWithTanh():
+
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
+    ref_cov = np.atleast_2d([[1.0, 0.05728892869], [0.05728892869, 1.0]])
+    ref_dcov = np.atleast_2d([[0.0, 0.32101138406], [-0.48347748264, 0.0]])
+    ref_ddcov = np.atleast_2d([[4.00854889190, -2.10515514090], [-2.10515514090, 10.5723200810]])
+    ref_hdcov = [
+        np.atleast_2d([[2.0, 0.11457785738], [0.11457785738, 2.0]]),
+        np.atleast_2d([[0.0, 0.56765226139], [0.56765226139, 0.0]]),
+        np.atleast_2d([[0.0, 0.19354146783], [0.19354146783, 0.0]]),
+        np.atleast_2d([[0.0, 0.02200088244], [0.02200088244, 0.0]]),
+    ]
+
+    def test_eval(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
+
+    def test_eval_first_derivative(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
+
+    def test_eval_first_derivative_transpose(self, gibbs_tanh_kernel):
+        assert check_kernel_transposition(gibbs_tanh_kernel, self.x1_vector, self.x2_vector)
+
+    def test_eval_second_derivative(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
+
+    def test_eval_hyperparameter_derivatives(self, gibbs_tanh_kernel):
+        if gibbs_tanh_kernel.is_hderiv_implemented():
+            assert check_kernel_hyperparameter_derivatives(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
+        else:
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
+            pytest.raises(NotImplementedError, gibbs_tanh_kernel, **kwargs)
 
 
 @pytest.mark.operator_kernels
