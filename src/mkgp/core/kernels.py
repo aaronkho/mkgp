@@ -2208,7 +2208,7 @@ class Tanh_WarpingFunction(_WarpingFunction):
 
     :kwarg lw: float. Hyperparameter indicating length scale transition width.
 
-    :kwarg x0: float. Hyperparameter indicating transition center location.
+    :kwarg x0: float. Constant indicating transition center location.
     '''
 
     def __calc_warp(self, zz, der=0, hder=None):
@@ -2252,9 +2252,10 @@ class Tanh_WarpingFunction(_WarpingFunction):
 
         :kwarg lw: float. Hyperparameter indicating length scale transition width.
 
-        :kwarg x0: float. Hyperparameter indicating transition center location.
+        :kwarg x0: float. Constant indicating transition center location.
         '''
-        hyps = np.zeros((4, ))
+        hyps = np.zeros((3, ))
+        csts = np.zeros((1, ))
         if isinstance(l1, number_types) and float(l1) > 0.0:
             hyps[0] = float(l1)
         else:
@@ -2268,10 +2269,10 @@ class Tanh_WarpingFunction(_WarpingFunction):
         else:
             raise ValueError('Length scale function width hyperparameter must be a real number.')
         if isinstance(x0, number_types):
-            hyps[3] = float(x0)
+            csts[0] = float(x0)
         else:
             raise ValueError('Length scale function position hyperparameter must be a real number.')
-        super().__init__("TANH", self.__calc_warp, True, hyps, dtype=dtype)
+        super().__init__("TANH", self.__calc_warp, True, hyps, csts, dtype=dtype)
 
 
     def __copy__(self):
@@ -2287,8 +2288,8 @@ class Tanh_WarpingFunction(_WarpingFunction):
         l1hp = float(hyps[0])
         l2hp = float(hyps[1])
         lwhp = float(hyps[2])
-        x0hp = float(hyps[3])
-        kcopy = Tanh_WarpingFunction(l1hp, l2hp, lwhp, x0hp, dtype=self._dtype)
+        x0c = float(csts[0])
+        kcopy = Tanh_WarpingFunction(l1hp, l2hp, lwhp, x0c, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
