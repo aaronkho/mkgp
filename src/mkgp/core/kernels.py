@@ -1466,7 +1466,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, lder, ghder)
                 dlh2 = self._wfunc(xm2, lder, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
                 covm = (v_hyp ** 2.0) * (c1 + c2) * np.exp(-np.power(rr, 2.0) / ll)
@@ -1493,7 +1493,7 @@ class Gibbs_Kernel(_Kernel):
                 ghder = hder - 1
                 drdxm2 = -np.ones(rr.shape, dtype=self._dtype)
                 dldxm2 = self._wfunc(xm2, lder)
-                kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
+                kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm2 / (2.0 * l_hyp2)
                 t2 = -l_hyp2 * dldxm2 / ll
                 t3 = 2.0 * l_hyp2 * dldxm2 * np.power(rr / ll, 2.0)
@@ -1501,7 +1501,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm2 = self._wfunc(xm2, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1530,11 +1530,11 @@ class Gibbs_Kernel(_Kernel):
                 t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
                 t4 = -drdxm1 * 2.0 * rr / ll
                 covm = kfac * (t1 + t2 + t3 + t4)
-            elif hder >= 1 and hder <= 3:
+            elif hder > 0 and hder <= hdermax:
                 ghder = hder - 1
                 drdxm1 = np.ones(rr.shape, dtype=self._dtype)
                 dldxm1 = self._wfunc(xm1, lder)
-                kfac = 2.0 * v_hyp * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
+                kfac = (v_hyp ** 2.0) * np.sqrt(2.0 * mm / ll) * np.exp(-np.power(rr, 2.0) / ll)
                 t1 = dldxm1 / (2.0 * l_hyp1)
                 t2 = -l_hyp1 * dldxm1 / ll
                 t3 = 2.0 * l_hyp1 * dldxm1 * np.power(rr / ll, 2.0)
@@ -1542,7 +1542,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm1 = self._wfunc(xm1, lder, ghder)
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1601,7 +1601,7 @@ class Gibbs_Kernel(_Kernel):
                 dlh1 = self._wfunc(xm1, 0, ghder)
                 dlh2 = self._wfunc(xm2, 0, ghder)
                 dmm = dlh1 * l_hyp2 + l_hyp1 * dlh2
-                dll = 2.0 * dlh1 + 2.0 * dlh2
+                dll = 2.0 * l_hyp1 * dlh1 + 2.0 * l_hyp2 * dlh2
                 ddldxm1 = self._wfunc(xm1, lder, ghder)
                 ddldxm2 = self._wfunc(xm2, lder, ghder)
                 ddd = ddldxm1 * dldxm2 + dldxm1 * ddldxm2
@@ -1610,8 +1610,8 @@ class Gibbs_Kernel(_Kernel):
                     drdxm2 * rr * ddldxm1 / l_hyp1 - drdxm2 * rr * dldxm1 * dlh1 / np.power(l_hyp1, 2.0)
                 )
                 djj = (
-                    drdxm1 * rr * ddldxm2 / l_hyp2 + drdxm1 * rr * dldxm2 * dlh2 +
-                    drdxm2 * rr * ddldxm1 / l_hyp1 + drdxm2 * rr * dldxm1 * dlh1
+                    drdxm1 * rr * ddldxm2 * l_hyp2 + drdxm1 * rr * dldxm2 * dlh2 +
+                    drdxm2 * rr * ddldxm1 * l_hyp1 + drdxm2 * rr * dldxm1 * dlh1
                 )
                 c1 = np.sqrt(ll / (8.0 * mm)) * (2.0 * dmm / ll - 2.0 * mm * dll / np.power(ll, 2.0))
                 c2 = np.sqrt(2.0 * mm / ll) * np.power(rr / ll, 2.0) * dll
@@ -1632,10 +1632,10 @@ class Gibbs_Kernel(_Kernel):
                 jt = jj / ll * (6.0 / ll - 4.0 * np.power(rr / ll, 2.0)) - ii / ll
                 djt1 = 6.0 * djj / np.power(ll, 2.0) - 12.0 * jj * dll / np.power(ll, 3.0)
                 djt2 = -4.0 * djj * np.power(rr, 2.0) / np.power(ll, 3.0) + 12.0 * jj * dll * np.power(rr, 2.0) / np.power(ll, 4.0)
-                djt3 = dii / ll - ii * dll / np.power(ll, 2.0)
+                djt3 = -dii / ll + ii * dll / np.power(ll, 2.0)
                 djt = djt1 + djt2 + djt3
                 rt = 2.0 * drdxm1 * drdxm2 / np.power(ll, 2.0) * (2.0 * np.power(rr, 2.0) - ll)
-                drt = -2.0 * drdxm1 * drdxm2 * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
+                drt = -2.0 * drdxm1 * drdxm2 * dll * (4.0 * np.power(rr, 2.0) / np.power(ll, 3.0) - 1.0 / np.power(ll, 2.0))
                 covm = dkfac * (dt + jt + rt) + kfac * (ddt + djt + drt)
         else:
             raise NotImplementedError(f'Derivatives of order 3 or higher not implemented in {self.name} kernel.')
