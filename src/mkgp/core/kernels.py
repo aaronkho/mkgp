@@ -19,7 +19,7 @@ __all__ = [
     'ND_Sum_Kernel', 'ND_Product_Kernel',  # Multivariate kernel classes
     'Constant_Kernel', 'Noise_Kernel', 'Linear_Kernel', 'Poly_Order_Kernel', 'SE_Kernel', 'RQ_Kernel',
     'Matern_HI_Kernel', 'NN_Kernel', 'Gibbs_Kernel',  # Kernel classes
-    'Constant_WarpingFunction', 'Linear_WarpingFunction', 'IG_WarpingFunction',  # Warping function classes for Gibbs Kernel
+    'Constant_WarpingFunction', 'Linear_WarpingFunction', 'IG_WarpingFunction', 'Tanh_WarpingFunction',  # Warping function classes for Gibbs Kernel
 ]
 
 
@@ -621,9 +621,9 @@ class Noise_Kernel(_Kernel):
                 covm[rr == 0.0] = n_hyp ** 2.0
             elif hder == 0:
                 covm[rr == 0.0] = 2.0 * n_hyp
-#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centred on rr = 0 with small width, ss
+#       Applied second derivative of Kronecker delta, assuming it is actually a Gaussian centered on rr = 0 with small width, ss
 #       Surprisingly provides good variance estimate but issues with enforcing derivative constraints (needs more work!)
-#        Commented out for stability reasons.
+#       Commented out for stability reasons.
 #        elif der == 2 or der == -2:
 #            drdxm1 = np.sign(xm1 - xm2)
 #            drdxm1[drdxm1==0] = 1.0
@@ -2189,6 +2189,106 @@ class IG_WarpingFunction(_WarpingFunction):
         gmc = float(csts[0])
         lrc = float(csts[1])
         kcopy = IG_WarpingFunction(lbhp, ghhp, gshp, gmc, lrc, dtype=self._dtype)
+        kcopy.enforce_bounds(self._force_bounds)
+        if bnds is not None:
+            kcopy.bounds = bnds
+        return kcopy
+
+
+
+class Tanh_WarpingFunction(_WarpingFunction):
+    r'''
+    Hyperbolic tangent Warping Function for the Gibbs kernel.
+
+    l(z) = 0.5 * ((l1 + l2) - (l1 - l2) * tanh((z - x0) / lw))
+
+    :kwarg l1: float. Hyperparameter representing left length scale.
+
+    :kwarg l2: float. Hyperparameter representing right length scale.
+
+    :kwarg lw: float. Hyperparameter indicating length scale transition width.
+
+    :kwarg x0: float. Hyperparameter indicating transition center location.
+    '''
+
+    def __calc_warp(self, zz, der=0, hder=None):
+        l1, l2, lw, x0 = self.hyperparameters
+        u = (zz - x0) / lw
+        tt = np.tanh(u)
+        ss = 1.0 - tt * tt
+        warp = np.zeros(np.shape(zz), dtype=self._dtype)
+        if der == 0:
+            if hder is None:
+                warp = 0.5 * ((l1 + l2) - (l1 - l2) * tt)
+            elif hder == 0:
+                warp = 0.5 * (1.0 - tt)
+            elif hder == 1:
+                warp = 0.5 * (1.0 + tt)
+            elif hder == 2:
+                warp = 0.5 * (l1 - l2) * ss * u / lw
+            elif hder == 3:
+                warp = 0.5 * (l1 - l2) * ss / lw
+        elif der == 1:
+            if hder is None:
+                warp = -0.5 * (l1 - l2) * ss / lw
+            elif hder == 0:
+                warp = -0.5 * ss / lw
+            elif hder == 1:
+                warp = 0.5 * ss / lw
+            elif hder == 2:
+                warp = -0.5 * (l1 - l2) * ss / (lw * lw) * (2.0 * tt * u - 1.0)
+            elif hder == 3:
+                warp = -0.5 * (l1 - l2) * 2.0 * tt * ss / (lw * lw)
+        return warp
+
+
+    def __init__(self, l1=1.0, l2=0.5, lw=0.1, x0=1.0, dtype=None):
+        r'''
+        Initializes the :code:`Tanh_WarpingFunction` instance.
+
+        :kwarg l1: float. Hyperparameter representing left length scale.
+
+        :kwarg l2: float. Hyperparameter representing right length scale.
+
+        :kwarg lw: float. Hyperparameter indicating length scale transition width.
+
+        :kwarg x0: float. Hyperparameter indicating transition center location.
+        '''
+        hyps = np.zeros((4, ))
+        if isinstance(l1, number_types) and float(l1) > 0.0:
+            hyps[0] = float(l1)
+        else:
+            raise ValueError('Length scale function left hyperparameter must be greater than 0.')
+        if isinstance(l2, number_types) and float(l2) > 0.0:
+            hyps[1] = float(l2)
+        else:
+            raise ValueError('Length scale function right hyperparameter must be greater than 0.')
+        if isinstance(lw, number_types):
+            hyps[2] = float(lw)
+        else:
+            raise ValueError('Length scale function width hyperparameter must be a real number.')
+        if isinstance(x0, number_types):
+            hyps[3] = float(x0)
+        else:
+            raise ValueError('Length scale function position hyperparameter must be a real number.')
+        super().__init__("TANH", self.__calc_warp, True, hyps, dtype=dtype)
+
+
+    def __copy__(self):
+        r'''
+        Implementation-specific copy function, needed for robust hyperparameter optimization routine.
+
+        :returns: object. An exact duplicate of the current instance, which can be modified without affecting the original.
+        '''
+
+        hyps = self.hyperparameters
+        csts = self.constants
+        bnds = self.bounds
+        l1hp = float(hyps[0])
+        l2hp = float(hyps[1])
+        lwhp = float(hyps[2])
+        x0hp = float(hyps[3])
+        kcopy = Tanh_WarpingFunction(l1hp, l2hp, lwhp, x0hp, dtype=self._dtype)
         kcopy.enforce_bounds(self._force_bounds)
         if bnds is not None:
             kcopy.bounds = bnds
