@@ -393,6 +393,42 @@ class TestGibbsKernelWithInverseGaussian():
             pytest.raises(NotImplementedError, gibbs_inverse_gaussian_kernel, **kwargs)
 
 
+@pytest.mark.kernels
+@pytest.mark.usefixtures('gibbs_tanh_kernel')
+class TestGibbsKernelWithTanh():
+
+    x1_vector = np.array([0.0, 1.0])
+    x2_vector = np.array([0.0, 1.0])
+    ref_cov = np.atleast_2d([[1.0, 0.05728892869], [0.05728892869, 1.0]])
+    ref_dcov = np.atleast_2d([[0.0, 0.32101138406], [-0.48347748264, 0.0]])
+    ref_ddcov = np.atleast_2d([[4.00854889190, -2.10515514090], [-2.10515514090, 10.5723200810]])
+    ref_hdcov = [
+        np.atleast_2d([[2.0, 0.11457785738], [0.11457785738, 2.0]]),
+        np.atleast_2d([[-2.00283672410, 1.15102886430], [1.15102886430, -2.66294091320]]),
+        np.atleast_2d([[-0.00355724541, 0.48771759226], [0.48771759226, -3.71643342570]]),
+        np.atleast_2d([[0.02248927763, 0.05865227281], [0.05865227281, -0.51711667919]]),
+    ]
+
+    def test_eval(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 0, self.ref_cov)
+
+    def test_eval_first_derivative(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 1, self.ref_dcov)
+
+    def test_eval_first_derivative_transpose(self, gibbs_tanh_kernel):
+        assert check_kernel_transposition(gibbs_tanh_kernel, self.x1_vector, self.x2_vector)
+
+    def test_eval_second_derivative(self, gibbs_tanh_kernel):
+        assert check_kernel_evaluation(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, 2, self.ref_ddcov)
+
+    def test_eval_hyperparameter_derivatives(self, gibbs_tanh_kernel):
+        if gibbs_tanh_kernel.is_hderiv_implemented():
+            assert check_kernel_hyperparameter_derivatives(gibbs_tanh_kernel, self.x1_vector, self.x2_vector, self.ref_hdcov)
+        else:
+            kwargs = {'x1': self.x1_vector, 'x2': self.x2_vector, 'hder': 0}
+            pytest.raises(NotImplementedError, gibbs_tanh_kernel, **kwargs)
+
+
 @pytest.mark.operator_kernels
 @pytest.mark.usefixtures('sum_kernel')
 class TestSumOperationKernel():
