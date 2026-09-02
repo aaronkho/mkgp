@@ -22,7 +22,7 @@
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
     - apk add --no-cache bzip2 bzip2-dev
-    - apk add --no-cache blosc blosc-dev
+    - apk add --no-cache blosc2 blosc2-dev
   script:
     - pip install -e .[dev]
     - python3 -m pytest
@@ -61,7 +61,7 @@ pages:
     - apk add --no-cache hdf5 hdf5-dev
     - apk add --no-cache lzo lzo-dev
     - apk add --no-cache bzip2 bzip2-dev
-    - apk add --no-cache blosc blosc-dev
+    - apk add --no-cache blosc2 blosc2-dev
   script:
     # Install mkgp package + dependencies using pip
     - pip install -e .[dev,docs]
