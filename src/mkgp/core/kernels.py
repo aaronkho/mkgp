@@ -2212,7 +2212,12 @@ class Tanh_WarpingFunction(_WarpingFunction):
     '''
 
     def __calc_warp(self, zz, der=0, hder=None):
-        l1, l2, lw, x0 = self.hyperparameters
+        hyps = self.hyperparameters
+        csts = self.constants
+        l1 = hyps[0]
+        l2 = hyps[1]
+        lw = hyps[2]
+        x0 = csts[0]
         u = (zz - x0) / lw
         tt = np.tanh(u)
         ss = 1.0 - tt * tt
@@ -2226,8 +2231,8 @@ class Tanh_WarpingFunction(_WarpingFunction):
                 warp = 0.5 * (1.0 + tt)
             elif hder == 2:
                 warp = 0.5 * (l1 - l2) * ss * u / lw
-            elif hder == 3:
-                warp = 0.5 * (l1 - l2) * ss / lw
+            #elif hder == 3:
+            #    warp = 0.5 * (l1 - l2) * ss / lw
         elif der == 1:
             if hder is None:
                 warp = -0.5 * (l1 - l2) * ss / lw
@@ -2237,8 +2242,8 @@ class Tanh_WarpingFunction(_WarpingFunction):
                 warp = 0.5 * ss / lw
             elif hder == 2:
                 warp = -0.5 * (l1 - l2) * ss / (lw * lw) * (2.0 * tt * u - 1.0)
-            elif hder == 3:
-                warp = -0.5 * (l1 - l2) * 2.0 * tt * ss / (lw * lw)
+            #elif hder == 3:
+            #    warp = -0.5 * (l1 - l2) * 2.0 * tt * ss / (lw * lw)
         return warp
 
 
